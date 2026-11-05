@@ -47,7 +47,7 @@ export function makeNemesisVisitor(s, n) {
   if (!awaken) st.met++;
   const lvl = Math.max(0, Math.min(CONFIG.enemy.maxLevel, s.realmIdx + randInt(...n.offset) + awaken * AWAKEN.levelBoost)) + randFloat(0, 0.6);
   return { id: s.nextGid++, nemesisId: n.id, name: awaken ? `${n.name}・覺醒${ROMAN[awaken]}` : n.name, type: n.type, sect: n.sect, role: n.title,
-           personality: n.personality, lvl, alert: false, taunt, awaken };
+           personality: n.personality, lvl, alert: false, taunt, awaken, element: n.element };
 }
 
 // 引爆時的結果台詞

@@ -198,7 +198,7 @@ export function showModal(html) {
 // ── 引爆前預覽 ──
 const PV = { crush: ['v-crush', '碾壓'], narrow: ['v-narrow', '險勝'], fail: ['v-fail', '打不過'] };
 export function showBurstPreview(pv) {
-  const rows = pv.entries.map(e => `<div class="pvrow"><span>${esc(e.g.name)} <small>${esc(e.g.label)}</small></span>
+  const rows = pv.entries.map(e => `<div class="pvrow"><span>${esc(e.g.name)} <small>${esc(e.g.label)}・${esc(e.g.element || '')}${e.adv > 1 ? '↑' : e.adv < 1 ? '↓' : ''}</small></span>
     <span>${e.risk ? '<span class="tag red">⚠ 可能反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span></span></div>`).join('');
   return showModal(`<h3>💥 引爆預覽</h3>
     <p>預計擊敗 <b class="gold">${pv.chain}</b> 人，連鎖加成 <b class="gold">×${pv.chainMult}</b>，蓄力倍率 <b class="gold">×${fmt(pv.chargeMult)}</b>。打不過的人會留在名單上。</p>

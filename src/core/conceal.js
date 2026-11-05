@@ -1,5 +1,7 @@
 // 藏：偽裝值隨時間增加、蓄力倍率、仇人成長、差距指標。
 import { CONFIG } from '../config.js';
+import { KE, elementFromName } from '../data/elements.js';
+import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { REALMS, lvlLabel, tierOfLvl, powerOfLvl, TIER_NAMES } from '../data/realms.js';
 import { combatPower, traitSum } from './economy.js';
 import { perm as daoPerm } from './dao.js';
@@ -21,7 +23,20 @@ export function tick(s, dt) {
 }
 
 // 單一仇人的預估結果：'crush' | 'narrow' | 'fail'
-export function ratioOf(s, g) { return combatPower(s) / powerOfLvl(g.lvl); }
+// 五行克制：已派駐弟子裡，每位剋制該仇人的 +3%、被他剋制的 −2%（夾在 0.85～1.20）。舊存檔沒有五行的仇人用名字推一個。
+export const elementOfGrudge = g => g.element || elementFromName(g.name);
+export function elementAdvantage(s, g) {
+  const E = CONFIG.element, el = elementOfGrudge(g);
+  let beat = 0, beaten = 0;
+  if (E.enabled) for (const d of s.disciples) {
+    if (!d.at) continue;
+    const de = DISCIPLES_BY_ID[d.defId].element;
+    if (KE[de] === el) beat++; else if (KE[el] === de) beaten++;
+  }
+  const mult = E.enabled ? Math.min(E.enemyMax, Math.max(E.enemyMin, 1 + beat * E.enemyBeat - beaten * E.enemyBeaten)) : 1;
+  return { element: el, beat, beaten, mult };
+}
+export function ratioOf(s, g) { return combatPower(s) * elementAdvantage(s, g).mult / powerOfLvl(g.lvl); }
 export function verdictOf(ratio) {
   if (ratio >= CONFIG.burst.crushRatio) return 'crush';
   if (ratio >= CONFIG.burst.narrowRatio) return 'narrow';
@@ -38,5 +53,6 @@ export function gapInfo(s, g) {
   if (tierGap > 0) text = `差 ${tierGap} 個大境界`;
   else if (verdict === 'fail') text = '同大境界，對方略高';
   else text = '你已不輸對方';
-  return { enemy: lvlLabel(g.lvl), me: me.name, tierGap, tierName: TIER_NAMES[tierOfLvl(g.lvl)], text, ratio, verdict };
+  const adv = elementAdvantage(s, g);
+  return { element: adv.element, adv, enemy: lvlLabel(g.lvl), me: me.name, tierGap, tierName: TIER_NAMES[tierOfLvl(g.lvl)], text, ratio, verdict };
 }

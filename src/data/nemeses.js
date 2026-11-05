@@ -3,7 +3,7 @@
 // intro：依第幾次見面（met）依序使用；kneel/narrow/fail 為引爆時的結果台詞。
 // story.defeat：擊敗時老祖旁白；reward：固定獎勵 + 專屬法寶（見 data/artifacts.js 的 unique）。
 export const NEMESES = [
-  { id: 'qian', name: '錢貫', title: '雜役房管事', sect: '青雲宗', emoji: '🧔', type: 'former', personality: '勢利',
+  { id: 'qian', name: '錢貫', title: '雜役房管事', sect: '青雲宗', emoji: '🧔', type: 'former', personality: '勢利', element: '金',
     cond: { minRealm: 1 }, offset: [1, 1],
     intro: ['喲，這不是被我踢出雜役房的廢物嗎？聽說你在後山撿了座破廟？也配叫「宗門」？',
             '上個月的月例你還欠我三塊靈石的「管理費」，別以為逃出去就算了！',
@@ -14,7 +14,7 @@ export const NEMESES = [
     story: { defeat: '雜役房管事錢貫跪地求饒，連同當年剋扣的月例一併吐了出來。老祖冷哼：「第一個。欠你的，一筆一筆收。」' },
     reward: { token: 3, stone: 8, artifact: 'qian_abacus' } },
 
-  { id: 'xiao', name: '蕭承曜', title: '內門師兄', sect: '青雲宗', emoji: '🧑‍🎓', type: 'former', personality: '傲慢',
+  { id: 'xiao', name: '蕭承曜', title: '內門師兄', sect: '青雲宗', emoji: '🧑‍🎓', type: 'former', personality: '傲慢', element: '火',
     cond: { prev: 'qian', minRealm: 4 }, offset: [1, 2],
     intro: ['師弟，別來無恙？聽說你還活著，師兄特地繞路來看看——嗯，比想像中還慘。',
             '當年那顆「失竊的丹藥」，師兄記得是你偷的。你可別忘了，這可是你被逐出宗門的原因。',
@@ -25,7 +25,7 @@ export const NEMESES = [
     story: { defeat: '蕭承曜當眾承認了栽贓。老祖淡淡道：「清白，是用拳頭討回來的。他欠你一個道歉，這只是利息。」' },
     reward: { token: 4, stone: 15, artifact: 'xiao_sword' } },
 
-  { id: 'liu', name: '柳玄素', title: '執法長老', sect: '青雲宗', emoji: '🧙', type: 'elder', personality: '刻薄',
+  { id: 'liu', name: '柳玄素', title: '執法長老', sect: '青雲宗', emoji: '🧙', type: 'elder', personality: '刻薄', element: '木',
     cond: { prev: 'xiao', minRealm: 8 }, offset: [1, 2],
     intro: ['老夫當年親自簽下逐出令，從不後悔。這座破廟的地契，也該收歸宗門了。',
             '你以為挺過來了？宗門的規矩，不是你能破的。老夫勸你，識相點。',
@@ -36,7 +36,7 @@ export const NEMESES = [
     story: { defeat: '執法長老柳玄素的令牌落在你手中。老祖眯起眼：「當年簽令的那隻手，終於也學會發抖了。」' },
     reward: { token: 6, stone: 30, artifact: 'liu_token' } },
 
-  { id: 'yun', name: '雲渺子', title: '青雲宗主', sect: '青雲宗', emoji: '👘', type: 'elder', personality: '虛偽',
+  { id: 'yun', name: '雲渺子', title: '青雲宗主', sect: '青雲宗', emoji: '👘', type: 'elder', personality: '虛偽', element: '水',
     cond: { prev: 'liu', minRealm: 10 }, offset: [1, 2],
     intro: ['賢侄受苦了。當年之事，本座也是迫不得已。如今宗門願意重新接納你——只要你把破廟「獻」給宗門。',
             '破廟那座老祖……本座早有耳聞。年輕人，有些東西，不是你能駕馭的。',
@@ -47,7 +47,7 @@ export const NEMESES = [
     story: { defeat: '青雲宗主雲渺子第一次低下了頭。老祖輕嘆：「他怕的不是你，是你身後這座廟。」' },
     reward: { token: 8, stone: 60, artifact: 'yun_seal' } },
 
-  { id: 'xuan', name: '玄機子', title: '天機閣主', sect: '天機閣', emoji: '🔮', type: 'elder', personality: '傲慢',
+  { id: 'xuan', name: '玄機子', title: '天機閣主', sect: '天機閣', emoji: '🔮', type: 'elder', personality: '傲慢', element: '土',
     cond: { prev: 'yun', minRealm: 11 }, offset: [2, 2],
     intro: ['小友，貧道掐指一算，你這座破廟的根腳……可不簡單。你可知道它的來歷？',
             '三千年前，青雲宗的開山祖師就是在這裡飛升的。這裡，才是真正的青雲祖庭。',

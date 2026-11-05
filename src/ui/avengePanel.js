@@ -23,12 +23,14 @@ export function avengePanel(s, ui) {
     const escapes = nem && gap.verdict === 'narrow';
     const v = escapes ? { t: '險勝・會脫身', c: 'v-fail' } : { t: VERDICT[gap.verdict].t.replace('預估：', ''), c: VERDICT[gap.verdict].c };
     cnt[escapes ? 'fail' : gap.verdict]++;
+    const adv = gap.adv, advTxt = adv.beat || adv.beaten ? `你方 ${adv.beat} 位剋制、${adv.beaten} 位被剋 → 戰力 ×${adv.mult.toFixed(2)}` : '你方派駐弟子與他無五行克制';
     const detail = `<small class="gap">對方 <b>${esc(gap.enemy)}</b>，你 <b>${esc(gap.me)}</b> — ${esc(gap.text)}</small>
+      <small>五行：<b>${esc(gap.element)}</b>　${esc(advTxt)}</small>
       <div class="tags"><span class="tag">${esc(t.label)}</span> <span class="tag">${esc(g.personality)}</span>
         ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}</div>`;
     return crow(ui, { key: 'g' + g.id, cls: `${nem ? 'nemesis' : ''} vr-${escapes ? 'fail' : gap.verdict}`, icon: nem ? nem.emoji : t.emoji,
       title: `<b>${esc(g.name)}</b>`, badges: nem ? ` <span class="tag gold">${g.awaken ? '覺醒宿敵' : '宿敵'}</span>` : '',
-      sub: `${esc(gap.enemy)}・${esc(g.sect)}・${esc(g.role)}`, act: `<span class="verdict ${v.c}">${v.t}</span>`, detail });
+      sub: `${esc(gap.enemy)}・${esc(gap.element)}${gap.adv.mult > 1 ? '↑' : gap.adv.mult < 1 ? '↓' : ''}・${esc(g.sect)}・${esc(g.role)}`, act: `<span class="verdict ${v.c}">${v.t}</span>`, detail });
   }).join('') || '<p class="hint">復仇簿是空的。等人來嘲諷，然後忍著。</p>';
   const summary = s.grudges.length
     ? `<div class="vsum"><span>復仇簿 ${s.grudges.length}/${CONFIG.visitor.maxGrudges}</span><span class="verdict v-crush">碾壓 ${cnt.crush}</span><span class="verdict v-narrow">險勝 ${cnt.narrow}</span><span class="verdict v-fail">打不過 ${cnt.fail}</span></div>`

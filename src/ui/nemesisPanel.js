@@ -17,7 +17,7 @@ export function nemesisPanel(s, ui) {
       ${defeated ? `<p class="nemstory">${esc(n.story.defeat)}</p>` : ''}
       ${defeated ? `<small class="gold">🌟 ${esc(awakenNeedText(s, n))}${canAwaken(s, n) ? '（條件已達成，將在訪客中登場）' : ''}</small>` : ''}
       <small>獎勵：🎫${n.reward.token} 💎${n.reward.stone}　${art ? `${art.emoji}${esc(art.name)}（${esc(art.desc)}）` : ''}</small>`;
-    return crow(ui, { key: 'n' + n.id, cls: defeated ? 'done' : '', icon: n.emoji, title: `<b>${esc(n.name)}</b>`, badges: ` <span class="tag">${esc(n.title)}</span>${awTag}`, act: status,
+    return crow(ui, { key: 'n' + n.id, cls: defeated ? 'done' : '', icon: n.emoji, title: `<b>${esc(n.name)}</b>`, badges: ` <span class="tag">${esc(n.title)}</span> <span class="tag">五行${esc(n.element)}</span>${awTag}`, act: status,
       sub: esc(st.met ? n.intro[Math.max(1, st.met) - 1] : (condText(s, n) || '隨時可能登場')), detail });
   }).join('');
   return `<p class="hint">宿敵 ${done}/${NEMESES.length}</p>${rows}`;

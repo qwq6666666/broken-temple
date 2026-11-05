@@ -13,6 +13,7 @@ import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { ELEMENTS, elementFromName } from '../data/elements.js';
 import { BRANCH_KEYS } from '../data/branches.js';
 import { ACHIEVEMENTS_BY_ID } from '../data/achievements.js';
 import { COMMISSION_BY_KIND } from '../data/commissions.js';
@@ -46,6 +47,7 @@ function sanitizeGrudge(g) {
   if (!VISITOR_TYPES[out.type]) out.type = 'former';
   if (!PERSONALITIES[out.personality]) out.personality = '傲慢';
   if (out.nemesisId && !NEMESES_BY_ID[out.nemesisId]) delete out.nemesisId;
+  out.element = ELEMENTS.includes(out.element) ? out.element : elementFromName(out.name);
   out.awaken = out.nemesisId ? Math.max(0, Math.min(3, Math.floor(num(Number(out.awaken))))) : 0;
   out.lvl = Math.max(0, num(Number(out.lvl)));
   out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');

@@ -8,7 +8,7 @@ import { LINES, pickLine } from '../data/lines.js';
 import { lvlLabel } from '../data/realms.js';
 import { pick, randInt, chance, weighted } from './rng.js';
 import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst } from './economy.js';
-import { chargeMult, disguiseFull, ratioOf, verdictOf } from './conceal.js';
+import { chargeMult, disguiseFull, ratioOf, verdictOf, elementOfGrudge, elementAdvantage } from './conceal.js';
 import { note } from './chronicle.js';
 import { quote } from './events.js';
 import { isNemesis, nemOf, nemState, lineFor } from './nemesis.js';
@@ -64,7 +64,7 @@ const order = grudges => [...grudges].sort((a, b) => (isNemesis(a) - isNemesis(b
 export function previewBurst(s) {
   const entries = order(s.grudges).map(g => {
     const { ratio, verdict } = judge(s, g);
-    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, nemesis: isNemesis(g), risk: g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
+    return { g: { ...g, label: lvlLabel(g.lvl), element: elementOfGrudge(g) }, adv: elementAdvantage(s, g).mult, ratio, verdict, nemesis: isNemesis(g), risk: g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
   });
   const chain = entries.filter(e => e.verdict !== 'fail').length;
   return { entries, chain, chainMult: chainMult(chain), chargeMult: chargeMult(s), backfires: entries.filter(e => e.risk).length };
@@ -112,7 +112,7 @@ export function burst(s) {
     if (rp) reps[rp.id] = (reps[rp.id] || 0) + (e.verdict === 'crush' ? 2 : 1);
     if (e.verdict === 'crush' && !e.nemesis && chance(FR.returnChance)) {
       const tier = tierOfSect(s, e.g.sect), mode = chance(FR.pleadBase + FR.pleadPerTier * tier) ? 'plead' : 'revenge';
-      s.returners.push({ name: e.g.name, sect: e.g.sect, type: e.g.type, role: e.g.role, personality: e.g.personality, lvl: e.g.lvl, mode,
+      s.returners.push({ name: e.g.name, sect: e.g.sect, type: e.g.type, role: e.g.role, personality: e.g.personality, lvl: e.g.lvl, mode, element: e.g.element,
                          dueAt: s.t + randInt(...FR.returnDelayMin) * 60000 });
       comebacks.push(e.g.name);
     }

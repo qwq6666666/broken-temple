@@ -33,6 +33,7 @@ import * as Wk from '../src/core/weekly.js';
 import { COMMISSION_RULES } from '../src/data/commissions.js';
 import { relation, SHENG, KE, ELEMENTS } from '../src/data/elements.js';
 import { elementEffect, contribution } from '../src/core/discipleMath.js';
+import * as Conc from '../src/core/conceal.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID } from '../src/data/expeditions.js';
@@ -1232,6 +1233,29 @@ t('補滿空位的結果接近暴力窮舉最佳解（含五行相生相剋）',
     ds.forEach(d => { d.at = null; }); rec(0);
     assert.ok(got >= best * 0.97, `${names} 補位 ${got.toFixed(3)} 應 ≥ 最佳 ${best.toFixed(3)} 的 97%`);
   }
+});
+
+t('仇人五行：訪客／宿敵／回頭客都有、克制讓戰力比 +3% 每位、被剋 −2%、上下限、未派駐不算、可關閉', () => {
+  assert.ok(NEMESES.every(n => ELEMENTS.includes(n.element)), '每位宿敵都有五行');
+  const s = createState(); s.realmIdx = 6; s.buildings.temple.lv = 4;
+  const g = { id: 1, name: '某某', type: 'former', sect: 's', role: 'r', personality: '傲慢', lvl: 6, alert: false, element: '火' };
+  assert.equal(Conc.elementAdvantage(s, g).mult, 1);                                  // 沒派駐：無克制
+  const w = D.addDisciple(s, DISCIPLES.find(x => x.element === '水').id).disciple;      // 水系弟子（水剋火）
+  assert.equal(Conc.elementAdvantage(s, g).mult, 1, '未派駐不算');
+  w.at = 'temple'; assert.ok(Math.abs(Conc.elementAdvantage(s, g).mult - 1.03) < 1e-9); assert.equal(Conc.elementAdvantage(s, g).beat, 1);
+  const ratio1 = Conc.ratioOf(s, g); CONFIG.element.enabled = false; const ratio0 = Conc.ratioOf(s, g); CONFIG.element.enabled = true;
+  assert.ok(Math.abs(ratio1 / ratio0 - 1.03) < 1e-9, '克制讓戰力比 ×1.03');
+  // 被剋：土剋水。對「水」敵人，土系弟子被剋 −2%
+  const gw = { ...g, element: '水' }; const earthD = DISCIPLES.find(x => x.element === '土'); const e = D.addDisciple(s, earthD.id).disciple; e.at = 'temple';
+  const beaten = Conc.elementAdvantage(s, gw); assert.equal(beaten.beaten, 0); assert.equal(beaten.beat, 1);    // 土剋水：土系是「克制者」
+  const gm = { ...g, element: '土' }; assert.equal(Conc.elementAdvantage(s, gm).beaten, 1);                      // 土敵人剋水系弟子
+  // 上下限：派很多克制者也不超過 1.20
+  for (let i = 0; i < 12; i++) { const d = D.addDisciple(s, DISCIPLES.find(x => x.element === '水').id).disciple; d.at = 'temple'; }
+  assert.ok(Conc.elementAdvantage(s, g).mult <= 1.2 + 1e-9);
+  // 舊存檔沒有五行：用名字推得出穩定的一個
+  const old = { ...g }; delete old.element; assert.equal(Conc.elementOfGrudge(old), Conc.elementOfGrudge({ ...old })); assert.ok(ELEMENTS.includes(Conc.elementOfGrudge(old)));
+  const raw = JSON.parse(JSON.stringify(createState())); raw.grudges = [{ ...old, element: 'zzz' }];
+  assert.ok(ELEMENTS.includes(sanitize(raw).grudges[0].element));
 });
 
 console.log(`\n${n} 項測試通過`);

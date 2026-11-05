@@ -17,6 +17,7 @@ import { clickPower } from '../core/economy.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { cooldownLeft, cooldownMs } from '../core/meditate.js';
+import { elementAdvantage, elementOfGrudge } from '../core/conceal.js';
 import { assess } from '../core/endure.js';
 import { nemOf } from '../core/nemesis.js';
 import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
@@ -123,6 +124,12 @@ function buildingPopover(s, id) {
 
 const VERDICT_TXT = { crush: ['v-crush', '你能碾壓他'], narrow: ['v-narrow', '你勉強勝他'], fail: ['v-fail', '你打不過他'] };
 
+// 五行克制提示：派駐弟子裡有人剋他（↑）或被他剋（↓）
+function elAdv(s, v) {
+  const m = elementAdvantage(s, v).mult;
+  return m > 1 ? `<b class="gold">（克制 ×${m.toFixed(2)}）</b>` : m < 1 ? `<b class="red">（受制 ×${m.toFixed(2)}）</b>` : '';
+}
+
 function visitorCard(s, entering = false) {
   const v = s.visitor.current;
   if (!v) return '';
@@ -142,7 +149,7 @@ function visitorCard(s, entering = false) {
   return `<div class="visitor-card ${nem ? 'nemesis' : ''} ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${nem ? nem.emoji : t.emoji}</span>
       <div><b>${esc(v.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}${v.returning === 'revenge' ? '<span class="tag red">回頭客・復仇（獎勵 ×' + FR.revengeReward + '）</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
-      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small></div></div>
+      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}・五行${esc(elementOfGrudge(v))}${elAdv(s, v)}</small></div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">
       <button class="btn endure" data-act="endure"><b>😤 忍氣吞聲</b><small>${endureText}</small></button>
