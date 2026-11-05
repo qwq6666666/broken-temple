@@ -4,6 +4,7 @@ import { CONFIG } from '../config.js';
 import { createState } from './state.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { STORIES, STORIES2 } from '../data/stories.js';
+import { SPECS } from '../data/specs.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
@@ -68,6 +69,8 @@ export function sanitize(s) {
   if (!isPlain(s.visitor)) s.visitor = { current: null, nextAt: s.t };
   if (s.visitor.current) s.visitor.current = sanitizeGrudge(s.visitor.current);
   if (!isPlain(s.unlocked)) s.unlocked = {};
+  if (!isPlain(s.specs)) s.specs = {};
+  for (const id of Object.keys(s.specs)) if (!(SPECS[id] || []).some(o => o.id === s.specs[id])) delete s.specs[id];
   if (!isPlain(s.stories)) s.stories = {};
   for (const id of Object.keys(s.stories)) { const max = STORIES2[id] ? 2 : STORIES[id] ? 1 : 0; if (!max) delete s.stories[id]; else s.stories[id] = Math.max(0, Math.min(max, Math.floor(num(Number(s.stories[id]))))); }
   s.disguise.value = Math.max(0, Math.min(20, num(s.disguise.value)));

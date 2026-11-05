@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { defOf, starOf } from './discipleMath.js';
 import { discipleDiscount } from './economy.js';
+import { perm } from './dao.js';
 import { slots } from './buildings.js';
 import { canAfford, pay } from './resources.js';
 
@@ -19,7 +20,7 @@ export function addDisciple(s, defId) {
   return { isNew: true, shards: 0, disciple: d };
 }
 
-export const levelCap = s => CONFIG.disciple.baseLevelCap + s.buildings.arena.lv * CONFIG.disciple.capPerArenaLevel;
+export const levelCap = s => CONFIG.disciple.baseLevelCap + s.buildings.arena.lv * CONFIG.disciple.capPerArenaLevel + s.buildings.hall.lv + perm(s, 'discipleCap');   // 演武場、傳功殿、專精
 // 個別弟子的等級上限：全域上限 + 每星 +2
 export const levelCapOf = (s, d) => levelCap(s) + CONFIG.disciple.starCap * starOf(d);
 

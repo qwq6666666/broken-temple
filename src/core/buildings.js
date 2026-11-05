@@ -35,7 +35,9 @@ export function upgradeCost(s, id) {
   for (const [k, v] of Object.entries(def(id).baseCost)) out[k] = Math.floor(v * CONFIG.building.costGrowth ** lv * realmMult);
   return out;
 }
-export const canUpgrade = (s, id) => !isCapped(s, id) && canAfford(s, upgradeCost(s, id));
+// 後期建築需先達到 unlockRealm（已建造過的不受影響）
+export const isBuildingUnlocked = (s, id) => def(id).unlockRealm == null || s.realmIdx >= def(id).unlockRealm || s.buildings[id].lv > 0;
+export const canUpgrade = (s, id) => isBuildingUnlocked(s, id) && !isCapped(s, id) && canAfford(s, upgradeCost(s, id));
 
 export function upgrade(s, id) {
   if (!canUpgrade(s, id)) return false;

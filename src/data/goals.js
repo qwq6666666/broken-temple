@@ -7,7 +7,8 @@ import { ARTIFACTS } from './artifacts.js';
 import { DISCIPLES } from './disciples.js';
 const NORMAL_ARTS = ARTIFACTS.filter(a => !a.unique).length;
 const normalArts = s => s.artifacts.filter(id => !ARTIFACTS_BY_ID[id].unique).length;
-const minBuilding = s => Math.min(...Object.values(s.buildings).map(b => b.lv));
+const BASE6 = ['temple', 'field', 'alchemy', 'library', 'arena', 'array'];     // 後期建築不計入「全建築」目標
+const minBuilding = s => Math.min(...BASE6.map(id => s.buildings[id].lv));
 const maxStar = s => Math.max(0, ...s.disciples.map(d => d.star || 0));
 const realm = i => ({ cur: s => s.realmIdx, target: i });
 

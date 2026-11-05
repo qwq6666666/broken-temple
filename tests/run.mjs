@@ -19,6 +19,8 @@ import * as Nem from '../src/core/nemesis.js';
 import * as Dao from '../src/core/dao.js';
 import * as St from '../src/core/stories.js';
 import * as Bond from '../src/core/bonds.js';
+import * as Sp from '../src/core/spec.js';
+import { SPECS, specText } from '../src/data/specs.js';
 import { STORIES, STORIES2 } from '../src/data/stories.js';
 import { BONDS } from '../src/data/bonds.js';
 import { DISCIPLES, DISCIPLES_BY_ID } from '../src/data/disciples.js';
@@ -773,6 +775,57 @@ t('故事進度跨轉生保留；存檔清理未知弟子的故事', () => {
   const s = maxedRun(); s.stories = { afu: 1 }; Dao.rebirth(s); assert.equal(s.stories.afu, 1);
   const x = loadPatched(st => { st.stories = { gone: 1, afu: 9, yunqing: 'x' }; });
   assert.equal(x.stories.gone, undefined); assert.equal(x.stories.afu, 1); assert.equal(x.stories.yunqing, 0);
+});
+
+// ── R11 專精與後期建築 ──
+t('後期建築：需達境界才能建造；已建造的不受影響；不計入「全建築」大事', () => {
+  const s = createState(); s.res.qi = 1e12; s.res.stone = 1e6; s.realmIdx = 6;
+  assert.equal(B.isBuildingUnlocked(s, 'tower'), false); assert.equal(B.upgrade(s, 'tower'), false);
+  s.realmIdx = 7; assert.equal(B.isBuildingUnlocked(s, 'tower'), true); assert.equal(B.upgrade(s, 'tower'), true);
+  s.realmIdx = 3; assert.equal(B.isBuildingUnlocked(s, 'tower'), true);          // 已建造
+  assert.equal(B.isBuildingUnlocked(s, 'hall'), false);
+  Object.keys(s.buildings).forEach(id => { s.buildings[id].lv = 3; }); s.buildings.beast.lv = 0;
+  assert.equal(GOALS_BY_ID.bld3.cur(s), 3);                                       // 靈獸園沒建也不影響
+});
+
+t('鎮魔塔／傳功殿／靈獸園的效果', () => {
+  const s = createState();
+  const p0 = eco.combatPower(s); s.buildings.tower.lv = 5; assert.ok(Math.abs(eco.combatPower(s) / p0 - 1.30) < 1e-9);
+  assert.ok(Math.abs(eco.towerBurst(s) - 0.15) < 1e-9);
+  const cap0 = D.levelCap(s), dis0 = eco.discipleDiscount(s); s.buildings.hall.lv = 4;
+  assert.equal(D.levelCap(s), cap0 + 4); assert.ok(Math.abs(eco.discipleDiscount(s) - dis0 - 0.08) < 1e-9);
+  const r0 = eco.rareChance(s); s.buildings.beast.lv = 5; assert.ok(Math.abs(eco.rareChance(s) - r0 - 0.10) < 1e-9);
+  const a = createState(), b = createState(); b.buildings.beast.lv = 10;
+  eco.tick(a, 90000); eco.tick(b, 90000); assert.ok(b.res.token > a.res.token);
+});
+
+t('專精：升到 Lv5 才能選、二選一、效果生效、轉生後重選', () => {
+  const s = createState();
+  assert.equal(Sp.canChoose(s, 'alchemy'), false); assert.equal(Sp.choose(s, 'alchemy', 'mass'), false);
+  s.buildings.alchemy.lv = 5; assert.equal(Sp.canChoose(s, 'alchemy'), true);
+  assert.equal(Sp.choose(s, 'alchemy', 'ghost'), false);                          // 不存在的選項
+  const st0 = eco.stonePerSec(s) || 1; s.buildings.alchemy.lv = 5;
+  const before = eco.stonePerSec(s);
+  assert.equal(Sp.choose(s, 'alchemy', 'mass'), true); assert.equal(Sp.choose(s, 'alchemy', 'fine'), false);   // 不能改選
+  assert.ok(Math.abs(eco.stonePerSec(s) / before - 1.25) < 1e-9);                  // 靈石 +25%
+  s.buildings.temple.lv = 5; Sp.choose(s, 'temple', 'zen');
+  assert.equal(M.cooldownMs(s), CONFIG.click.cooldownMs - 2000);                    // 靜修殿：冷卻 -2 秒
+  const m = maxedRun(); m.specs = { temple: 'zen' }; Dao.rebirth(m); assert.deepEqual(m.specs, {});
+});
+
+t('專精資料完整、存檔清理未知專精', () => {
+  for (const [id, opts] of Object.entries(SPECS)) { assert.ok(BUILDINGS.some(b => b.id === id)); assert.equal(opts.length, 2); opts.forEach(o => assert.ok(specText(o.effects))); }
+  const x = loadPatched(st => { st.specs = { temple: 'zen', alchemy: 'gone', ghost: 'x' }; });
+  assert.deepEqual(x.specs, { temple: 'zen' });
+  assert.ok(Object.keys(createState().buildings).includes('beast'));
+  const old = loadPatched(st => { delete st.buildings.beast; });                    // 舊存檔沒有新建築：自動補齊
+  assert.equal(old.buildings.beast.lv, 0);
+});
+
+t('新建築解鎖提示只彈一次，舊存檔 quiet', () => {
+  const s = createState(); s.realmIdx = 7; const toasts = []; bus.on('toast', x => toasts.push(x.text));
+  Prog.tick(s); Prog.tick(s); assert.equal(toasts.filter(x => x.includes('鎮魔塔')).length, 1);
+  const o = createState(); o.realmIdx = 13; const n0 = toasts.length; Prog.tick(o, true); assert.equal(toasts.length, n0);
 });
 
 console.log(`\n${n} 項測試通過`);

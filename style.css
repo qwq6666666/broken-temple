@@ -493,3 +493,12 @@ button.meditate .mlabel { position: relative; }
 .bond { display: grid; grid-template-columns: 6em 1fr auto; gap: 6px; align-items: center; font-size: .85em; padding: 3px 6px; border-radius: 6px; background: #0e1613; }
 .bond small { grid-column: 1 / -1; color: var(--dim); } .bond.on { border: 1px solid var(--gold); } .bond.on small { color: var(--gold); } .bond.warn small { color: var(--red); }
 @media (max-width: 860px) { .bond { grid-template-columns: 1fr; } }
+
+/* 後期建築與專精 */
+.bld.locked { display: none; }
+.card.locked { opacity: .5; }
+.specbox { background: rgba(217,182,74,.07); border: 1px solid rgba(217,182,74,.3); border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; }
+.specopts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.specopts .btn { display: flex; flex-direction: column; text-align: left; gap: 2px; padding: 6px 8px; }
+.specopts small { white-space: normal; font-size: .72em; color: var(--paper); opacity: .8; }
+@media (max-width: 860px) { .specopts { grid-template-columns: 1fr; } }

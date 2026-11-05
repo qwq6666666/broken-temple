@@ -1,7 +1,7 @@
 // 新手引導：分頁漸進解鎖與「下一步」提示。解鎖旗標存進存檔，轉生後也保留。
 import { REALMS } from '../data/realms.js';
 import { GOALS } from '../data/goals.js';
-import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { BUILDINGS } from '../data/buildings.js';
 import { canAfford } from './resources.js';
 import { upgradeCost, isCapped } from './buildings.js';
 import { nextRealm, breakCost, canBreak } from './realm.js';
@@ -24,10 +24,20 @@ export const isUnlocked = (s, tab) => !TAB_RULES[tab] || !!s.unlocked[tab];
 
 // 每 tick 檢查；舊存檔載入後第一次會一次解鎖所有已達成的條件（不吵：只有真的新解鎖才提示）
 export function tick(s, quiet = false) {
+  tickBuildings(s, quiet);
   for (const [tab, r] of Object.entries(TAB_RULES)) {
     if (s.unlocked[tab] || !r.when(s)) continue;
     s.unlocked[tab] = true;
     if (!quiet) { toast(`🔓 新分頁解鎖：${r.name}`, 'good'); cue('goal'); }
+  }
+}
+
+// 後期建築解鎖提示（舊存檔載入時 quiet，不彈）
+export function tickBuildings(s, quiet = false) {
+  for (const d of BUILDINGS) {
+    if (d.unlockRealm == null || s.unlocked['b_' + d.id] || s.realmIdx < d.unlockRealm) continue;
+    s.unlocked['b_' + d.id] = true;
+    if (!quiet) { toast(`🏗 新建築可建造：${d.name}`, 'good'); cue('goal'); }
   }
 }
 

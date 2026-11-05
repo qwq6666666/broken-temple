@@ -3,7 +3,9 @@ import { BUILDINGS } from '../data/buildings.js';
 import { VISITOR_TYPES, PERSONALITIES } from '../data/visitors.js';
 import { lvlLabel } from '../data/realms.js';
 import { CONFIG } from '../config.js';
-import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor } from '../core/buildings.js';
+import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked } from '../core/buildings.js';
+import { SPECS, SPEC_LEVEL, specText } from '../data/specs.js';
+import { chosenSpec, canChoose as canSpec } from '../core/spec.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
 import { drawBuilding, POS, DRAW_ORDER, BACKDROP } from './sceneArt.js';
@@ -22,9 +24,9 @@ export function mountScene(root) {
   const blds = DRAW_ORDER.map(id => {
     const [x, y] = POS[id];
     return `<g class="bld" data-act="selectBuilding" data-id="${id}" transform="translate(${x} ${y})"><g class="bi">
-        <rect class="hit" x="-78" y="-118" width="156" height="140"/>
-        <ellipse class="selring" cx="0" cy="0" rx="70" ry="12"/>
-        <g class="art" transform="scale(1.5)"></g><g class="crewg"></g><g class="smoke"><text x="18" y="-46" font-size="16">💨</text></g>
+        <rect class="hit" x="-70" y="-124" width="140" height="146"/>
+        <ellipse class="selring" cx="0" cy="0" rx="62" ry="11"/>
+        <g class="art" transform="scale(1.3)"></g><g class="crewg"></g><g class="smoke"><text x="18" y="-46" font-size="16">💨</text></g>
         <g class="lvchip" transform="translate(0 20)"><rect x="-17" y="-8" width="34" height="14" rx="7"/><text x="0" y="3" text-anchor="middle"></text></g>
       </g></g>`;
   }).join('');
@@ -54,7 +56,7 @@ export function mountScene(root) {
 
 const setClass = (el, c) => { if (el._c !== c) { el.setAttribute('class', c); el._c = c; } };
 // 弟子站位（相對建築底部中心）
-const CREW_AT = [[-46, 14], [46, 14], [-22, 28], [22, 28]];
+const CREW_AT = [[-40, 14], [40, 14], [-18, 26], [18, 26]];
 
 export function updateScene(root, refs, s, ui) {
   // 場景氛圍：破廟外觀決定背景光暈；境界階層決定山水（荒山→雲海→仙山→極光→天門）；宿敵來訪時加上紅色暈影
@@ -69,7 +71,7 @@ export function updateScene(root, refs, s, ui) {
   for (const d of BUILDINGS) {
     const b = s.buildings[d.id], t = refs.tileEls[d.id], si = stageIndex(d.id, b.lv);
     const built = b.lv > 0, paused = built && s.t < b.pausedUntil;
-    setClass(t.el, `bld ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${b.lv >= CONFIG.building.maxLevel ? 'maxed' : ''} ${ui.selBuilding === d.id ? 'sel' : ''} st-${si}${t.el._pop ? ' popup' : ''}`);
+    setClass(t.el, `bld ${isBuildingUnlocked(s, d.id) ? '' : 'locked'} ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${b.lv >= CONFIG.building.maxLevel ? 'maxed' : ''} ${ui.selBuilding === d.id ? 'sel' : ''} st-${si}${t.el._pop ? ' popup' : ''}`);
     if (t.si !== si) { t.si = si; t.art.innerHTML = drawBuilding(d.id, si); }
     setText(t.chip, built ? 'Lv' + b.lv : '建造');
     const crew = s.disciples.filter(x => x.at === d.id).slice(0, 4);
@@ -110,6 +112,7 @@ function buildingPopover(s, id) {
       <span class="tag">專長：${esc(d.specialty)}</span>${paused ? '<span class="tag red">⏸ 暫停產出中</span>' : ''}</div>
     <small>${esc(d.desc)}</small>
     <small class="dim">${esc(st.label)}${next ? `　→　Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}</small>
+    ${specBlock(s, id)}
     <div class="bpop-foot">
       <small>駐守 ${crew.length}/${slots(s, id)}：${crew.length ? crew.map(x => `${DISCIPLES_BY_ID[x.defId].emoji}${esc(DISCIPLES_BY_ID[x.defId].name)}`).join('、') : '<span class="dim">無（到「弟子」分頁派駐）</span>'}</small>
       <div class="act">${action}</div></div></div>`;
@@ -156,4 +159,14 @@ function incidentCard(s, entering = false) {
           <b>${esc(c.label)}</b> ${Object.keys(cost).length ? costChips(s, cost) : ''}<small>${esc(c.desc)}</small></button>`;
       }).join('')}
     </div></div>`;
+}
+
+// 專精：升到 SPEC_LEVEL 後二選一
+function specBlock(s, id) {
+  if (!SPECS[id]) return '';
+  const cur = chosenSpec(s, id);
+  if (cur) return `<div class="specbox"><b>🏗 專精：${esc(cur.name)}</b> <small class="gold">${esc(specText(cur.effects))}</small></div>`;
+  if (s.buildings[id].lv < SPEC_LEVEL) return `<small class="dim">🏗 升到 Lv${SPEC_LEVEL} 可選擇專精方向</small>`;
+  return `<div class="specbox"><b>🏗 選擇專精（本輪有效，無法更換）</b><div class="specopts">${SPECS[id].map(o =>
+    `<button class="btn primary" data-act="chooseSpec" data-id="${id}" data-opt="${o.id}"><b>${esc(o.name)}</b><small>${esc(specText(o.effects))}</small></button>`).join('')}</div></div>`;
 }

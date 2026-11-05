@@ -7,7 +7,7 @@ import { ARTIFACTS } from '../data/artifacts.js';
 import { LINES, pickLine } from '../data/lines.js';
 import { lvlLabel } from '../data/realms.js';
 import { pick, randInt, chance, weighted } from './rng.js';
-import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum } from './economy.js';
+import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf } from './conceal.js';
 import { quote } from './events.js';
 import { isNemesis, nemOf, nemState, lineFor } from './nemesis.js';
@@ -78,7 +78,7 @@ export function burst(s) {
   // 2) 連鎖：被擊敗（碾壓＋險勝）的人數
   const chain = entries.filter(e => e.verdict !== 'fail').length;
   const cMult = chainMult(chain);
-  const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward');
+  const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward') + towerBurst(s);
   const total = { qi: 0, stone: 0, token: 0 };
   const surrendered = [], artifacts = [], nemesesDefeated = [];
   // 3) 發獎勵

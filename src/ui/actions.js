@@ -10,6 +10,7 @@ import * as X from '../core/burst.js';
 import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
 import * as St from '../core/stories.js';
+import * as Sp from '../core/spec.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
@@ -41,6 +42,7 @@ export function bindActions(s, ui, rerender) {
       sc.appendChild(f); setTimeout(() => f.remove(), 900);
     },
     selectBuilding: el => { ui.selBuilding = ui.selBuilding === el.dataset.id ? null : el.dataset.id; sfx('click'); },
+    chooseSpec: el => { if (Sp.choose(s, el.dataset.id, el.dataset.opt)) sfx('goal'); },
     closeBuilding: () => { ui.selBuilding = null; },
     upgrade: el => { if (B.upgrade(s, el.dataset.id)) sfx('upgrade'); },
     breakthrough: async () => {

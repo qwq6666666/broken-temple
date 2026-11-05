@@ -74,6 +74,43 @@ export const BUILDINGS = [
       { lv: 10, emoji: '🌌', label: '周天星斗大陣' },
     ],
   },
+  // ── 後期建築：依境界序號 unlockRealm 解鎖 ──
+  {
+    id: 'tower', name: '鎮魔塔', specialty: '體修', element: '金', unlockRealm: 7,
+    baseCost: { qi: 80000, stone: 60 }, produce: {},
+    desc: '每級戰力 +6%、爆擊獎勵 +3%。',
+    stages: [
+      { lv: 0, emoji: '🪨', label: '倒塌的石堆' },
+      { lv: 1, emoji: '🗼', label: '簡陋瞭望塔' },
+      { lv: 4, emoji: '🏯', label: '三層鎮魔塔' },
+      { lv: 7, emoji: '🛡️', label: '旌旗獵獵的高塔' },
+      { lv: 10, emoji: '⚔️', label: '鎮壓八方的巨塔' },
+    ],
+  },
+  {
+    id: 'hall', name: '傳功殿', specialty: '陣修', element: '水', unlockRealm: 9,
+    baseCost: { qi: 300000, stone: 120 }, produce: {},
+    desc: '弟子等級上限 +1/級，弟子升級成本 -2%/級。',
+    stages: [
+      { lv: 0, emoji: '🧱', label: '斷垣殘壁' },
+      { lv: 1, emoji: '⛩️', label: '四柱涼亭' },
+      { lv: 4, emoji: '🏛️', label: '講經殿' },
+      { lv: 7, emoji: '📿', label: '燈火不滅的傳功殿' },
+      { lv: 10, emoji: '🌟', label: '萬法歸宗大殿' },
+    ],
+  },
+  {
+    id: 'beast', name: '靈獸園', specialty: '農修', element: '木', unlockRealm: 11,
+    baseCost: { qi: 900000, stone: 250 }, produce: {},
+    desc: '招賢令自然增速 +8%/級、稀有事件機率 +2%/級。',
+    stages: [
+      { lv: 0, emoji: '🪵', label: '破落柵欄' },
+      { lv: 1, emoji: '🐇', label: '小獸欄' },
+      { lv: 4, emoji: '🦌', label: '靈獸苑' },
+      { lv: 7, emoji: '🐅', label: '百獸園' },
+      { lv: 10, emoji: '🐉', label: '龍鳳棲居之地' },
+    ],
+  },
 ];
 
 export const BUILDINGS_BY_ID = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));

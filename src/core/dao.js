@@ -4,6 +4,7 @@ import { DAO_SHOP, DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { createState } from './state.js';
 import { canAfford, pay } from './resources.js';
 import { toast, quote, cue } from './events.js';
+import { specSum } from './spec.js';
 
 // 轉生次數的自動加成：前 softCap 次線性，之後只有小幅尾巴（遞減）
 export function autoBonus(count) {
@@ -18,7 +19,7 @@ export function perm(s, key) {
   let v = 0;
   for (const it of DAO_SHOP) if (it.key === key) v += shopLevel(s, it.id) * it.perLevel;
   if (key === 'qiMult' || key === 'stoneMult') v += autoBonus(s.reincarnation.count);
-  return v;
+  return v + specSum(s, key);                                // 建築專精
 }
 
 export const canRebirth = s => s.realmIdx >= CONFIG.reincarnation.minRealm && !s.burstActive;

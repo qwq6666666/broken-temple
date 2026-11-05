@@ -56,16 +56,20 @@ export const clickPower = s => {
 export const discipleDiscount = s =>
   Math.min(CONFIG.disciple.discountMax,
     s.buildings.library.lv * CONFIG.disciple.libraryDiscountPerLevel * buildingMult(s, 'library')
+    + s.buildings.hall.lv * 0.02 * buildingMult(s, 'hall')                                // 傳功殿
     + artifactSum(s, 'discipleDiscount'));
 
 // 護山大陣：稀有事件機率
 export const rareChance = s =>
   Math.min(0.95, CONFIG.building_effect.rareBase
-    + s.buildings.array.lv * CONFIG.building_effect.rarePerLevel * buildingMult(s, 'array') + traitSum(s, 'rare'));
+    + s.buildings.array.lv * CONFIG.building_effect.rarePerLevel * buildingMult(s, 'array')
+    + s.buildings.beast.lv * 0.02 * buildingMult(s, 'beast')                              // 靈獸園
+    + traitSum(s, 'rare') + daoPerm(s, 'rare'));
 
 // 玩家戰力：境界 × 演武場 × 持有弟子屬性 × 法寶（影響「碾壓」判定）
 export function combatPower(s) {
-  const arena = 1 + s.buildings.arena.lv * CONFIG.building_effect.arenaPowerPerLevel * buildingMult(s, 'arena');
+  const arena = (1 + s.buildings.arena.lv * CONFIG.building_effect.arenaPowerPerLevel * buildingMult(s, 'arena'))
+    * (1 + s.buildings.tower.lv * 0.06 * buildingMult(s, 'tower'));                     // 鎮魔塔
   const owned = 1 + CONFIG.disciple.ownedPowerFactor * s.disciples.reduce((a, d) => a + stat(d), 0);
   return realmOf(s).power * arena * owned * (1 + artifactSum(s, 'powerMult') + traitSum(s, 'power'));
 }
@@ -77,9 +81,12 @@ export function tick(s, dt) {
   s.res.qi += qiPerSec(s) * sec;
   s.res.stone += stonePerSec(s) * sec;
   s.tokenAcc += dt;
-  const step = CONFIG.gacha.tokenTrickleSec * 1000 / (1 + daoPerm(s, 'tokenRate'));   // 道心：招賢名聲
+  const step = CONFIG.gacha.tokenTrickleSec * 1000 / (1 + daoPerm(s, 'tokenRate') + s.buildings.beast.lv * 0.08 * buildingMult(s, 'beast'));   // 道心：招賢名聲
   if (s.tokenAcc >= step) {
     const n = Math.floor(s.tokenAcc / step);
     s.res.token += n; s.tokenAcc -= n * step;
   }
 }
+
+// 鎮魔塔：爆擊獎勵加成
+export const towerBurst = s => s.buildings.tower.lv * 0.03 * buildingMult(s, 'tower');
