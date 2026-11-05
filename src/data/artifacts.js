@@ -22,4 +22,7 @@ export const ARTIFACTS = [
   { id: 'yun_seal', unique: true, kind: '法寶', name: '掌門信物', emoji: '🔱', effect: { qiMult: 0.30 }, desc: '靈氣產出 +30%（雲渺子）' },
   { id: 'xuan_case', unique: true, kind: '法寶', name: '祖庭劍匣', emoji: '🏺', effect: { powerMult: 0.20, qiMult: 0.20 }, desc: '戰力 +20%、靈氣 +20%（玄機子）' },
 ];
+// 裝備欄：已擁有的法寶一律照常生效；放進裝備欄的再額外獲得「共鳴」加成（效果 ×(1+EQUIP_BONUS)）。
+export const EQUIP_SLOTS = 3;
+export const EQUIP_BONUS = 0.5;
 export const ARTIFACTS_BY_ID = Object.fromEntries(ARTIFACTS.map(a => [a.id, a]));

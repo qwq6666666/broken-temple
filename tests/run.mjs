@@ -27,6 +27,7 @@ import { autoAssign } from '../src/core/autoAssign.js';
 import * as Chr from '../src/core/chronicle.js';
 import * as Ach from '../src/core/achievements.js';
 import * as Off from '../src/core/offlineEvent.js';
+import * as Eq from '../src/core/equip.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1091,6 +1092,19 @@ t('離線歸來事件：離開 30 分鐘以上才出現、兩個選項都能結�
   const r2 = applyOffline(s, 40 * 60 * 1000); assert.ok(r2.event);
   for (const i of [0, 1]) { const t0 = { ...s.res }; const r = Off.resolveOffline(s, r2.event, i); assert.ok(r && r.text); assert.ok(Object.keys(r.got).every(k => s.res[k] >= t0[k])); assert.ok(Object.keys(r.got).length); }
   assert.equal(Off.resolveOffline(s, r2.event, 5), null); assert.equal(Off.resolveOffline(s, 'zzz', 0), null);
+});
+
+t('法寶裝備欄：裝備者效果 +50%、未裝備照常、上限 3 件、轉生與存檔保留', () => {
+  const s = createState(); s.artifacts = ['yinqi', 'tuna', 'juling', 'danhuo'];
+  const base = eco.artifactSum(s, 'qiMult'); assert.ok(Math.abs(base - 0.85) < 1e-9);
+  assert.ok(Eq.toggleEquip(s, 'yinqi')); assert.ok(Math.abs(eco.artifactSum(s, 'qiMult') - 0.95) < 1e-9);
+  assert.ok(Eq.toggleEquip(s, 'tuna')); assert.ok(Eq.toggleEquip(s, 'juling'));
+  assert.equal(Eq.toggleEquip(s, 'danhuo'), false);                // 滿了
+  assert.equal(Eq.toggleEquip(s, 'nope'), false);                  // 沒擁有
+  assert.ok(Eq.toggleEquip(s, 'yinqi')); assert.equal(s.equipped.length, 2);
+  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.deepEqual(s.equipped, ['tuna', 'juling']);
+  const raw = JSON.parse(JSON.stringify(s)); raw.equipped = ['tuna', 'zzz', 'danhuo', 'yinqi', 'tuna'];
+  assert.deepEqual(sanitize(raw).equipped, ['tuna', 'danhuo', 'yinqi']);   // 只留擁有的、去重、不超過上限
 });
 
 console.log(`\n${n} 項測試通過`);

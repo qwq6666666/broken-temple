@@ -1,7 +1,7 @@
 // 宗門大事 + 圖鑑（弟子／功法法寶）
 import { GOALS } from '../data/goals.js';
 import { DISCIPLES } from '../data/disciples.js';
-import { ARTIFACTS } from '../data/artifacts.js';
+import { ARTIFACTS, ARTIFACTS_BY_ID, EQUIP_SLOTS, EQUIP_BONUS } from '../data/artifacts.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { isDone, progress } from '../core/goals.js';
 import { progressOf, isReady, rewardText as cRewardText } from '../core/commissions.js';
@@ -30,6 +30,17 @@ function commissionBox(s) {
   const wait = C.list.length < COMMISSION_RULES.slots && s.t < C.nextAt ? `<p class="hint">新委託 ${Math.ceil((C.nextAt - s.t) / 1000)} 秒後送到</p>` : '';
   const toNext = COMMISSION_RULES.milestoneEvery - (C.done % COMMISSION_RULES.milestoneEvery);
   return `<h3 class="sub">📋 宗門委託</h3><p class="hint">已完成 ${C.done} 張，再 ${toNext} 張有額外獎勵（🎫${COMMISSION_RULES.milestoneReward.token}）</p>${rows}${wait}<h3 class="sub">🎯 宗門大事</h3>`;
+}
+
+function equipBox(s, ui) {
+  if (!s.artifacts.length) return '';
+  const chips = s.artifacts.map(id => {
+    const a = ARTIFACTS_BY_ID[id], on = s.equipped.includes(id);
+    return `<button class="pchip ${on ? 'eq' : ''}" data-act="toggleEquip" data-id="${id}" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)} <small>${esc(a.desc)}${on ? '・共鳴 +' + Math.round(EQUIP_BONUS * 100) + '%' : ''}</small></button>`;
+  }).join('');
+  const worn = s.equipped.map(id => ARTIFACTS_BY_ID[id].emoji).join('') || '尚未裝備';
+  const detail = `<small class="dim">裝備中的法寶，效果額外 +${Math.round(EQUIP_BONUS * 100)}%（共鳴）；沒裝備的照常生效。最多 ${EQUIP_SLOTS} 件，可隨時更換。</small><div class="picker">${chips}</div>`;
+  return `<h3 class="sub">🎒 法寶裝備</h3>${crow(ui, { key: 'equip', icon: '🎒', title: `<b>裝備欄 ${s.equipped.length}/${EQUIP_SLOTS}</b>`, sub: worn, detail })}`;
 }
 
 function achievementBox(s, ui) {
@@ -68,7 +79,7 @@ export function goalPanel(s, ui) {
     ? `<span class="art" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`
     : `<span class="art off">❔ 未獲得<small>長老被爆時掉落</small></span>`).join('');
   return `${commissionBox(s)}<p class="hint">宗門大事 ${done}/${GOALS.length}</p>${rows}
-    ${achievementBox(s, ui)}${chronicleBox(s, ui)}
+    ${equipBox(s, ui)}${achievementBox(s, ui)}${chronicleBox(s, ui)}
     <h3>弟子圖鑑 ${owned.size}/${DISCIPLES.length}</h3><div class="dexgrid">${dex}</div>
     <h3>功法法寶圖鑑 ${s.artifacts.length}/${ARTIFACTS.length}</h3><div class="arts">${arts}</div>`;
 }

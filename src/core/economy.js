@@ -2,7 +2,7 @@
 import { CONFIG } from '../config.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
-import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
+import { ARTIFACTS_BY_ID, EQUIP_BONUS } from '../data/artifacts.js';
 import { goalPerm } from './goals.js';
 import { bondSum } from './bonds.js';
 import { STORY_RULES } from '../data/stories.js';
@@ -13,7 +13,7 @@ export const realmOf = s => REALMS[s.realmIdx];
 
 // 永久加成（功法／法寶／宗門大事）總和
 export const artifactSum = (s, key) =>
-  s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0), 0) + goalPerm(s, key) + daoPerm(s, key);
+  s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0) * (1 + (s.equipped.includes(id) ? EQUIP_BONUS : 0)), 0) + goalPerm(s, key) + daoPerm(s, key);
 
 // 特性加總：只計算「已派駐」的弟子
 // 弟子特性實際效果 = 基礎 × 星級 ×（1 + 每讀一章故事 +10%）

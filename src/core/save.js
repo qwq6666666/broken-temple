@@ -8,7 +8,7 @@ import { SPECS } from '../data/specs.js';
 import { FACTIONS_BY_ID } from '../data/factions.js';
 import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
 import { MUTATORS_BY_ID } from '../data/mutators.js';
-import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
+import { ARTIFACTS_BY_ID, EQUIP_SLOTS } from '../data/artifacts.js';
 import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
@@ -59,6 +59,7 @@ export function sanitize(s) {
   s.recruits = (Array.isArray(s.recruits) ? s.recruits : []).filter(r => isPlain(r) && DISCIPLES_BY_ID[r.defId]);
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
+  s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   const av = isPlain(s.achv) ? s.achv : {};
   s.achv = { done: [...new Set((Array.isArray(av.done) ? av.done : []).filter(id => ACHIEVEMENTS_BY_ID[id]))], title: ACHIEVEMENTS_BY_ID[av.title] ? av.title : null };
   const cm = isPlain(s.commissions) ? s.commissions : {};

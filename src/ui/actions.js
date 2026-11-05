@@ -14,6 +14,7 @@ import * as Sp from '../core/spec.js';
 import { autoAssign } from '../core/autoAssign.js';
 import * as Ach from '../core/achievements.js';
 import * as Off from '../core/offlineEvent.js';
+import * as Eq from '../core/equip.js';
 import * as Cm from '../core/commissions.js';
 import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
@@ -150,6 +151,7 @@ export function bindActions(s, ui, rerender) {
       const r = Off.resolveOffline(s, box.dataset.id, +el.dataset.i);
       if (r) { box.dataset.done = '1'; showOfflineResult(r.text, r.got); sfx('coin'); }
     },
+    toggleEquip: el => { if (!Eq.toggleEquip(s, el.dataset.id)) toast('裝備欄已滿，先卸下一件', 'warn'); },
     toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },
