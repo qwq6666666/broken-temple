@@ -36,6 +36,11 @@ export const DISCIPLES = [
   { id: 'luoshen', name: '洛神鳶', emoji: '🌙',   rarity: 'UR', element: '水', specialty: '陣修', personality: '神祕', quote: '星河為陣，萬象皆棋。', trait: { key: 'disguiseRate', value: 0.3 } },
   { id: 'xuantian',name: '玄天劍尊', emoji: '⚡',  rarity: 'UR', element: '金', specialty: '劍修', personality: '孤傲', quote: '千年了，終於有個像樣的宗門。', trait: { key: 'power', value: 0.3 } },
   { id: 'taixu',   name: '太虛真人', emoji: '☯️', rarity: 'UR', element: '火', specialty: '丹修', personality: '超然', quote: '丹成之日，天地同壽。', trait: { key: 'qiMult', value: 0.35 } },
+  { id: 'shuisheng', name: '水生',   emoji: '🐟', rarity: 'N',   element: '水', specialty: '農修', personality: '老實', quote: '水田裡的活，我最拿手。', trait: { key: 'showOffReward', value: 0.2 } },
+  { id: 'zhuyin',    name: '竹音',   emoji: '🎋', rarity: 'R',   element: '木', specialty: '劍修', personality: '飄逸', quote: '劍在竹林裡，風過便有聲。', trait: { key: 'power', value: 0.06 } },
+  { id: 'jinsha',    name: '金砂',   emoji: '🪙', rarity: 'SR',  element: '金', specialty: '丹修', personality: '市儈', quote: '丹藥不是不能賒，利息另算。', trait: { key: 'stoneMult', value: 0.1 } },
+  { id: 'chiyuan',   name: '赤鳶',   emoji: '🦅', rarity: 'SR',  element: '火', specialty: '陣修', personality: '張揚', quote: '我的陣，連天上的雲都得繞道。', trait: { key: 'rare', value: 0.1 } },
+  { id: 'bingxin',   name: '冰心',   emoji: '🧊', rarity: 'SSR', element: '水', specialty: '體修', personality: '堅韌', quote: '冷嗎？習慣就好。', trait: { key: 'endureLoss', value: 0.4 } },
 ];
 
 export const DISCIPLES_BY_ID = Object.fromEntries(DISCIPLES.map(d => [d.id, d]));

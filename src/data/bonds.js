@@ -12,4 +12,6 @@ export const BONDS = [
   { id: 'array', name: '陣法同窗', a: 'zhaoling', b: 'sinan', effect: { pauseCut: 0.15 }, line: '一個怕出錯，一個不准出錯，剛好互補。' },
   { id: 'youth', name: '毛頭小子', a: 'liuzi', b: 'leidong', effect: { showOffReward: 0.15 }, line: '兩人湊一起，打臉的事絕不缺席。' },
   { id: 'mad', name: '煉丹瘋老', a: 'ludan', b: 'chenlan', effect: { stoneMult: 0.06 }, line: '一個炸爐，一個偷學，丹房從此熱鬧。' },
+  { id: 'iceflame', name: '冰火相濟', a: 'bingxin', b: 'chiyuan', effect: { power: 0.06 }, line: '一個壓火，一個點冰，剛好互相制衡。' },
+  { id: 'bamboo', name: '竹林論劍', a: 'zhuyin', b: 'yanhui', effect: { pauseCut: 0.12 }, line: '兩個閒雲野鶴，論起劍來誰也不讓誰。' },
 ];

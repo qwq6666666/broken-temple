@@ -21,6 +21,9 @@ export const ARTIFACTS = [
   { id: 'liu_token', unique: true, kind: '法寶', name: '執法令牌', emoji: '🪪', effect: { burstReward: 0.15 }, desc: '爆擊獎勵 +15%（柳玄素）' },
   { id: 'yun_seal', unique: true, kind: '法寶', name: '掌門信物', emoji: '🔱', effect: { qiMult: 0.30 }, desc: '靈氣產出 +30%（雲渺子）' },
   { id: 'xuan_case', unique: true, kind: '法寶', name: '祖庭劍匣', emoji: '🏺', effect: { powerMult: 0.20, qiMult: 0.20 }, desc: '戰力 +20%、靈氣 +20%（玄機子）' },
+  { id: 'mo_lamp', unique: true, kind: '法寶', name: '引魂燈', emoji: '🏮', effect: { burstReward: 0.18 }, desc: '爆擊獎勵 +18%（墨無常）' },
+  { id: 'ling_bell', unique: true, kind: '法寶', name: '聽濤鈴', emoji: '🔔', effect: { qiMult: 0.30 }, desc: '靈氣產出 +30%（凌霄子）' },
+  { id: 'wu_mirror', unique: true, kind: '法寶', name: '無相鏡', emoji: '🪞', effect: { powerMult: 0.20, stoneMult: 0.20 }, desc: '戰力 +20%、靈石 +20%（無相）' },
 ];
 // 裝備欄：已擁有的法寶一律照常生效；放進裝備欄的再額外獲得「共鳴」加成（效果 ×(1+EQUIP_BONUS)）。
 export const EQUIP_SLOTS = 3;

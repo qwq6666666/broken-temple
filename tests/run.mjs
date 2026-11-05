@@ -35,6 +35,7 @@ import { relation, SHENG, KE, ELEMENTS } from '../src/data/elements.js';
 import { elementEffect, contribution } from '../src/core/discipleMath.js';
 import * as Conc from '../src/core/conceal.js';
 import * as Ins from '../src/core/insight.js';
+import { INCIDENTS } from '../src/data/incidents.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID } from '../src/data/expeditions.js';
@@ -1308,6 +1309,28 @@ t('功能區塊漸進解鎖：條件達成才出現且不會消失；舊存檔 q
   assert.match(Prog.nextStep(h).text, /裝備欄/);                                   // 有法寶沒裝備
   h.equipped = ['yinqi']; h.unlocked.f_insight = true; h.res.shard = 10; h.disciples.push({ uid: 99, defId: 'qinwu', lv: 1, at: 'arena' }); h.buildings.arena.lv = 1;
   assert.match(Prog.nextStep(h).text, /專長心得/);                                 // 劍修派駐中、碎片夠
+});
+
+t('擴充內容：每則事件的每個選項都能結算；宿敵鏈串到後日談；新宿敵資料完整；秘境新增與限制可組隊', () => {
+  assert.ok(INCIDENTS.length >= 24, '事件數量');
+  for (const inc of INCIDENTS) for (let i = 0; i < inc.choices.length; i++) {
+    const s = createState(); s.realmIdx = 10; s.res.qi = 1e9; s.res.stone = 1e9; for (const id of Object.keys(s.buildings)) s.buildings[id].lv = 3;
+    forceIncident(s, inc.id);
+    assert.doesNotThrow(() => Inc.resolve(s, i, false), `${inc.id}[${i}]`);
+    assert.equal(s.incident.current, null, `${inc.id}[${i}] 結算後事件應清除`);
+  }
+  // 宿敵鏈：qian → xiao → liu → yun → xuan → mo → ling → wu，每位有五行與專屬法寶
+  const chain = ['qian', 'xiao', 'liu', 'yun', 'xuan', 'mo', 'ling', 'wu'];
+  assert.deepEqual(NEMESES.map(n => n.id), chain);
+  NEMESES.forEach((n, i) => { assert.equal(n.cond.prev || null, i ? chain[i - 1] : null); assert.ok(n.intro.length >= 3 && n.kneel.length && n.narrow.length && n.fail.length && n.story.defeat); assert.ok(ARTIFACTS_BY_ID[n.reward.artifact]?.unique, n.id + ' 專屬法寶'); });
+  assert.equal(NEMESES.filter(n => !n.epilogue).length, 5); assert.ok(NEMESES.slice(5).every(n => n.epilogue));
+  // 「舊債還清」只看主線 5 位；全部 8 位才算成就「宿敵剋星」
+  const s = createState(); s.stats.nemesisDefeated = 5; Goals.tick(s); assert.ok(s.goalsDone.includes('nemAll'));
+  assert.ok(!(s.achv.done.includes('nemall')));
+  // 新秘境都能用推薦隊伍組出合法隊伍（有足夠弟子時）
+  const m = createState(); m.realmIdx = 13;
+  ['qinwu', 'lingshuang', 'yanhui', 'afu', 'liu2', 'xiaocui', 'tieniu', 'shigan'].forEach(id => { D.addDisciple(m, id).disciple.lv = 6; });
+  for (const id of ['spring', 'swamp', 'sky']) { const bt = Ex.bestTeam(m, id); assert.ok(bt, id); assert.ok(Ex.reqCheck(m, EXPEDITIONS_BY_ID[id], bt.uids).ok, id); }
 });
 
 console.log(`\n${n} 項測試通過`);

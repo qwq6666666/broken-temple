@@ -35,7 +35,7 @@ export const GOALS = [
   { id: 'chain10', name: '十連爆！', desc: '單次引爆連鎖達 10 人', cur: s => s.stats.maxChain || 0, target: 10, reward: { token: 20, perm: { burstReward: 0.10 } } },
   { id: 'disc20',  name: '桃李滿天下', desc: `收集全部 ${DISCIPLES.length} 位弟子`, cur: s => s.disciples.length, target: DISCIPLES.length, reward: { token: 20 } },
   { id: 'bld10',   name: '天下第一宗（建築）', desc: '六棟建築全部滿級', cur: minBuilding, target: 10, reward: { token: 25, perm: { qiMult: 0.25 } } },
-  { id: 'nemAll',  name: '舊債還清', desc: '擊敗全部宿敵，揭開破廟真相', cur: s => s.stats.nemesisDefeated || 0, target: NEMESES.length, reward: { token: 30, perm: { powerMult: 0.10, qiMult: 0.10 } } },
+  { id: 'nemAll',  name: '舊債還清', desc: '擊敗全部宿敵，揭開破廟真相', cur: s => s.stats.nemesisDefeated || 0, target: NEMESES.filter(n => !n.epilogue).length, reward: { token: 30, perm: { powerMult: 0.10, qiMult: 0.10 } } },
   { id: 'huashen', name: '化神', desc: `突破至${REALMS[13].name}`, ...realm(13), reward: { token: 30, perm: { powerMult: 0.20 } } },
 ];
 export const GOALS_BY_ID = Object.fromEntries(GOALS.map(g => [g.id, g]));

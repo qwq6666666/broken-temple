@@ -57,6 +57,40 @@ export const NEMESES = [
     fail: ['天機不可洩漏。小友，你還沒有資格知道真相。'],
     story: { defeat: '玄機子說出了最後的真相：這座破廟，是青雲宗的祖庭；那位毒舌的「老祖」，正是青雲宗的開山祖師。老祖沉默良久，輕輕說：「……三千年了，總算有人，把這座廟，找回來了。」' },
     reward: { token: 15, stone: 120, artifact: 'xuan_case' }, finale: true },
+
+  // ── 後日談：祖庭真相揭開之後，外域勢力找上門（epilogue：不計入「揭開破廟真相」的大事）──
+  { id: 'mo', name: '墨無常', title: '魔淵使者', sect: '魔淵殿', emoji: '🦇', type: 'rival', personality: '陰險', element: '水', epilogue: true,
+    cond: { prev: 'xuan', minRealm: 12 }, offset: [2, 3],
+    intro: ['青雲祖庭重現人間？魔淵殿等這一天，已經等了三千年。',
+            '你以為老祖為什麼不肯說？因為他當年……封過我們的門。',
+            '這座廟底下鎮著的東西，輪得到你來守嗎？'],
+    kneel: ['……原來如此。封印還在，那我退。宗主，後會無期。', '你比三千年前那位更不講道理。罷了，認栽。'],
+    narrow: ['勉強夠格。魔淵不急，我等你再弱一點。'],
+    fail: ['螻蟻也想守淵？回去再修三千年吧。'],
+    story: { defeat: '墨無常撤回了魔淵殿，留下一盞還亮著的引魂燈。老祖低聲道：「三千年前我封的，不是他們，是一個承諾。」' },
+    reward: { token: 20, stone: 150, artifact: 'mo_lamp' } },
+
+  { id: 'ling', name: '凌霄子', title: '九幽宗主', sect: '九幽宗', emoji: '🐲', type: 'elder', personality: '狂妄', element: '火', epilogue: true,
+    cond: { prev: 'mo', minRealm: 12 }, offset: [2, 3],
+    intro: ['聽說有人收服了天機閣與青雲宗？小事。九幽宗不認什麼祖庭，只認拳頭。',
+            '我宗十萬弟子，每一個都想看看你這座破廟能撐多久。',
+            '別躲了。你的偽裝，騙得過老頭子，騙不過我。'],
+    kneel: ['十萬弟子……竟擋不住一座破廟？罷了，九幽宗，退。', '你的拳頭，比我的名號硬。我服。'],
+    narrow: ['有意思，下次我帶全宗來。'],
+    fail: ['就憑你？十萬弟子站著不動，你也打不完。'],
+    story: { defeat: '凌霄子解散了九幽宗的陣列，留下一枚聽濤鈴。老祖哼了一聲：「狂歸狂，倒還算守信。」' },
+    reward: { token: 25, stone: 200, artifact: 'ling_bell' } },
+
+  { id: 'wu', name: '無相', title: '無相天主', sect: '無相天', emoji: '🎭', type: 'elder', personality: '虛偽', element: '金', epilogue: true,
+    cond: { prev: 'ling', minRealm: 13 }, offset: [2, 2],
+    intro: ['我有千百張臉，卻沒有一張是真的。你呢，宗主？你這張臉，是真是假？',
+            '你忍了這麼多回，藏了這麼多年……難道，不累嗎？',
+            '來，讓我看看你「不裝了」的樣子。我等這個等很久了。'],
+    kneel: ['……原來「不裝」，才是你最真的一張臉。我輸得心服。', '千百張臉，終究敵不過一張真的。宗主，受教。'],
+    narrow: ['再來一次，我換一張更像你的臉。'],
+    fail: ['你還在裝。等你真的不裝了，我們再談。'],
+    story: { defeat: '無相摘下了最後一張面具，鏡中卻是一張疲憊而平靜的臉。老祖輕聲說：「你看，連他也想不裝了。」' },
+    reward: { token: 30, stone: 260, artifact: 'wu_mirror' } },
 ];
 export const NEMESES_BY_ID = Object.fromEntries(NEMESES.map(n => [n.id, n]));
 

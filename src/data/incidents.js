@@ -119,5 +119,43 @@ export const INCIDENTS = [
       { label: '認真聽', desc: '聽出點門道，得到靈氣', effects: { qiSec: 50 } },
       { label: '打瞌睡', desc: '老祖氣得塞給你一枚招賢令堵嘴', effects: { token: 1 } },
     ] },
+
+  { id: 'pilgrim', emoji: '🙏', title: '遠道香客', weight: 7, good: true, minRealm: 1, timeoutChoice: 0,
+    text: '一位風塵僕僕的香客在破廟前跪了一炷香的時間，說是聽聞這裡「靈驗」。',
+    choices: [
+      { label: '收下香火錢', desc: '得到一小筆靈石', effects: { stoneSec: 45 } },
+      { label: '請他留下聽經', desc: '三成機會領悟碎片，其餘為一小筆靈氣', effects: { gamble: { p: 0.3, win: { shard: 2 }, lose: { qiSec: 40 } } } },
+    ] },
+  { id: 'thief', emoji: '🥷', title: '蒙面飛賊', weight: 7, good: false, minRealm: 2, timeoutChoice: 1,
+    text: '夜裡有人翻過院牆，朝你的靈石袋摸去。',
+    choices: [
+      { label: '設伏擒拿', cost: { qiSec: 40 }, desc: '花約 40 秒靈氣；擒住飛賊，繳獲贓物', effects: { stoneSec: 90 } },
+      { label: '裝作沒看見', desc: '損失一些靈石，你忍住了：偽裝值 +1', effects: { loseStoneSec: 40, disguise: 1 } },
+    ] },
+  { id: 'rain', emoji: '🌧️', title: '及時雨', weight: 6, good: true, minRealm: 0, timeoutChoice: 0,
+    text: '久旱之後下了一場雨，靈田裡的苗眼看著往上竄。',
+    choices: [
+      { label: '趁勢施肥', cost: { stoneSec: 30 }, desc: '花約 30 秒靈石；換得大量靈氣', effects: { qiSec: 200 } },
+      { label: '順其自然', desc: '得到一小筆靈氣', effects: { qiSec: 60 } },
+    ] },
+  { id: 'debtor', emoji: '📒', title: '討債的來了', weight: 6, good: false, minRealm: 3, timeoutChoice: 1,
+    text: '一個自稱「商盟」的掌櫃攤開帳本：你前任留下的破廟，還欠三十年的香油錢。',
+    choices: [
+      { label: '還一部分', cost: { stoneSec: 70 }, desc: '花約 70 秒靈石；掌櫃滿意，送你一枚招賢令', effects: { token: 1 } },
+      { label: '賴帳', desc: '一半機會平安無事；失敗則一棟建築暫停 4 分鐘', effects: { gamble: { p: 0.5, win: {}, lose: { pauseBuilding: min(4) } } } },
+    ] },
+  { id: 'mirage', emoji: '🏝️', title: '海市蜃樓', weight: 5, good: true, minRealm: 5, timeoutChoice: 2,
+    text: '山間升起一片幻境，隱約是一座從未見過的宮殿。',
+    choices: [
+      { label: '闖進去', desc: '四成機會得到法寶；失敗則損失靈氣', effects: { gamble: { p: 0.4, win: { artifact: 1 }, lose: { loseQiSec: 80 } } } },
+      { label: '只在外圍採集', desc: '得到少量碎片', effects: { shard: 1 } },
+      { label: '不理', desc: '幻境散去', effects: {} },
+    ] },
+  { id: 'junior', emoji: '🧒', title: '外門弟子請教', weight: 6, good: true, minRealm: 2, timeoutChoice: 1,
+    text: '一個外門小弟子紅著臉站在門口，說想請教「怎麼才能不被欺負」。',
+    choices: [
+      { label: '傾囊相授', cost: { qiSec: 60 }, desc: '花約 60 秒靈氣；他心服口服，留下一枚招賢令', effects: { token: 1 } },
+      { label: '教他忍字訣', desc: '偽裝值 +2', effects: { disguise: 2 } },
+    ] },
 ];
 export const INCIDENTS_BY_ID = Object.fromEntries(INCIDENTS.map(i => [i.id, i]));
