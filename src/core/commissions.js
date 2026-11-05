@@ -17,13 +17,15 @@ export const readyCount = s => s.commissions.list.filter(c => isReady(s, c)).len
 export const rewardText = r => [r.token && `🎫${r.token}`, r.stone && `💎${r.stone}`, r.qi && `✨${r.qi}`, r.shard && `🧩${r.shard}`].filter(Boolean).join('　');
 
 function makeReward(s) {
+  const W = R.weights;
   const t = s.realmIdx;
-  const pool = [
-    ['token', 3, () => ({ token: 1 + Math.floor(t / 5) })],
-    ['stone', 3, () => ({ stone: Math.max(20, Math.floor(stonePerSec(s) * R.stoneSec)) })],
-    ['qi', 2, () => ({ qi: Math.max(50, Math.floor(qiPerSec(s) * R.qiSec)) })],
+  let pool = [
+    ['token', W.token, () => ({ token: 1 + Math.floor(t / 10) })],
+    ['stone', W.stone, () => ({ stone: Math.max(R.stoneMin, Math.floor(stonePerSec(s) * R.stoneSec)) })],
+    ['qi', W.qi, () => ({ qi: Math.max(R.qiMin, Math.floor(qiPerSec(s) * R.qiSec)) })],
   ];
-  if (t >= R.shardFromRealm) pool.push(['shard', 1, () => ({ shard: 1 + Math.floor(t / 6) })]);
+  if (t >= R.shardFromRealm) pool.push(['shard', W.shard, () => ({ shard: 1 + Math.floor(t / 6) })]);
+  pool = pool.filter(p => p[1] > 0);
   return weighted(pool, p => p[1])[2]();
 }
 

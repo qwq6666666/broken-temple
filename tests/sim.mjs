@@ -1,5 +1,7 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
-// 用法：node tests/sim.mjs [小時數=12] [passive]   （passive = 完全不打坐，測掛機節奏）
+// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission]
+//   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission = 開啟對應新功能的最佳化行為
+//   亂數種子可用環境變數 SEED=… 指定（比較設定時請多跑幾個種子取平均）
 import { createState } from '../src/core/state.js';
 import { setRng } from '../src/core/rng.js';
 import * as eco from '../src/core/economy.js';
@@ -13,16 +15,20 @@ import * as X from '../src/core/burst.js';
 import * as Inc from '../src/core/incidents.js';
 import * as Dao from '../src/core/dao.js';
 import * as Nem from '../src/core/nemesis.js';
+import * as Cm from '../src/core/commissions.js';
 import { meditate } from '../src/core/meditate.js';
 import { BUILDINGS } from '../src/data/buildings.js';
+import { ARTIFACTS_BY_ID as ARTS, EQUIP_SLOTS } from '../src/data/artifacts.js';
+import { isSpecialtyMatch } from '../src/core/discipleMath.js';
 import { REALMS } from '../src/data/realms.js';
 
 const HOURS = Number(process.argv[2]) || 12;
 const PASSIVE = process.argv[3] === 'passive';
+const FLAG = f => process.argv.includes(f);          // equip（自動裝備最佳 3 件法寶）／branch（弟子 Lv10 自動進階）／commission（自動領委託）
 const REBIRTH = process.argv.includes('rebirth');   // 化神後自動轉生並購買道心商店，印出每一輪耗時
 
 // 固定亂數種子，讓每次結果可比較
-let seed = 12345;
+let seed = Number(process.env.SEED) || 12345;
 setRng(() => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; });
 
 const s = createState();
@@ -44,6 +50,17 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
     Dao.rebirth(s); lifeStart = s.t;
     for (let again = true; again;) { again = false; for (const id of SHOP_PRIORITY) if (Dao.buy(s, id)) { again = true; break; } }
   }
+  // 新功能（可用旗標開關，量化對成長曲線的影響）
+  if (FLAG('commission')) {
+    if (s.realmIdx >= 1) { s.unlocked.goals = true; s.unlocked.gacha = true; }
+    Cm.tick(s);
+    for (let i = s.commissions.list.length - 1; i >= 0; i--) if (Cm.isReady(s, s.commissions.list[i])) Cm.claim(s, i);
+  }
+  if (FLAG('equip') && step % 60 === 0) {
+    const val = id => { const e = ARTS[id].effect; return (e.qiMult || 0) + 0.8 * (e.stoneMult || 0) + 0.3 * (e.powerMult || 0) + 0.2 * (e.clickMult || 0); };
+    s.equipped = [...s.artifacts].sort((a, b) => val(b) - val(a)).slice(0, EQUIP_SLOTS);
+  }
+  if (FLAG('branch') && step % 60 === 0) for (const d of s.disciples) if (D.canBranch(d)) D.setBranch(s, d.uid, d.at && isSpecialtyMatch(d, d.at) ? 'focus' : 'might');
   // 突破
   while (R.canBreak(s)) { R.breakthrough(s); if (!REBIRTH) once('境界 ' + REALMS[s.realmIdx].name, true); }
   // 建築：最便宜的先買

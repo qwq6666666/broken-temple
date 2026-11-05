@@ -14,9 +14,11 @@ export const COMMISSION_BY_KIND = Object.fromEntries(COMMISSIONS.map(c => [c.kin
 
 export const COMMISSION_RULES = {
   slots: 3,
-  refillMs: 180000,        // 領取或放棄後，空位經過這麼久才補新委託（遊戲時鐘）
+  refillMs: 300000,        // 領取或放棄後，空位經過這麼久才補新委託（遊戲時鐘）
   milestoneEvery: 5,       // 每完成 N 張委託，額外獎勵一次
   milestoneReward: { token: 3 },
-  stoneSec: 420, qiSec: 420,   // 資源類獎勵 = 目前每秒產出 × 秒數（有下限）
+  stoneSec: 75, qiSec: 75,   // 資源類獎勵 = 目前每秒產出 × 秒數（有下限）
+  weights: { token: 2, stone: 3, qi: 2, shard: 1 },   // 各類獎勵的抽選權重
+  stoneMin: 4, qiMin: 20,     // 早期產出很低時的獎勵下限
   shardFromRealm: 4,       // 境界達此階後獎勵池才會出現碎片
 };

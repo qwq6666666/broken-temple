@@ -30,6 +30,7 @@ import * as Off from '../src/core/offlineEvent.js';
 import * as Eq from '../src/core/equip.js';
 import * as NemM from '../src/core/nemesis.js';
 import * as Wk from '../src/core/weekly.js';
+import { COMMISSION_RULES } from '../src/data/commissions.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1014,7 +1015,7 @@ t('宗門委託：解鎖後補滿 3 張、題型不重複、進度為差值、�
   assert.equal(s.commissions.list.length, 2); assert.equal(s.commissions.done, 1);
   const k = Object.keys(r.reward)[0]; assert.equal(s.res[k], before[k] + r.reward[k]);
   Cm.tick(s); assert.equal(s.commissions.list.length, 2);           // 領取後要等冷卻才補
-  s.t += 200000; Cm.tick(s); assert.equal(s.commissions.list.length, 3);
+  s.t += COMMISSION_RULES.refillMs + 1000; Cm.tick(s); assert.equal(s.commissions.list.length, 3);
 });
 
 t('宗門委託：放棄、每 5 張額外獎勵、轉生保留、題型依解鎖過濾', () => {
