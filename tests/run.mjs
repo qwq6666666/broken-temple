@@ -61,6 +61,7 @@ import { getPrefs, setPref } from '../src/ui/prefs.js';
 import { stat, traitValue } from '../src/core/discipleMath.js';
 import * as S from '../src/core/save.js';
 import * as Sq from '../src/core/squad.js';
+import * as EpMod from '../src/core/exploration.js';
 import { applyOffline } from '../src/core/offline.js';
 
 let n = 0;
@@ -1385,6 +1386,33 @@ t('出戰陣容：沒選人不變、五行與專長加成、最多 3 人、推�
   raw.squad = 'x'; assert.deepEqual(sanitize(raw).squad, []);
   // 轉生保留
   s.realmIdx = 13; s.res.stone = 1e12; s.squad = [qin.uid]; Dao.rebirth(s); assert.deepEqual(s.squad, [qin.uid]);
+});
+
+t('探索度：成功才累積、門檻解鎖發現、第 2 則二選一、永久加成與獎勵倍率、轉生與存檔保留', () => {
+  const Ep = EpMod;
+  const s = createState(); s.realmIdx = 6;
+  assert.equal(Ep.exLevel(s, 'cave'), 0); assert.equal(Ep.explorePerm(s, 'qiMult'), 0);
+  Ep.addProgress(s, 'cave'); assert.equal(Ep.exLevel(s, 'cave'), 0);
+  assert.equal(Ep.addProgress(s, 'cave'), true); assert.equal(Ep.exLevel(s, 'cave'), 1);
+  assert.deepEqual(Ep.pendingEvents(s), [{ id: 'cave', lv: 1 }]);
+  assert.ok(Math.abs(Ep.exRewardMult(s, 'cave') - 1.1) < 1e-9);
+  // 領取：不可重複、不能越級
+  assert.equal(Ep.resolve(s, 'cave', 2, 'a'), null); const sh = s.res.shard;
+  assert.ok(Ep.resolve(s, 'cave', 1)); assert.ok(s.res.shard > sh); assert.equal(Ep.resolve(s, 'cave', 1), null);
+  // 第 2 則：要選 a 或 b；b 給永久加成，a 給立即資源
+  for (let i = 0; i < 3; i++) Ep.addProgress(s, 'cave'); assert.equal(Ep.exLevel(s, 'cave'), 2);
+  assert.equal(Ep.resolve(s, 'cave', 2), null); assert.equal(Ep.resolve(s, 'cave', 2, 'z'), null);
+  assert.ok(Ep.resolve(s, 'cave', 2, 'b')); assert.ok(Math.abs(Ep.explorePerm(s, 'qiMult') - 0.01) < 1e-9);
+  assert.ok(eco.qiPerSec(s) > 0);
+  for (let i = 0; i < 4; i++) Ep.addProgress(s, 'cave'); assert.equal(Ep.exLevel(s, 'cave'), 3);
+  assert.ok(Ep.resolve(s, 'cave', 3)); assert.ok(Math.abs(Ep.explorePerm(s, 'qiMult') - 0.02) < 1e-9);
+  assert.equal(Ep.pendingEvents(s).length, 0);
+  // 秘境獎勵隨探索度成長（同一隊伍同一秘境，成功時資源 ×1.3）
+  assert.ok(Math.abs(Ep.exRewardMult(s, 'cave') - 1.3) < 1e-9);
+  // 存檔清理與轉生保留
+  const raw = JSON.parse(JSON.stringify(s)); raw.explore = { cave: -5, nope: 3 }; raw.exMile = { cave: { 1: 1, 2: 'q', 3: 0 } };
+  const c = sanitize(raw); assert.equal(c.explore.cave, 0); assert.ok(!('nope' in c.explore)); assert.deepEqual(c.exMile.cave, { 1: 'x' });
+  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(Ep.exLevel(s, 'cave'), 3); assert.equal(s.exMile.cave[2], 'b');
 });
 
 console.log(`\n${n} 項測試通過`);

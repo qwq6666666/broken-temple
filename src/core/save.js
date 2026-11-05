@@ -14,6 +14,7 @@ import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { GLORY_LEVELS } from '../data/glory.js';
+import { EXPLORATION } from '../data/exploration.js';
 import { INSIGHTS, INSIGHT_MAX } from '../data/insights.js';
 import { ELEMENTS, elementFromName } from '../data/elements.js';
 import { BRANCH_KEYS } from '../data/branches.js';
@@ -69,6 +70,11 @@ export function sanitize(s) {
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };
   s.squad = Array.isArray(s.squad) ? [...new Set(s.squad)].filter(u => s.disciples.some(d => d.uid === u)).slice(0, 3) : [];
+  s.explore = Object.fromEntries(Object.keys(EXPLORATION).map(id => [id, Math.max(0, Math.min(999, Math.floor(num(isPlain(s.explore) ? Number(s.explore[id]) : 0))))]));
+  s.exMile = Object.fromEntries(Object.keys(EXPLORATION).map(id => {
+    const m = isPlain(s.exMile) && isPlain(s.exMile[id]) ? s.exMile[id] : {};
+    return [id, { ...(m[1] ? { 1: 'x' } : {}), ...(m[2] === 'a' || m[2] === 'b' ? { 2: m[2] } : {}), ...(m[3] ? { 3: 'x' } : {}) }];
+  }));
   const ins = isPlain(s.insight) ? s.insight : {};
   s.insight = Object.fromEntries(INSIGHTS.map(i => [i.spec, Math.max(0, Math.min(INSIGHT_MAX, Math.floor(num(Number(ins[i.spec])))))]));
   const av = isPlain(s.achv) ? s.achv : {};

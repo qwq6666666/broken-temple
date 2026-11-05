@@ -8,6 +8,7 @@ import * as D from '../core/disciples.js';
 import * as E from '../core/endure.js';
 import * as X from '../core/burst.js';
 import * as Sq from '../core/squad.js';
+import * as Exp from '../core/exploration.js';
 import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
 import * as St from '../core/stories.js';
@@ -63,6 +64,10 @@ export function bindActions(s, ui, rerender) {
     expClaim: el => {
       const r = Ex.claim(s, +el.dataset.i);
       if (r) { sfx(r.success ? 'goal' : 'click'); toast(r.success ? '秘境獎勵已領取' : '探索失敗，帶回一點收穫', r.success ? 'good' : 'warn'); }
+    },
+    exResolve: el => {
+      const r = Exp.resolve(s, el.dataset.id, +el.dataset.lv, el.dataset.c || 'x');
+      if (r) { sfx('goal'); const g = Object.entries(r.got).map(([k, v]) => ({ qi: '✨', stone: '💎', token: '🎫', shard: '🧩' }[k] + fmt(v))).join(' '); toast(`${r.e.emoji}${r.title}${g ? '：' + g : ''}${r.perm ? '（永久加成）' : ''}`, 'good'); }
     },
     closeBuilding: () => { ui.selBuilding = null; },
     upgrade: el => { if (B.upgrade(s, el.dataset.id)) sfx('upgrade'); },

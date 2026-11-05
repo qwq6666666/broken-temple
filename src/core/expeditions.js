@@ -7,6 +7,7 @@ import { stat, isSpecialtyMatch, expStat } from './discipleMath.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { rollSurrender } from './endure.js';
 import { toast, cue } from './events.js';
+import { exRewardMult, addProgress } from './exploration.js';
 
 export const slotCount = s => R.slots.reduce((n, [realm, c]) => (s.realmIdx >= realm ? c : n), 1);
 export const isUnlocked = (s, e) => s.realmIdx >= e.unlockRealm;
@@ -42,11 +43,11 @@ export function start(s, expId, uids) {
 export function tick(s) {
   for (const x of s.expeditions) {
     if (x.status !== 'running' || s.t < x.endAt) continue;
-    const e = EXPEDITIONS_BY_ID[x.id], ok = chance(x.chance), k = ok ? 1 : R.failShare, rw = e.reward, out = { qi: 0, stone: 0, token: 0, shard: 0 };
-    if (rw.qiSec) out.qi = qiPerSec(s) * rw.qiSec * k;
-    if (rw.stoneSec) out.stone = Math.max(1, stonePerSec(s) * rw.stoneSec * k);
+    const e = EXPEDITIONS_BY_ID[x.id], ok = chance(x.chance), k = ok ? 1 : R.failShare, rw = e.reward, xm = exRewardMult(s, x.id), out = { qi: 0, stone: 0, token: 0, shard: 0 };
+    if (rw.qiSec) out.qi = qiPerSec(s) * rw.qiSec * k * xm;
+    if (rw.stoneSec) out.stone = Math.max(1, stonePerSec(s) * rw.stoneSec * k * xm);
     if (ok) {
-      out.token = rw.token || 0; out.shard = rw.shard || 0;
+      out.token = Math.round((rw.token || 0) * xm); out.shard = Math.round((rw.shard || 0) * xm);
       if (rw.artifact && chance(rw.artifact)) { const left = ARTIFACTS.filter(a => !a.unique && !s.artifacts.includes(a.id)); if (left.length) out.artifactId = pick(left).id; }
       if (rw.recruit && chance(rw.recruit)) out.recruit = true;
     } else out.shard = 1;                                   // 失敗也有一點收穫
@@ -65,6 +66,7 @@ export function claim(s, i) {
   if (r.recruit) { const def = rollSurrender(s); s.recruits.push({ uid: s.nextUid++, defId: def.id, from: '秘境' }); recruit = def; }
   s.expeditions.splice(i, 1);
   s.stats.expeditions = (s.stats.expeditions || 0) + (x.success ? 1 : 0);
+  if (x.success) addProgress(s, x.id);
   return { success: x.success, result: r, artifact, recruit };
 }
 

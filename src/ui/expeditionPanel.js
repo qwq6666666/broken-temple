@@ -1,4 +1,6 @@
 // 秘境：選秘境 → 選隊員（最多 3 位）→ 出發；到期後領取。
+import { EXPLORATION, EX_KEYS } from '../data/exploration.js';
+import { exLevel, exXp, exNext, pendingEvents } from '../core/exploration.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R, reqLines } from '../data/expeditions.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES } from '../data/gachaRates.js';
@@ -48,7 +50,7 @@ export function expeditionPanel(s, ui) {
       sub = `${bt ? `預估成功率 <b class="gold">${Math.round(bt.chance * 100)}%</b>` : '<span class="red">目前湊不出合法隊伍</span>'}${lines.length ? `・限制：${esc(lines.join('、'))}` : ''}`;
     }
     return crow(ui, { key: 'e' + e.id, cls: `${sel ? 'sel' : ''} ${open ? '' : 'locked'}`, icon: open ? e.emoji : '🔒',
-      title: `<b>${esc(e.name)}</b> <small class="dim">${e.minutes} 分鐘・難度 ${e.difficulty}</small>`, sub,
+      title: `<b>${esc(e.name)}</b> <small class="dim">${e.minutes} 分鐘・難度 ${e.difficulty}</small>${open ? exBadge(s, e.id) : ''}`, sub,
       act: open ? `<button class="btn ${sel ? 'primary' : ''}" data-act="expPick" data-id="${e.id}">${sel ? '選擇中' : '派遣'}</button>` : '',
       detail: open ? `<small>${esc(e.desc)}</small><small class="dim">推薦 ${esc(wantText(e.want))}（相合者貢獻更高）</small><small>獎勵：${rewardText(e.reward)}</small>` : '' });
   }).join('');
@@ -72,5 +74,19 @@ export function expeditionPanel(s, ui) {
       <div class="row">${team.length ? `<span>隊伍戰力 <b class="gold">${fmt(teamPower(s, picked, team))}</b> / 難度 ${e.difficulty}　成功率 <b class="gold">${Math.round(ch * 100)}%</b></span>` : '<small class="dim">請選擇隊員，或按「推薦隊伍」</small>'}
         <button class="btn ${can ? 'primary' : ''}" data-act="expGo" ${can ? '' : 'disabled'}>${used >= slots ? '探索位已滿' : team.length && !rc.ok ? '不符合限制' : '出發'}</button></div></div>`;
   }
-  return `<p class="hint">🧭 探索位 ${used}/${slots}。派遣中的弟子無法派駐。</p>${claimAll}${doneRows}${runRows}${teamBox}<h3 class="sub">秘境</h3>${realms}`;
+  return `${pendingBox(ui, s)}<p class="hint">🧭 探索位 ${used}/${slots}。派遣中的弟子無法派駐。</p>${claimAll}${doneRows}${runRows}${teamBox}<h3 class="sub">秘境</h3>${realms}`;
 }
+
+// ── 探索度 ──
+const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每級該秘境獎勵 +10%">探索 ${lv}/3${nx ? `・${exXp(s, id)}/${nx}` : '・圓滿'}</span>`; };
+function pendingBox(ui, s) {
+  const list = pendingEvents(s); if (!list.length) return '';
+  return `<div class="exfind"><b class="gold">📜 新的發現（${list.length}）</b>` + list.map(({ id, lv }) => {
+    const e = EXPEDITIONS_BY_ID[id], D = EXPLORATION[id], t = D['t' + lv], pk = EX_KEYS[D.key];
+    const btns = lv === 2
+      ? `<button class="btn" data-act="exResolve" data-id="${id}" data-lv="2" data-c="a">A 立即資源（${esc(rewardPreview(D.reward2a))}）</button> <button class="btn primary" data-act="exResolve" data-id="${id}" data-lv="2" data-c="b">B 永久${esc(pk)} +1%</button>`
+      : `<button class="btn primary" data-act="exResolve" data-id="${id}" data-lv="${lv}">${lv === 3 ? `收下（永久${esc(pk)} +1%）` : `收下（${esc(rewardPreview(D.reward1))}）`}</button>`;
+    return `<div class="exev"><div>${e.emoji} <b>${esc(e.name)}・${esc(t[0])}</b><br><small class="storytext">${esc(t[1])}</small></div><div class="row">${btns}</div></div>`;
+  }).join('') + '</div>';
+}
+const rewardPreview = r => Object.entries(r).map(([k, v]) => ({ shard: `🧩${v}`, token: `🎫${v}`, qiSec: `✨${v}秒產出`, stoneSec: `💎${v}秒產出` }[k])).join(' ');

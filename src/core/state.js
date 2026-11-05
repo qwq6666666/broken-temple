@@ -36,6 +36,8 @@ export function createState() {
     seenIntro: false,                       // 是否看過開場說明
     nemeses: {},                            // 宿敵進度 {id: {met, defeated}}
     glory: { lv: 0 },                       // 宗門榮耀已達等級（只升不降，跨轉生保留）
+    explore: {},                            // 秘境探索度 {秘境id: 成功次數}（跨轉生保留）
+    exMile: {},                             // 已領取的發現事件 {秘境id: {1:'x',2:'a'|'b',3:'x'}}
     squad: [],                              // 出戰陣容（弟子 uid，最多 3 人，跨轉生保留）
     insight: {},                            // 專長心得層數 {專長: 0~3}（跨轉生保留）
     weekly: { claimed: -1 },                // 已領取每週挑戰獎勵的週序號（跨轉生保留）
