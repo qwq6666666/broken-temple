@@ -50,6 +50,18 @@ export function upgrade(s, id) {
   return true;
 }
 
+// 全部升級：反覆挑「買得起且最便宜」的建築升一級，直到沒有買得起的（最多 200 次防呆）。回傳升了幾級。
+export function upgradeAll(s) {
+  let n = 0;
+  for (; n < 200; n++) {
+    const opts = Object.keys(s.buildings).filter(id => canUpgrade(s, id)).map(id => [id, Object.values(upgradeCost(s, id)).reduce((a, v) => a + v, 0)]);
+    if (!opts.length) break;
+    opts.sort((a, b) => a[1] - b[1]);
+    upgrade(s, opts[0][0]);
+  }
+  return n;
+}
+
 // 駐守位：lv≥1 才有，1 + floor((lv-1)/3)
 export const slots = (s, id) => {
   const lv = s.buildings[id].lv;

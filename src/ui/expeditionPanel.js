@@ -6,7 +6,7 @@ import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { REALMS } from '../data/realms.js';
 import { slotCount, isUnlocked, freeDisciples, successChance, teamPower } from '../core/expeditions.js';
 import { fmt } from '../core/format.js';
-import { esc } from './dom.js';
+import { esc, crow } from './dom.js';
 
 const rewardText = rw => [rw.qiSec && '✨靈氣', rw.stoneSec && '💎靈石', rw.token && `🎫${rw.token}`, rw.shard && `🧩${rw.shard}`, rw.artifact && `法寶${Math.round(rw.artifact * 100)}%`, rw.recruit && `弟子${Math.round(rw.recruit * 100)}%`].filter(Boolean).join('　');
 const wantText = w => [w.specialty && `專長：${w.specialty}`, w.element && `五行：${w.element}`].filter(Boolean).join('、');
@@ -18,21 +18,23 @@ export function expeditionPanel(s, ui) {
     const e = EXPEDITIONS_BY_ID[x.id], team = x.uids.map(u => s.disciples.find(d => d.uid === u)).filter(Boolean).map(d => DISCIPLES_BY_ID[d.defId].emoji).join('');
     if (x.status === 'done') {
       const r = x.result, got = [r.qi && `✨${fmt(r.qi)}`, r.stone && `💎${fmt(r.stone)}`, r.token && `🎫${r.token}`, r.shard && `🧩${r.shard}`, r.artifactId && `${ARTIFACTS_BY_ID[r.artifactId].emoji}${esc(ARTIFACTS_BY_ID[r.artifactId].name)}`, r.recruit && '🙋 一位弟子'].filter(Boolean).join('　');
-      return `<div class="card exp done ${x.success ? '' : 'failed'}"><div class="big">${e.emoji}</div><div class="body"><b>${esc(e.name)}</b> <span class="tag ${x.success ? 'gold' : 'red'}">${x.success ? '探索成功' : '探索失敗'}</span> ${team}<br><small>${got}</small></div>
-        <div class="act"><button class="btn primary" data-act="expClaim" data-i="${i}">領取</button></div></div>`;
+      return crow(ui, { key: 'xd' + i, cls: `done ${x.success ? '' : 'failed'}`, icon: e.emoji, title: `<b>${esc(e.name)}</b>`,
+        badges: ` <span class="tag ${x.success ? 'gold' : 'red'}">${x.success ? '探索成功' : '探索失敗'}</span> ${team}`, sub: got,
+        act: `<button class="btn primary" data-act="expClaim" data-i="${i}">領取</button>` });
     }
     const mins = Math.max(1, Math.ceil((x.endAt - s.t) / 60000));
-    return `<div class="card exp"><div class="big">${e.emoji}</div><div class="body"><b>${esc(e.name)}</b> ${team}<br><small class="dim">探索中，約 ${mins} 分鐘後完成（成功率 ${Math.round(x.chance * 100)}%）</small></div></div>`;
+    return crow(ui, { key: 'xr' + i, icon: e.emoji, title: `<b>${esc(e.name)}</b> ${team}`, sub: `探索中，約 ${mins} 分鐘後完成（成功率 ${Math.round(x.chance * 100)}%）` });
   }).join('');
 
   // 秘境清單
   const picked = ui.expPick, team = (ui.expTeam || []).filter(u => s.disciples.some(d => d.uid === u));
   const realms = EXPEDITIONS.map(e => {
     const open = isUnlocked(s, e), sel = picked === e.id;
-    return `<div class="card exp ${sel ? 'sel' : ''} ${open ? '' : 'locked'}"><div class="big">${open ? e.emoji : '🔒'}</div>
-      <div class="body"><b>${esc(e.name)}</b> <small class="dim">${e.minutes} 分鐘・難度 ${e.difficulty}</small><br><small>${open ? esc(e.desc) : `需突破至 ${esc(REALMS[e.unlockRealm].name)}`}</small>
-      ${open ? `<br><small class="dim">推薦 ${esc(wantText(e.want))}｜獎勵：${rewardText(e.reward)}</small>` : ''}</div>
-      ${open ? `<div class="act"><button class="btn ${sel ? 'primary' : ''}" data-act="expPick" data-id="${e.id}">${sel ? '選擇中' : '派遣'}</button></div>` : ''}</div>`;
+    return crow(ui, { key: 'e' + e.id, cls: `${sel ? 'sel' : ''} ${open ? '' : 'locked'}`, icon: open ? e.emoji : '🔒',
+      title: `<b>${esc(e.name)}</b> <small class="dim">${e.minutes} 分鐘・難度 ${e.difficulty}</small>`,
+      sub: open ? esc(e.desc) : `需突破至 ${esc(REALMS[e.unlockRealm].name)}`,
+      act: open ? `<button class="btn ${sel ? 'primary' : ''}" data-act="expPick" data-id="${e.id}">${sel ? '選擇中' : '派遣'}</button>` : '',
+      detail: open ? `<small class="dim">推薦 ${esc(wantText(e.want))}</small><small>獎勵：${rewardText(e.reward)}</small>` : '' });
   }).join('');
 
   // 組隊

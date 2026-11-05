@@ -25,3 +25,16 @@ export function costChips(s, cost) {
 }
 
 export function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// 精簡列：一行顯示圖示、標題、副標與操作；點整列（按鈕以外）展開詳情。各頁共用，狀態存在 ui.rowOpen。
+// title / badges / sub / act / detail 都是已跳脫的 HTML 字串。
+export function crow(ui, { key, cls = '', icon, title, badges = '', sub = '', act = '', detail = '' }) {
+  const open = !!(ui.rowOpen && ui.rowOpen[key]);
+  const can = !!detail;
+  return `<div class="crow ${cls} ${open ? 'open' : ''}">
+    <div class="cmain" ${can ? `data-act="toggleRow" data-key="${key}" role="button" tabindex="0" aria-expanded="${open}"` : ''}>
+      <span class="ci">${icon}</span>
+      <div class="cm"><div class="ct">${title}${badges}</div>${sub ? `<div class="cs">${sub}</div>` : ''}</div>
+      ${act ? `<div class="ca">${act}</div>` : ''}${can ? `<span class="cx">${open ? '▴' : '▾'}</span>` : ''}
+    </div>${open && can ? `<div class="cdetail">${detail}</div>` : ''}</div>`;
+}

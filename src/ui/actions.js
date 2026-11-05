@@ -140,6 +140,8 @@ export function bindActions(s, ui, rerender) {
     slotPick: el => { ui.pickB = el.dataset.b && ui.pickB !== el.dataset.b ? el.dataset.b : null; },
     slotAssign: el => { if (D.assign(s, +el.dataset.uid, el.dataset.b)) sfx('click'); else toast('駐守位已滿或弟子在探索中', 'warn'); },
     unassign: el => { D.assign(s, +el.dataset.uid, null); },
+    toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: !(ui.rowOpen || {})[el.dataset.key] }; },
+    upgradeAll: () => { const n = B.upgradeAll(s); if (n) { sfx('upgrade'); toast(`共升級 ${n} 級`, 'good'); } },
     toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },
