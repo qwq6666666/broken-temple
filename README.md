@@ -9,7 +9,7 @@ ES Modules 在 `file://` 會被瀏覽器擋，請用本機伺服器：
 npx serve .
 ```
 
-測試／調數值：網址加 `?speed=10`（遊戲時間 10 倍速）。Console 可用 `__game.state` 直接改資源。
+測試／調數值：網址加 `?speed=10`（遊戲時間 10 倍速）。加 `?perf` 會每 5 秒在 console 印出 render／tick 的平均與最大耗時（25 位弟子、15 位仇人時每幀約 0.4～0.8ms，不需優化）。Console 可用 `__game.state` 直接改資源。
 
 ```bash
 node tests/run.mjs           # 核心邏輯測試（保底、成本、連鎖、tick 線性…）

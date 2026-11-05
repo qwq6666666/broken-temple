@@ -66,7 +66,15 @@ function onGap(ms) {
   if (!r) return;
   if (ui.busy) toast('剛才離開了一陣子，已補算離線收益', 'good'); else showWelcome(r);
 }
-startLoop(onTick, render, onGap);
+// 網址加 ?perf：每 5 秒在 console 印出 render 與 tick 的平均／最大耗時（毫秒），用來檢查效能
+const PERF = new URLSearchParams(location.search).has('perf');
+const perfStat = { r: [], t: [] };
+const timed = (name, fn) => (...a) => { const t0 = performance.now(); const out = fn(...a); perfStat[name].push(performance.now() - t0); return out; };
+if (PERF) setInterval(() => {
+  const f = k => { const v = perfStat[k].splice(0); return v.length ? `${k} 平均 ${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2)}ms 最大 ${Math.max(...v).toFixed(2)}ms（${v.length} 次）` : `${k} 無資料`; };
+  console.log('[perf]', f('r'), '｜', f('t'));
+}, 5000);
+startLoop(PERF ? timed('t', onTick) : onTick, PERF ? timed('r', render) : render, onGap);
 render();
 
 // 自動存檔：定時、切到背景、關閉頁面
