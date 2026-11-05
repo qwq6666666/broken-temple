@@ -1034,21 +1034,29 @@ t('宗門委託：舊存檔補預設、壞資料被清掉', () => {
   assert.deepEqual(sanitize(old).commissions.list, []);
 });
 
-t('一鍵最佳派駐：專長優先、緣分同棟、不超過駐守位、不動探索中的弟子', () => {
+t('補滿空位：只填空位、不動已派駐、專長與緣分優先、不動探索中的弟子', () => {
   const s = createState(); s.realmIdx = 6;
   for (const id of ['temple', 'field', 'alchemy']) s.buildings[id].lv = 4;       // Lv4 → 2 個駐守位
   const a = D.addDisciple(s, 'afu').disciple, x = D.addDisciple(s, 'xiaocui').disciple;   // 田間搭檔
   const r = autoAssign(s);
   assert.equal(r.placed, 2); assert.ok(a.at && a.at === x.at, '緣分搭檔應同棟');
   for (const id of ['temple', 'field', 'alchemy']) assert.ok(D.assignedTo(s, id).length <= B.slots(s, id));
+  // 已派駐的不動：手動把 afu 放在靈田，再補 xiaocui → 跟著搭檔去靈田
+  const s1 = createState(); s1.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy']) s1.buildings[id].lv = 4;
+  const a1 = D.addDisciple(s1, 'afu').disciple, x1 = D.addDisciple(s1, 'xiaocui').disciple; a1.at = 'field';
+  autoAssign(s1); assert.equal(a1.at, 'field'); assert.equal(x1.at, 'field');
+  // 沒有空位時不會擠掉任何人
+  const s4 = createState(); s4.realmIdx = 6; s4.buildings.temple.lv = 1;
+  const p = D.addDisciple(s4, 'afu').disciple, q = D.addDisciple(s4, 'xiaocui').disciple; p.at = 'temple';
+  assert.equal(autoAssign(s4).placed, 0); assert.equal(p.at, 'temple'); assert.equal(q.at, null);
   // 專長：丹修弟子應優先去煉丹房
   const s2 = createState(); s2.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy']) s2.buildings[id].lv = 1;
   const alc = D.addDisciple(s2, 'shenyao').disciple; autoAssign(s2);
   assert.equal(alc.at, 'alchemy');
   // 探索中的弟子不被動到
   const s3 = createState(); s3.realmIdx = 6; s3.buildings.temple.lv = 4;
-  const e = D.addDisciple(s3, 'afu').disciple; e.at = 'temple'; s3.expeditions.push({ uids: [e.uid] });
-  autoAssign(s3); assert.equal(e.at, 'temple');
+  const e = D.addDisciple(s3, 'afu').disciple; s3.expeditions.push({ uids: [e.uid] });
+  autoAssign(s3); assert.equal(e.at, null);
 });
 
 console.log(`\n${n} 項測試通過`);

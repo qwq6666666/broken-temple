@@ -133,7 +133,7 @@ export function bindActions(s, ui, rerender) {
     abandonCommission: el => { Cm.abandon(s, +el.dataset.i); },
     menuToggle: () => setMenu(document.getElementById('menuMore')?.hidden),
     help: () => showHelp(false),
-    autoAssign: () => { const r = autoAssign(s); sfx('upgrade'); toast(`已重新派駐 ${r.placed}/${r.total} 位弟子`, 'good'); },
+    autoAssign: () => { const r = autoAssign(s); if (r.placed) { sfx('upgrade'); toast(`已補位 ${r.placed} 位弟子`, 'good'); } else toast(r.total ? '沒有空著的駐守位' : '沒有未派駐的弟子', 'info'); },
     dSort: el => { ui.dSort = el.dataset.v; }, dFilter: el => { ui.dFilter = el.dataset.v; },
     toggleD: el => { ui.dOpen = { ...(ui.dOpen || {}), [el.dataset.uid]: !(ui.dOpen || {})[el.dataset.uid] }; },
     toggleBonds: () => { ui.bondsOpen = !ui.bondsOpen; },

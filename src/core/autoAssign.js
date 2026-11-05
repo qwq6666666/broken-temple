@@ -1,5 +1,5 @@
-// 一鍵最佳派駐：先湊緣分搭檔，再依「貢獻值」由高到低貪婪放入（專長相符 ×2、五行 ×1.25 已含在貢獻值）。
-// 只動未探索的弟子；探索中的弟子與他們佔的位置維持原樣。
+// 補滿空位：只把「未派駐」的弟子放進空著的駐守位，已派駐的一律不動（保留玩家手動排的結果）。
+// 順序：先替已派駐的緣分搭檔補位、再湊兩位都未派駐的搭檔，最後依「貢獻值」（含專長 ×2、五行 ×1.25）由高到低貪婪放入。
 import { BONDS } from '../data/bonds.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { slots } from './buildings.js';
@@ -7,15 +7,21 @@ import { contribution } from './discipleMath.js';
 
 export function autoAssign(s) {
   const away = new Set(s.expeditions.flatMap(x => x.uids));
-  const pool = s.disciples.filter(d => !away.has(d.uid));
+  const pool = s.disciples.filter(d => !d.at && !away.has(d.uid));
   const bids = BUILDINGS.filter(b => slots(s, b.id) > 0).map(b => b.id);
-  const cap = Object.fromEntries(bids.map(id => [id, slots(s, id) - s.disciples.filter(d => away.has(d.uid) && d.at === id).length]));
-  pool.forEach(d => { d.at = null; });
+  const cap = Object.fromEntries(bids.map(id => [id, slots(s, id) - s.disciples.filter(d => d.at === id).length]));
   const placed = new Set();
   const put = (d, id) => { d.at = id; cap[id]--; placed.add(d.uid); };
   const best = d => Math.max(0, ...bids.map(id => contribution(d, id)));
 
-  // 1) 緣分：兩人都在名單內時，找一棟空位 ≥ 2 的建築；只在不吃虧太多（≥ 各自最佳的 70%）時才湊
+  // 1a) 緣分：搭檔已派駐在某棟、這棟還有空位，就補另一位進去（不吃虧太多才補）
+  for (const b of BONDS) {
+    for (const [mine, other] of [[b.a, b.b], [b.b, b.a]]) {
+      const d = pool.find(x => x.defId === mine && !placed.has(x.uid)), partner = s.disciples.find(x => x.defId === other && x.at);
+      if (d && partner && cap[partner.at] > 0 && contribution(d, partner.at) >= 0.7 * best(d)) put(d, partner.at);
+    }
+  }
+  // 1b) 緣分：兩人都未派駐時，找一棟空位 ≥ 2 的建築；只在不吃虧太多（≥ 各自最佳的 70%）時才湊
   for (const b of BONDS) {
     const a = pool.find(d => d.defId === b.a), c = pool.find(d => d.defId === b.b);
     if (!a || !c || placed.has(a.uid) || placed.has(c.uid)) continue;

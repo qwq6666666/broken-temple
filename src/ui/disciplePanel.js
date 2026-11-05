@@ -34,7 +34,7 @@ export function disciplePanel(s, ui) {
   ).sort(sorters[sort]);
   const chip = (act, key, cur, [k, label]) => `<button class="fchip ${cur === k ? 'on' : ''}" data-act="${act}" data-v="${k}">${label}</button>`;
   const tools = `<div class="dtools">
-      <button class="btn primary" data-act="autoAssign" title="依專長、五行與緣分重新派駐所有弟子（探索中的除外）">⚡ 一鍵最佳派駐</button>
+      <button class="btn primary" data-act="autoAssign" title="把未派駐的弟子依專長、五行與緣分放進空位（已派駐的不動）">⚡ 補滿空位</button>
       <div class="fgroup"><small class="dim">排序</small>${SORTS.map(x => chip('dSort', 'sort', sort, x)).join('')}</div>
       <div class="fgroup"><small class="dim">篩選</small>${FILTERS.map(x => chip('dFilter', 'flt', flt, x)).join('')}
         <select class="assign" data-change="dElem"><option value="">五行：全部</option>${ELEMS.map(e => `<option value="${e}" ${elem === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
