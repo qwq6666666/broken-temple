@@ -32,13 +32,15 @@ export function bindActions(s, ui, rerender) {
       const gain = meditate(s);
       if (!gain) return;
       sfx('click');
-      const tile = document.querySelector('.tile[data-id=temple]');           // 靈氣匯聚到破廟
+      const tile = document.querySelector('.bld[data-id=temple]');           // 靈氣匯聚到破廟
       if (tile) { const c = centerOf(tile); converge(ev.clientX, ev.clientY, c.x, c.y, { n: 14 }); setTimeout(() => burstAt(c.x, c.y, { n: 8, speed: 70, color: 'rgba(143,207,168,1)', life: 0.5 }), 520); }
       const sc = document.getElementById('scene'), r = sc.getBoundingClientRect();
       const f = document.createElement('span'); f.className = 'float'; f.textContent = '+' + fmt(gain);
       f.style.left = (ev.clientX - r.left) + 'px'; f.style.top = (ev.clientY - r.top - 10) + 'px';
       sc.appendChild(f); setTimeout(() => f.remove(), 900);
     },
+    selectBuilding: el => { ui.selBuilding = ui.selBuilding === el.dataset.id ? null : el.dataset.id; sfx('click'); },
+    closeBuilding: () => { ui.selBuilding = null; },
     upgrade: el => { if (B.upgrade(s, el.dataset.id)) sfx('upgrade'); },
     breakthrough: async () => {
       if (ui.busy) return;

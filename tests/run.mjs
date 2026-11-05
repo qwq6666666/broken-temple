@@ -19,6 +19,8 @@ import * as Nem from '../src/core/nemesis.js';
 import * as Dao from '../src/core/dao.js';
 import * as Prog from '../src/core/progress.js';
 import { stepParticle, moteCount } from '../src/ui/particles.js';
+import { drawBuilding, POS, DRAW_ORDER, BACKDROP } from '../src/ui/sceneArt.js';
+import { BUILDINGS } from '../src/data/buildings.js';
 import { topRarity, playPull } from '../src/ui/pullFx.js';
 import { bus } from '../src/core/events.js';
 import { NEMESES, NEMESES_BY_ID } from '../src/data/nemeses.js';
@@ -711,6 +713,20 @@ t('抽卡演出：最高稀有度判斷', () => {
 
 t('沒有瀏覽器環境時，特效函式不丟錯（直接略過）', async () => {
   await playPull([{ rarity: 'UR' }]);                       // Node 沒有 document：motionOK 仍為真，但應被保護
+});
+
+// ── 宗門全景（SVG 剪影）──
+t('建築剪影：每棟每個外觀階段都有圖，且數量與資料的里程碑一致', () => {
+  for (const d of BUILDINGS) {
+    assert.ok(POS[d.id] && DRAW_ORDER.includes(d.id));
+    for (let i = 0; i < d.stages.length; i++) {
+      const svg = drawBuilding(d.id, i);
+      assert.ok(svg.length > 20 && !svg.includes('undefined') && !svg.includes('NaN'), `${d.id} 階段 ${i}`);
+    }
+  }
+  assert.equal(DRAW_ORDER.length, BUILDINGS.length);
+  assert.ok(drawBuilding('temple', 99));                       // 超出階段取最高階，不丟錯
+  assert.ok(BACKDROP.includes('d-cloudsea') && BACKDROP.includes('d-gate'));
 });
 
 console.log(`\n${n} 項測試通過`);

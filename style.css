@@ -414,3 +414,74 @@ button.meditate .mlabel { position: relative; }
 
 /* 手機：弟子格不撐破版面 */
 @media (max-width: 860px) { .dgrid, .gresults { grid-template-columns: repeat(2, minmax(0, 1fr)); } select.assign { max-width: 100%; min-width: 0; } .dcard { min-width: 0; overflow: hidden; } }
+
+/* ══════ 宗門全景（SVG 水墨山水）══════ */
+.scene { min-height: 0; padding-bottom: 12px; --m1: #1b2a24; --m2: #22372d; --hill: #172620; --hill2: #12201a; --mist: .07; }
+.scene[data-tier="1"] { --m1: #1d3a2d; --m2: #28493a; --hill: #1b3326; --hill2: #152a1f; }
+.scene[data-tier="2"] { --m1: #20374a; --m2: #2a4a60; --hill: #1d3340; --hill2: #172a35; --mist: .14; }
+.scene[data-tier="3"] { --m1: #3a3a26; --m2: #4d4a2e; --hill: #35341f; --hill2: #2b2a19; --mist: .12; }
+.scene[data-tier="4"] { --m1: #2b2146; --m2: #3b2d5c; --hill: #2a2040; --hill2: #211833; --mist: .14; }
+.scene[data-tier="5"] { --m1: #43301a; --m2: #5a421f; --hill: #3d2c17; --hill2: #31230f; --mist: .16; }
+.ridge { display: none; }
+.landwrap { position: relative; z-index: 2; margin-top: 4px; }
+.land { width: 100%; height: auto; display: block; overflow: visible; }
+.mtn.m1 { fill: var(--m1); opacity: .75; } .mtn.m2 { fill: var(--m2); opacity: .9; }
+.hill { fill: var(--hill); } .hill2 { fill: var(--hill2); }
+.trail { fill: none; stroke: rgba(239,230,208,.16); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 2 13; }
+.pines path { fill: #0d1a13; opacity: .85; }
+.mist { fill: rgba(239,230,208,var(--mist)); }
+.mist1 { animation: mistdrift 28s ease-in-out infinite alternate; } .mist2 { animation: mistdrift 36s ease-in-out infinite alternate-reverse; }
+@keyframes mistdrift { from { transform: translateX(-40px); } to { transform: translateX(40px); } }
+/* 境界階層裝飾：築基雲海、金丹浮島、元嬰極光、化神天門與星空 */
+.d-cloudsea ellipse { fill: rgba(239,230,208,.16); }
+.d-islands path { fill: var(--m2); opacity: .8; }
+.d-aurora path { fill: rgba(143,207,168,.14); } .d-gate path { fill: none; stroke: rgba(217,182,74,.5); stroke-width: 3; }
+.d-stars circle { fill: #efe6d0; }
+.d-cloudsea, .d-islands, .d-aurora, .d-gate, .d-stars { opacity: 0; transition: opacity 1.2s; }
+.scene[data-tier="2"] .d-cloudsea, .scene[data-tier="3"] .d-cloudsea, .scene[data-tier="4"] .d-cloudsea, .scene[data-tier="5"] .d-cloudsea { opacity: 1; }
+.scene[data-tier="3"] .d-islands, .scene[data-tier="4"] .d-islands, .scene[data-tier="5"] .d-islands { opacity: 1; animation: islandfloat 7s ease-in-out infinite alternate; }
+.scene[data-tier="4"] .d-aurora, .scene[data-tier="5"] .d-aurora { opacity: 1; animation: aurora 9s ease-in-out infinite alternate; }
+.scene[data-tier="5"] .d-gate { opacity: 1; } .scene[data-tier="5"] .d-stars, .scene[data-tier="4"] .d-stars { opacity: .8; }
+@keyframes islandfloat { to { transform: translateY(-6px); } } @keyframes aurora { to { opacity: .5; } }
+
+/* 建築剪影 */
+.ink { fill: #0f1c16; stroke: #7fb08f; stroke-width: .9; stroke-linejoin: round; } .ink2 { fill: #1d3026; stroke: none; }
+.gold { fill: #d9b64a; } .goldline { fill: none; stroke: #d9b64a; stroke-width: 1.5; stroke-linecap: round; } .jade { fill: #8fcfa8; } .jadeline { fill: none; stroke: #8fcfa8; stroke-width: 2; stroke-linecap: round; }
+.soil { fill: #243826; } .tree { fill: #1f4430; stroke: #5f9a76; } .halo { fill: rgba(217,182,74,.11); stroke: none; }
+.ghost { fill: none; stroke: #7d9585; stroke-dasharray: 3 3; stroke-width: 1; }
+.ringline { fill: none; stroke: #6fb7e0; stroke-width: 1.2; opacity: .85; } .domeline { fill: none; stroke: rgba(111,183,224,.45); stroke-dasharray: 3 4; } .beam { stroke: rgba(111,183,224,.5); stroke-width: 2; }
+.glowdot { filter: drop-shadow(0 0 3px rgba(217,182,74,.9)); animation: flicker 3s ease-in-out infinite; }
+@keyframes flicker { 50% { opacity: .65; } }
+.bld { cursor: pointer; outline: none; } .bld .hit { fill: transparent; }
+.bld .selring { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: 0; transition: opacity .2s; } .bld.sel .selring { opacity: .9; }
+.bld .art { transition: filter .25s; } .bld:hover .art { filter: brightness(1.5); }
+.bld.unbuilt .art { opacity: .75; }
+.bld.maxed .art { filter: drop-shadow(0 0 7px rgba(217,182,74,.55)); }
+.bld.paused .art { filter: grayscale(1) brightness(.65); }
+.bld .smoke { display: none; } .bld.paused .smoke { display: block; animation: smoke 2.4s ease-out infinite; }
+.bld .bi { transform-box: fill-box; transform-origin: 50% 100%; }
+.bld.popup .bi { animation: bldpop .6s ease-out; } @keyframes bldpop { 40% { transform: scale(1.12) translateY(-3px); } }
+.lvchip rect { fill: rgba(10,16,13,.88); stroke: var(--line); } .lvchip text { fill: var(--gold); font-size: 9px; font-weight: bold; }
+.bld.unbuilt .lvchip text { fill: var(--dim); }
+.dsc { animation: walk 3.5s ease-in-out infinite alternate; }
+/* 訪客與事件圖示 */
+.vis { display: none; } .vis.on { display: block; }
+.vaura { fill: rgba(217,182,74,.35); } .vis.nem .vaura { fill: rgba(209,88,76,.7); } .vis.nem .vf { font-size: 34px; }
+.vf { animation: bob 2.2s ease-in-out infinite; }
+.vis.walkin .visin { animation: visWalk 1.4s ease-out; } @keyframes visWalk { from { transform: translateX(-240px); opacity: .2; } 70% { opacity: 1; } }
+.incf { animation: bob 2.4s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(111,183,224,.8)); }
+/* 點建築彈出的操作面板 */
+.bpop { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 6; } .bpop:empty { display: none; }
+.bpop-card { position: relative; background: rgba(12,18,15,.96); border: 1px solid var(--gold); border-radius: 10px; padding: 8px 34px 8px 12px; display: flex; flex-direction: column; gap: 3px; animation: popIn .25s ease-out; box-shadow: 0 0 18px rgba(0,0,0,.6); }
+.bpop-card .hx { position: absolute; top: 2px; right: 2px; background: none; border: none; color: var(--dim); font-size: 1.1em; cursor: pointer; min-width: 40px; min-height: 36px; }
+.bpop-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bpop-foot .act { display: flex; gap: 8px; align-items: center; }
+.bigemoji { font-size: 26px; }
+@media (max-width: 860px) { .scene { padding: 8px; } .bpop { left: 4px; right: 4px; bottom: 4px; } .bld .lvchip text { font-size: 11px; } }
+
+.float.rgain { animation: rgainUp .95s ease-out forwards; top: 4px !important; }
+@keyframes rgainUp { to { transform: translateY(-16px); opacity: 0; } }
+
+/* 建築操作面板：放在山水下方，不遮住畫面，方便直接點其他建築切換 */
+.bpop { position: static; margin-top: 8px; }
+@media (max-width: 860px) { .bpop { left: auto; right: auto; bottom: auto; } }

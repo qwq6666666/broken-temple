@@ -1,0 +1,91 @@
+// 宗門全景的簡約剪影（SVG）。座標以建築底部中心為原點，向上為負 y；每棟 5 個階段（對應 data/buildings 的 stages）。
+// 顏色全部走 CSS class（ink 深墨、gold 金、jade 淡綠、ghost 虛線輪廓），主題與暗色模式由 style.css 統一控制。
+const R = (x, y, w, h, c = 'ink') => `<rect class="${c}" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+const E = (cx, cy, rx, ry, c = 'ink') => `<ellipse class="${c}" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/>`;
+const L = (d, c = 'goldline') => `<path class="${c}" d="${d}"/>`;
+// 飛簷屋頂：兩端上翹
+const roof = (cx, y, w, h, c = 'ink') =>
+  `<path class="${c}" d="M${cx - w / 2 - 7} ${y + 4} Q${cx - w / 4} ${y - 1} ${cx} ${y - h} Q${cx + w / 4} ${y - 1} ${cx + w / 2 + 7} ${y + 4} Z"/>`;
+const lantern = (x, y) => `<circle class="gold glowdot" cx="${x}" cy="${y}" r="2.6"/>`;
+const win = (x, y) => `<rect class="gold glowdot" x="${x}" y="${y}" width="3.4" height="5"/>`;
+const ruins = (w = 30) => `${L(`M${-w} 0h${w * 2}`, 'ghost')}${R(-w + 4, -9, 5, 9, 'ghost')}${R(w - 10, -6, 5, 6, 'ghost')}`;
+
+const ART = {
+  // 破廟 → 山門 → 道觀 → 正殿
+  temple: [
+    () => ruins(32),
+    () => `${R(-18, -18, 36, 18)}${roof(0, -18, 46, 16)}${R(-4, -10, 8, 10, 'ink2')}`,
+    () => `${R(-28, -26, 56, 26)}${roof(0, -26, 68, 20)}${R(-4, -14, 8, 14, 'ink2')}${R(-40, -30, 4, 30)}${R(36, -30, 4, 30)}${L('M-40 -30h-0v-10', 'goldline')}${lantern(-40, -12)}${lantern(40, -12)}`,
+    () => `${R(-34, -24, 68, 24)}${roof(0, -24, 84, 14)}${R(-20, -44, 40, 20)}${roof(0, -44, 56, 18)}${R(-5, -14, 10, 14, 'ink2')}${lantern(-30, -20)}${lantern(30, -20)}${lantern(-14, -40)}${lantern(14, -40)}`,
+    () => `${E(0, -28, 52, 40, 'halo')}${R(-38, -24, 76, 24)}${roof(0, -24, 92, 14)}${R(-24, -44, 48, 20)}${roof(0, -44, 64, 16)}${R(-14, -62, 28, 18)}${roof(0, -62, 40, 16)}${L('M0 -80v-10', 'goldline')}<circle class="gold glowdot" cx="0" cy="-92" r="3.4"/>${lantern(-34, -20)}${lantern(34, -20)}${win(-4, -38)}${win(-4, -56)}`,
+  ],
+  // 一堆朽木 → 書架 → 藏書小樓 → 萬卷經樓
+  library: [
+    () => ruins(24),
+    () => `${R(-16, -22, 32, 22)}${L('M-16 -15h32M-16 -8h32', 'goldline')}`,
+    () => `${R(-22, -22, 44, 22)}${roof(0, -22, 56, 16)}${R(-14, -14, 6, 6, 'ink2')}${R(8, -14, 6, 6, 'ink2')}`,
+    () => `${R(-24, -20, 48, 20)}${roof(0, -20, 60, 12)}${R(-17, -38, 34, 18)}${roof(0, -38, 46, 14)}${win(-12, -32)}${win(8, -32)}${lantern(-26, -16)}${lantern(26, -16)}`,
+    () => `${R(-26, -20, 52, 20)}${roof(0, -20, 66, 12)}${R(-19, -38, 38, 18)}${roof(0, -38, 50, 12)}${R(-12, -56, 24, 18)}${roof(0, -56, 36, 14)}${win(-14, -32)}${win(10, -32)}${win(-3, -50)}${E(0, -34, 40, 38, 'halo')}${lantern(-28, -16)}${lantern(28, -16)}`,
+  ],
+  // 灶台 → 丹爐 → 丹房 → 三昧真火爐 → 九轉丹閣
+  alchemy: [
+    () => `${ruins(22)}`,
+    () => `${E(0, -12, 12, 11)}${R(-10, -4, 4, 4)}${R(6, -4, 4, 4)}<path class="gold glowdot" d="M-3 -22 Q0 -32 3 -22 Q0 -25 -3 -22Z"/>`,
+    () => `${R(-22, -20, 44, 20)}${roof(0, -20, 54, 14)}${R(10, -34, 7, 18)}${E(-4, -8, 7, 6, 'ink2')}<path class="gold glowdot" d="M-6 -15 Q-4 -22 -2 -15Z"/>`,
+    () => `${R(-26, -22, 52, 22)}${roof(0, -22, 64, 14)}${E(0, -10, 12, 10, 'ink2')}<path class="gold glowdot" d="M-6 -20 Q0 -34 6 -20 Q0 -25 -6 -20Z"/>${R(16, -40, 8, 20)}${lantern(-24, -18)}${lantern(24, -18)}`,
+    () => `${E(0, -30, 34, 38, 'halo')}${R(-22, -18, 44, 18)}${roof(0, -18, 56, 12)}${R(-15, -34, 30, 16)}${roof(0, -34, 42, 12)}${R(-9, -48, 18, 14)}${roof(0, -48, 28, 12)}<path class="gold glowdot" d="M-5 -14 Q0 -30 5 -14 Q0 -20 -5 -14Z"/>${lantern(-22, -14)}${lantern(22, -14)}${win(-6, -30)}${win(2, -30)}`,
+  ],
+  // 荒地 → 靈苗 → 靈稻 → 靈竹 → 靈樹成林
+  field: [
+    () => `${E(-14, -3, 6, 3, 'ghost')}${E(10, -2, 5, 2.5, 'ghost')}${E(0, -6, 4, 2, 'ghost')}`,
+    () => `${R(-26, -6, 52, 6, 'soil')}${L('M-18 -6v-6M-8 -6v-8M2 -6v-6M12 -6v-8M20 -6v-5', 'jadeline')}`,
+    () => `${R(-30, -6, 60, 6, 'soil')}${R(-24, -14, 48, 6, 'soil')}${L('M-22 -6v-8M-12 -6v-9M-2 -6v-8M8 -6v-9M18 -6v-8M-16 -14v-8M-4 -14v-9M8 -14v-8M18 -14v-9', 'jadeline')}`,
+    () => `${R(-30, -4, 60, 4, 'soil')}${L('M-24 -4v-26M-16 -4v-34M-8 -4v-28M0 -4v-36M8 -4v-30M16 -4v-34M24 -4v-26', 'jadeline')}<circle class="jade glowdot" cx="0" cy="-38" r="2"/>`,
+    () => `${R(-34, -4, 68, 4, 'soil')}${E(0, -30, 26, 20, 'tree')}${E(-22, -22, 14, 12, 'tree')}${E(22, -22, 14, 12, 'tree')}${R(-3, -14, 6, 14)}<circle class="jade glowdot" cx="-8" cy="-34" r="2"/><circle class="gold glowdot" cx="10" cy="-26" r="2"/><circle class="jade glowdot" cx="22" cy="-24" r="1.8"/>`,
+  ],
+  // 空地 → 木樁 → 兵器架 → 擂台 → 大演武場
+  arena: [
+    () => `${L('M-30 0h60', 'ghost')}${L('M-20 -2h40', 'ghost')}`,
+    () => `${R(-22, -18, 5, 18)}${R(-2, -16, 5, 16)}${R(18, -18, 5, 18)}`,
+    () => `${R(-26, -26, 52, 4)}${R(-24, -26, 4, 26)}${R(20, -26, 4, 26)}${L('M-12 -24v18M0 -24v18M12 -24v18', 'goldline')}`,
+    () => `${R(-34, -8, 68, 8)}${R(-30, -20, 3, 12)}${R(27, -20, 3, 12)}<path class="gold" d="M-27 -20 l16 4 l-16 4Z"/><path class="gold" d="M30 -20 l-16 4 l16 4Z"/>`,
+    () => `${E(0, -4, 46, 10, 'halo')}${E(0, -4, 40, 8)}${R(-44, -30, 3, 30)}${R(41, -30, 3, 30)}<path class="gold" d="M-41 -30 l22 5 l-22 5Z"/><path class="gold" d="M44 -30 l-22 5 l22 5Z"/>${L('M-10 -22l20 14M10 -22l-20 14', 'goldline')}`,
+  ],
+  // 石子 → 陣紋 → 陣眼 → 護罩 → 周天星斗大陣
+  array: [
+    () => `<circle class="ghost" cx="-18" cy="-2" r="2.5"/><circle class="ghost" cx="0" cy="2" r="2.5"/><circle class="ghost" cx="18" cy="-2" r="2.5"/><circle class="ghost" cx="-8" cy="-6" r="2"/>`,
+    () => `${E(0, -3, 34, 9, 'ringline')}`,
+    () => `${E(0, -3, 38, 10, 'ringline')}${L('M-22 -3l22 -8l22 8l-22 8Z', 'goldline')}`,
+    () => `${E(0, -3, 40, 11, 'ringline')}${E(0, -3, 26, 7, 'ringline')}${L('M-26 -3l26 -9l26 9l-26 9Z', 'goldline')}${L('M-40 -3 Q0 -62 40 -3', 'domeline')}`,
+    () => `${E(0, -3, 44, 12, 'ringline')}${E(0, -3, 30, 8, 'ringline')}${E(0, -3, 16, 4.5, 'ringline')}${L('M-30 -3l30 -10l30 10l-30 10Z', 'goldline')}${L('M-44 -3 Q0 -80 44 -3', 'domeline')}${L('M-30 -3v-34M0 -9v-48M30 -3v-34', 'beam')}<circle class="gold glowdot" cx="0" cy="-3" r="3"/>`,
+  ],
+};
+
+export const drawBuilding = (id, stageIdx) => (ART[id][Math.min(stageIdx, ART[id].length - 1)])();
+
+// 建築在 640×360 畫布上的位置（底部中心）與彈窗錨點
+export const POS = {
+  temple:  [320, 196],
+  library: [150, 232],
+  alchemy: [490, 232],
+  field:   [104, 318],
+  arena:   [536, 318],
+  array:   [320, 336],
+};
+// 由遠到近的繪製順序
+export const DRAW_ORDER = ['temple', 'library', 'alchemy', 'field', 'arena', 'array'];
+
+// 背景山水（SVG 字串）：遠山、近山、雲海、浮島、極光、天門、星空。依境界階層由 CSS 控制顯示。
+export const BACKDROP = `
+  <g class="d-stars">${[[40,40],[120,26],[210,52],[300,20],[400,44],[490,24],[580,48],[620,18],[260,36],[540,70]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.4"/>`).join('')}</g>
+  <g class="d-aurora"><path d="M0 70 Q160 20 320 60 T640 40 V120 Q480 90 320 120 T0 120Z"/></g>
+  <g class="d-gate"><path d="M250 140 V60 Q320 10 390 60 V140" /><path d="M262 140 V70 Q320 28 378 70 V140"/></g>
+  <path class="mtn m1" d="M0 190 L55 110 L105 160 L170 80 L240 165 L310 100 L385 170 L460 90 L530 160 L590 115 L640 150 V360 H0Z"/>
+  <g class="d-islands"><path d="M70 60 q14 -14 30 0 q-6 10 -15 14 q-10 -4 -15 -14Z"/><path d="M520 46 q16 -16 34 0 q-8 12 -17 16 q-11 -4 -17 -16Z"/></g>
+  <path class="mtn m2" d="M0 220 L70 160 L130 205 L200 140 L270 210 L360 150 L440 215 L520 150 L590 200 L640 175 V360 H0Z"/>
+  <g class="d-cloudsea"><ellipse cx="120" cy="215" rx="130" ry="14"/><ellipse cx="400" cy="205" rx="160" ry="12"/><ellipse cx="560" cy="225" rx="110" ry="12"/></g>
+  <ellipse class="mist mist1" cx="200" cy="240" rx="170" ry="10"/><ellipse class="mist mist2" cx="460" cy="262" rx="190" ry="9"/>
+  <path class="hill" d="M0 252 Q120 226 240 238 T460 228 T640 236 V360 H0Z"/>
+  <path class="hill2" d="M0 290 Q160 262 320 278 T640 270 V360 H0Z"/>
+  <path class="trail" d="M322 360 C 338 336 296 318 316 296 C 338 276 308 250 322 214"/>
+  <g class="pines">${[[40,262],[70,270],[590,258],[618,268],[236,262],[404,262]].map(([x, y]) => `<path d="M${x} ${y} l-7 14 h4 l-6 11 h6 l-5 9 h16 l-5 -9 h6 l-6 -11 h4Z"/>`).join('')}</g>`;

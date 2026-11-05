@@ -37,7 +37,7 @@ const ui = { tab: 'buildings', lastPull: null, quote: '', quoteAt: 0, busy: fals
 bus.on('cue', ({ name, data }) => {
   sfx(name, data || {});                                            // core 的提示音
   if (name === 'buildingUp') {                                      // 升級：建築彈跳 + 金色迸發
-    const t = document.querySelector(`.tile[data-id=${data.id}]`);
+    const t = document.querySelector(`.bld[data-id=${data.id}]`);
     if (t) { t._pop = true; pulse(t, 'popup', 700); setTimeout(() => { t._pop = false; }, 700); const c = centerOf(t); burstAt(c.x, c.y, { n: data.stage ? 30 : 16, speed: data.stage ? 220 : 140 }); }
   } else if (name === 'nemesis') { shake(document.getElementById('scene')); }       // 宿敵現身：全景震動
 });
