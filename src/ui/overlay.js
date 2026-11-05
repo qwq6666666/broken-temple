@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { VISITOR_TYPES } from '../data/visitors.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { fmt, fmtTime } from '../core/format.js';
+import { OFFLINE_EVENTS_BY_ID } from '../data/offlineEvents.js';
 import { esc, sleep } from './dom.js';
 import { sfx } from './audio.js';
 import { daoGain } from '../core/dao.js';
@@ -148,6 +149,19 @@ export function closeOverlay() {
 }
 
 // ── 歡迎回來（離線收益） ──
+// 歡迎畫面的小事件：兩個選項，選完顯示結果（結算在 actions.offlineChoose）
+function offlineEventBox(id) {
+  const ev = OFFLINE_EVENTS_BY_ID[id];
+  if (!ev) return '';
+  return `<div class="offev" id="offev" data-id="${ev.id}"><p>${esc(ev.text)}</p>
+    <div class="offchoices">${ev.choices.map((c, i) => `<button class="btn" data-act="offlineChoose" data-i="${i}">${esc(c.label)}</button>`).join('')}</div></div>`;
+}
+export function showOfflineResult(text, got) {
+  const el = document.getElementById('offev'); if (!el) return;
+  const chips = [got.token && `🎫${got.token}`, got.qi && `✨${fmt(got.qi)}`, got.stone && `💎${fmt(got.stone)}`].filter(Boolean).join('　');
+  el.innerHTML = `<p>${esc(text)}</p><p class="gold">${chips}</p>`;
+}
+
 export function showWelcome(r) {
   const o = root();
   const away = fmtTime(r.elapsedMs).replace(/^(\d+):(\d+)$/, (_, m, sec) => `${Math.floor(m / 60) ? Math.floor(m / 60) + ' 小時 ' : ''}${m % 60} 分`);
@@ -162,6 +176,7 @@ export function showWelcome(r) {
     </div>
     <p>🎭 偽裝 +${fmt(r.disguiseGain)}　蓄力 +${Math.floor(r.chargeMinutes)} 分鐘${r.disguiseFull ? '　<b class="gold">蓄力已滿！</b>' : ''}</p>
     ${grown}
+    ${offlineEventBox(r.event)}
     <p class="lineq">老祖：「你不在的時候，本座一個人守著這座破廟，還好有蜘蛛陪我說話。」</p>
     <button class="btn primary big" data-act="closeSettle">繼續</button>
   </div></div>`;

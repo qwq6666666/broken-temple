@@ -618,3 +618,6 @@ h3.sub:first-child { margin-top: 0; }
 .badge { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 4px; color: var(--paper); font: inherit; cursor: pointer; }
 .badge:disabled { opacity: .5; cursor: default; } .badge .bi { font-size: 22px; } .badge b { font-size: .85em; } .badge small { font-size: .7em; color: var(--dim); }
 .badge.on { border-color: var(--gold); } .badge.worn { background: var(--panel2); box-shadow: 0 0 8px rgba(217,182,74,.4); }
+
+.offev { background: rgba(0,0,0,.22); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; margin: 10px 0; font-size: .92em; line-height: 1.6; }
+.offchoices { display: flex; gap: 8px; flex-wrap: wrap; } .offchoices .btn { flex: 1 1 120px; }

@@ -7,6 +7,8 @@ import * as conceal from './conceal.js';
 import { perm } from './dao.js';
 import * as expeditions from './expeditions.js';
 
+import { rollOfflineEvent } from './offlineEvent.js';
+
 export function applyOffline(s, elapsedMs) {
   const O = CONFIG.offline;
   if (!(elapsedMs >= O.minMs)) return null;
@@ -30,6 +32,7 @@ export function applyOffline(s, elapsedMs) {
   if (s.incident.current) s.incident.current.expiresAt = Math.max(s.incident.current.expiresAt, s.t + 60000);   // 離線不算逾時
 
   return {
+    event: rollOfflineEvent(s, elapsedMs),
     elapsedMs, usedMs: used, capped: elapsedMs > capMs, capMs, efficiency: eff,
     gains: { qi: s.res.qi - before.qi, stone: s.res.stone - before.stone, token: s.res.token - before.token },
     disguiseGain: s.disguise.value - before.disguise,

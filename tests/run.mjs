@@ -26,6 +26,7 @@ import { sanitize } from '../src/core/save.js';
 import { autoAssign } from '../src/core/autoAssign.js';
 import * as Chr from '../src/core/chronicle.js';
 import * as Ach from '../src/core/achievements.js';
+import * as Off from '../src/core/offlineEvent.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1082,6 +1083,14 @@ t('成就：達成即解鎖並記年表、稱號可裝備與取消、轉生保�
   assert.equal(s.achv.title, 'endure100');
   const raw = JSON.parse(JSON.stringify(s)); raw.achv = { done: ['endure100', 'zzz'], title: 'zzz' };
   const back = sanitize(raw); assert.deepEqual(back.achv, { done: ['endure100'], title: null });
+});
+
+t('離線歸來事件：離開 30 分鐘以上才出現、兩個選項都能結算、不存在的選項回傳 null', () => {
+  const s = createState(); s.buildings.alchemy.lv = 1; s.buildings.temple.lv = 1;
+  const r1 = applyOffline(createState(), 10 * 60 * 1000); assert.equal(r1.event, null);
+  const r2 = applyOffline(s, 40 * 60 * 1000); assert.ok(r2.event);
+  for (const i of [0, 1]) { const t0 = { ...s.res }; const r = Off.resolveOffline(s, r2.event, i); assert.ok(r && r.text); assert.ok(Object.keys(r.got).every(k => s.res[k] >= t0[k])); assert.ok(Object.keys(r.got).length); }
+  assert.equal(Off.resolveOffline(s, r2.event, 5), null); assert.equal(Off.resolveOffline(s, 'zzz', 0), null);
 });
 
 console.log(`\n${n} 項測試通過`);

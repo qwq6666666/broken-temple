@@ -13,13 +13,14 @@ import * as St from '../core/stories.js';
 import * as Sp from '../core/spec.js';
 import { autoAssign } from '../core/autoAssign.js';
 import * as Ach from '../core/achievements.js';
+import * as Off from '../core/offlineEvent.js';
 import * as Cm from '../core/commissions.js';
 import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITY_ORDER } from '../data/gachaRates.js';
-import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp, showStory, showStoryLog } from './overlay.js';
+import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp, showOfflineResult, showStory, showStoryLog } from './overlay.js';
 import { sfx, unlock, applyVolume } from './audio.js';
 import { getPrefs, setPref } from './prefs.js';
 import { ghostOut, ripple, pulse } from './fx.js';
@@ -144,6 +145,11 @@ export function bindActions(s, ui, rerender) {
     toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: !(ui.rowOpen || {})[el.dataset.key] }; },
     upgradeAll: () => { const n = B.upgradeAll(s); if (n) { sfx('upgrade'); toast(`共升級 ${n} 級`, 'good'); } },
     equipTitle: el => { Ach.equip(s, s.achv.title === el.dataset.id ? null : el.dataset.id); },
+    offlineChoose: el => {
+      const box = document.getElementById('offev'); if (!box || box.dataset.done) return;
+      const r = Off.resolveOffline(s, box.dataset.id, +el.dataset.i);
+      if (r) { box.dataset.done = '1'; showOfflineResult(r.text, r.got); sfx('coin'); }
+    },
     toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },
