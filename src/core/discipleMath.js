@@ -7,7 +7,12 @@ import { RARITIES } from '../data/gachaRates.js';
 export const defOf = d => DISCIPLES_BY_ID[d.defId];
 
 // 弟子屬性 = 稀有度基礎 × (1 + 每級成長 × (等級-1))
-export const stat = d => RARITIES[defOf(d).rarity].stat * (1 + CONFIG.disciple.statGrowth * (d.lv - 1));
+export const starOf = d => d.star || 0;      // 舊存檔沒有 star 欄位
+const starMult = d => 1 + CONFIG.disciple.starBonus * starOf(d);
+export const stat = d => RARITIES[defOf(d).rarity].stat * (1 + CONFIG.disciple.statGrowth * (d.lv - 1)) * starMult(d);
+// 特性效果（受星級加成）
+export const traitOf = d => defOf(d).trait;
+export const traitValue = d => traitOf(d).value * starMult(d);
 
 export const isSpecialtyMatch = (d, bid) => defOf(d).specialty === BUILDINGS_BY_ID[bid].specialty;
 export const isElementMatch = (d, bid) => defOf(d).element === BUILDINGS_BY_ID[bid].element;

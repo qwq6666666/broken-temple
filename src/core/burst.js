@@ -7,7 +7,7 @@ import { ARTIFACTS } from '../data/artifacts.js';
 import { LINES, pickLine } from '../data/lines.js';
 import { lvlLabel } from '../data/realms.js';
 import { pick, randInt, chance, weighted } from './rng.js';
-import { qiPerSec, stonePerSec, artifactSum, rareChance } from './economy.js';
+import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf } from './conceal.js';
 import { quote } from './events.js';
 import { addDisciple } from './disciples.js';
@@ -67,7 +67,7 @@ export function burst(s) {
   // 2) 連鎖：被擊敗（碾壓＋險勝）的人數
   const chain = entries.filter(e => e.verdict !== 'fail').length;
   const cMult = chainMult(chain);
-  const art = 1 + artifactSum(s, 'burstReward');
+  const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward');
   const total = { qi: 0, stone: 0, token: 0 };
   const surrendered = [], artifacts = [];
   // 3) 發獎勵
@@ -101,7 +101,7 @@ export function burst(s) {
     s.res.stone -= lost;
     const built = Object.entries(s.buildings).filter(([, b]) => b.lv > 0);
     let paused = null;
-    if (built.length) { const [id, b] = pick(built); b.pausedUntil = s.t + B.pauseMs; paused = id; }
+    if (built.length) { const [id, b] = pick(built); b.pausedUntil = s.t + B.pauseMs * Math.max(0.2, 1 - traitSum(s, 'pauseCut')); paused = id; }
     backfire = { names: risky.map(e => e.g.name), lost, paused };
     for (const e of risky) e.backfire = true;
   }

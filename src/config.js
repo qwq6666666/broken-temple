@@ -29,6 +29,11 @@ export const CONFIG = {
     ownedPowerFactor: 0.02,    // 每點弟子屬性提供的戰力加成（不論是否派駐）
     libraryDiscountPerLevel: 0.04,   // 藏經閣每級：弟子升級成本 -4%
     discountMax: 0.6,
+    starMax: 3,                // 升星上限
+    starBonus: 0.25,           // 每星：屬性與特性效果 +25%
+    starCap: 2,                // 每星：該弟子等級上限 +2
+    // 升到第 1/2/3 星所需碎片（依稀有度）；碎片與築基以上突破共用，需要取捨
+    starCost: { N: [5, 15, 40], R: [8, 24, 60], SR: [12, 36, 90], SSR: [20, 60, 150], UR: [30, 90, 220] },
   },
 
   gacha: {

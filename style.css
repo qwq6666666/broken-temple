@@ -192,3 +192,6 @@ button.meditate .mlabel { position: relative; }
 .pvlist { max-height: 40vh; overflow: auto; display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .pvrow { display: flex; justify-content: space-between; align-items: center; background: #0e1613; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
 .warnline { color: var(--red); background: rgba(209,88,76,.1); border: 1px solid rgba(209,88,76,.4); border-radius: 8px; padding: 6px 10px; }
+
+/* 弟子特性 */
+.trait { color: var(--dim); } .trait.on { color: var(--jade); }

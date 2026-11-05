@@ -13,6 +13,7 @@ import * as E from '../src/core/endure.js';
 import * as C from '../src/core/conceal.js';
 import * as X from '../src/core/burst.js';
 import * as M from '../src/core/meditate.js';
+import { stat, traitValue } from '../src/core/discipleMath.js';
 import * as S from '../src/core/save.js';
 import { applyOffline } from '../src/core/offline.js';
 
@@ -287,6 +288,70 @@ t('離線：偽裝與蓄力照常增加、仇人成長、暫停計時到期', ()
   assert.ok(r.disguiseGain > 0); assert.ok(r.chargeMinutes >= 119);
   assert.ok(s.grudges[0].lvl > 1.0);
   assert.ok(s.t >= s.buildings.field.pausedUntil);
+});
+
+// 取得弟子並派駐到 bid（測試用，會自動蓋好建築）
+const crew = (s, defId, bid) => { s.buildings[bid].lv = Math.max(1, s.buildings[bid].lv); const { disciple } = D.addDisciple(s, defId); D.assign(s, disciple.uid, bid); return disciple; };
+
+t('特性只在派駐時生效（戰力）', () => {
+  const s = createState(); s.buildings.arena.lv = 1;
+  const base = eco.combatPower(s);
+  const d = D.addDisciple(s, 'xuantian').disciple;            // 戰力 +30%
+  const owned = eco.combatPower(s);                           // 持有也會提高戰力，但特性不生效
+  D.assign(s, d.uid, 'arena');
+  assert.ok(eco.traitSum(s, 'power') > 0.29);
+  assert.ok(eco.combatPower(s) > owned && owned > base);
+  D.assign(s, d.uid, null); assert.equal(eco.traitSum(s, 'power'), 0);
+});
+
+t('特性：忍氣吞聲損失減免、暫停縮短', () => {
+  const lose = withCrew => {
+    setRng(() => 0);                                          // 走靈石損失
+    const s = createState(); s.res.stone = 1000; s.buildings.alchemy.lv = 5; s.realmIdx = 6;
+    if (withCrew) crew(s, 'shigan', 'temple');                // 耿直：損失 -25%
+    withVisitor(s, visitor('former', 1)); E.endure(s); setRng(Math.random);
+    return 1000 - s.res.stone;
+  };
+  assert.ok(lose(true) < lose(false));
+  const pause = withCrew => {
+    setRng(() => 0.99);                                       // 走建築暫停
+    const s = createState(); s.res.stone = 0;
+    if (withCrew) crew(s, 'qinghe', 'field');                 // 溫吞：暫停 -30%
+    withVisitor(s, visitor('former', 1)); E.endure(s); setRng(Math.random);
+    return Math.max(...Object.values(s.buildings).map(b => b.pausedUntil));
+  };
+  assert.ok(pause(true) < pause(false));
+});
+
+t('特性：偽裝增速、亮一手獎勵、爆擊獎勵、靈石產出', () => {
+  const a = createState(), b = createState(); crew(b, 'luoshen', 'array');    // 偽裝增速 +30%
+  C.tick(a, 60000); C.tick(b, 60000);
+  assert.ok(b.disguise.value > a.disguise.value * 1.29);
+  const win = withCrew => {
+    const s = createState(); s.realmIdx = 6; s.buildings.field.lv = 3;
+    if (withCrew) crew(s, 'shenyao', 'alchemy');             // 毒舌：亮一手 +35%
+    withVisitor(s, visitor('trader', 0)); const q = s.res.qi; E.showOff(s); return s.res.qi - q;
+  };
+  assert.ok(win(true) > win(false));
+  const sp = createState(); sp.buildings.alchemy.lv = 1; const s0 = eco.stonePerSec(sp);
+  crew(sp, 'ludan', 'alchemy'); assert.ok(eco.stonePerSec(sp) > s0);
+  const br = withCrew => { const s = createState(); s.realmIdx = 8; s.disguise.value = 99; if (withCrew) crew(s, 'jiuli', 'temple'); s.grudges = [visitor('trader', 0, { id: 1 })]; setRng(() => 0.5); const r = X.burst(s).total.qi; setRng(Math.random); return r; };
+  assert.ok(br(true) > br(false));
+});
+
+t('升星：花碎片，屬性與特性 +25%、等級上限 +2，滿星為止', () => {
+  const s = createState(); s.res.shard = 1000;
+  const d = D.addDisciple(s, 'afu').disciple;
+  const st0 = stat(d), tv0 = traitValue(d), cap0 = D.levelCapOf(s, d);
+  assert.deepEqual(D.starCost(d), { shard: 5 });
+  assert.equal(D.starUp(s, d.uid), true);
+  assert.equal(s.res.shard, 995); assert.equal(d.star, 1);
+  assert.ok(Math.abs(stat(d) / st0 - 1.25) < 1e-9 && Math.abs(traitValue(d) / tv0 - 1.25) < 1e-9);
+  assert.equal(D.levelCapOf(s, d), cap0 + 2);
+  D.starUp(s, d.uid); D.starUp(s, d.uid);
+  assert.equal(d.star, 3); assert.equal(D.starCost(d), null); assert.equal(D.starUp(s, d.uid), false);
+  const old = { uid: 9, defId: 'afu', lv: 1, at: null };       // 舊存檔沒有 star
+  assert.equal(stat(old), 1);
 });
 
 console.log(`\n${n} 項測試通過`);

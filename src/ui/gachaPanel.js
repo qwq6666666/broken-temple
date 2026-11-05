@@ -4,13 +4,14 @@ import { RARITIES, RARITY_ORDER } from '../data/gachaRates.js';
 import { tokenPrice } from '../core/gacha.js';
 import { canAfford } from '../core/resources.js';
 import { fmt } from '../core/format.js';
+import { traitText } from '../data/traits.js';
 import { esc, costChips } from './dom.js';
 
 export function gachaCard(r) {
   const c = RARITIES[r.rarity].color;
   return `<div class="gcard" style="--rc:${c}">
     <div class="gr">${r.rarity}</div><div class="ge">${r.def.emoji}</div>
-    <b>${esc(r.def.name)}</b><small>${esc(r.def.specialty)}・${esc(r.def.element)}</small>
+    <b>${esc(r.def.name)}</b><small>${esc(r.def.specialty)}・${esc(r.def.element)}</small><small class="trait on">✦ ${esc(traitText(r.def.trait.key, r.def.trait.value))}</small>
     <small class="dim">${r.isNew ? '新弟子！' : `重複 → 🧩${r.shards}`}${r.pity ? '・保底' : ''}</small></div>`;
 }
 

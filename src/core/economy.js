@@ -3,13 +3,20 @@ import { CONFIG } from '../config.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
-import { contribution, stat } from './discipleMath.js';
+import { contribution, stat, traitOf, traitValue } from './discipleMath.js';
 
 export const realmOf = s => REALMS[s.realmIdx];
 
 // 永久加成（功法／法寶）總和
 export const artifactSum = (s, key) =>
   s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0), 0);
+
+// 特性加總：只計算「已派駐」的弟子
+export function traitSum(s, key) {
+  let v = 0;
+  for (const d of s.disciples) if (d.at && traitOf(d).key === key) v += traitValue(d);
+  return v;
+}
 
 // 建築倍率 = 1 + 駐守弟子貢獻總和
 export function buildingMult(s, id) {
@@ -28,7 +35,7 @@ export function perSec(s, res) {
     const p = d.produce[res];
     if (p && isActive(s, d.id)) base += s.buildings[d.id].lv * p * buildingMult(s, d.id);
   }
-  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult'));
+  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult') + traitSum(s, res + 'Mult'));
 }
 export const qiPerSec = s => perSec(s, 'qi');
 export const stonePerSec = s => perSec(s, 'stone');
@@ -48,13 +55,13 @@ export const discipleDiscount = s =>
 // 護山大陣：稀有事件機率
 export const rareChance = s =>
   Math.min(0.95, CONFIG.building_effect.rareBase
-    + s.buildings.array.lv * CONFIG.building_effect.rarePerLevel * buildingMult(s, 'array'));
+    + s.buildings.array.lv * CONFIG.building_effect.rarePerLevel * buildingMult(s, 'array') + traitSum(s, 'rare'));
 
 // 玩家戰力：境界 × 演武場 × 持有弟子屬性 × 法寶（影響「碾壓」判定）
 export function combatPower(s) {
   const arena = 1 + s.buildings.arena.lv * CONFIG.building_effect.arenaPowerPerLevel * buildingMult(s, 'arena');
   const owned = 1 + CONFIG.disciple.ownedPowerFactor * s.disciples.reduce((a, d) => a + stat(d), 0);
-  return realmOf(s).power * arena * owned * (1 + artifactSum(s, 'powerMult'));
+  return realmOf(s).power * arena * owned * (1 + artifactSum(s, 'powerMult') + traitSum(s, 'power'));
 }
 
 // 每個固定 tick 呼叫：推進遊戲時鐘、產出資源、招賢令自然增加

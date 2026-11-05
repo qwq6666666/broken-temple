@@ -36,6 +36,7 @@ export function bindActions(s, ui, rerender) {
     pull: el => { const r = G.pull(s, +el.dataset.n); if (r) ui.lastPull = r; },
     buyToken: el => { G.buyTokens(s, +el.dataset.n); },
     levelUp: el => { D.levelUp(s, +el.dataset.uid); },
+    starUp: el => { if (D.starUp(s, +el.dataset.uid)) toast('升星成功！', 'good'); },
     endure: () => { E.endure(s); },
     show: () => {
       const r = E.showOff(s);

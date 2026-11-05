@@ -4,7 +4,7 @@ import { VISITOR_TYPES, SURNAMES, GIVEN, PERSONALITIES, PERSONALITY_KEYS } from 
 import { LINES, pickLine } from '../data/lines.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { pick, randInt, randFloat, weighted, chance } from './rng.js';
-import { rareChance, stonePerSec, qiPerSec } from './economy.js';
+import { rareChance, stonePerSec, qiPerSec, traitSum } from './economy.js';
 import { ratioOf, verdictOf } from './conceal.js';
 import { DISCIPLES } from '../data/disciples.js';
 import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
@@ -57,6 +57,7 @@ export function assess(s, v) {
 // 「承受損失」：約 N 秒靈石產出 或 隨機一棟建築暫停 5 分鐘；mult 為倍率。回傳說明文字（無損失則 null）
 function applyLoss(s, mult = 1) {
   if (!s.settings.loss) return null;
+  mult *= Math.max(0.2, 1 - traitSum(s, 'endureLoss'));          // 特性：損失減免
   const built = Object.entries(s.buildings).filter(([, b]) => b.lv > 0 && s.t >= b.pausedUntil);
   const useStone = s.res.stone >= 1 && (!built.length || chance(0.5));
   if (useStone) {
@@ -66,7 +67,7 @@ function applyLoss(s, mult = 1) {
   }
   if (built.length) {
     const [id, b] = pick(built);
-    const ms = CONFIG.endure.loss.pauseMs * mult;
+    const ms = CONFIG.endure.loss.pauseMs * mult * Math.max(0.2, 1 - traitSum(s, 'pauseCut'));   // 特性：暫停縮短
     b.pausedUntil = s.t + ms;
     return `${BUILDINGS_BY_ID[id].name}暫停產出 ${Math.round(ms / 60000)} 分鐘`;
   }
@@ -113,10 +114,10 @@ export function showOff(s) {
   const line = pick(PERSONALITIES[v.personality].counter);
   s.endureStreak = 0;
   if (a.showKind === 'beat') {
-    const w = T.showOff.win, got = {};
-    if (w.token) got.token = w.token;
-    if (w.qiSec) got.qi = qiPerSec(s) * w.qiSec;
-    if (w.stoneSec) got.stone = Math.max(1, stonePerSec(s) * w.stoneSec);
+    const w = T.showOff.win, got = {}, bonus = 1 + traitSum(s, 'showOffReward');   // 特性：即時獎勵加成
+    if (w.token) got.token = Math.max(w.token, Math.round(w.token * bonus));
+    if (w.qiSec) got.qi = qiPerSec(s) * w.qiSec * bonus;
+    if (w.stoneSec) got.stone = Math.max(1, stonePerSec(s) * w.stoneSec * bonus);
     for (const [k, n] of Object.entries(got)) s.res[k] += n;
     if (w.surrender && chance(w.surrender)) {
       const def = rollSurrender(s);
