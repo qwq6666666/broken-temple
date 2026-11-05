@@ -35,7 +35,7 @@ import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from
 export function bindActions(s, ui, rerender) {
   const act = {
     tab: el => {
-      ui.tab = el.dataset.tab;
+      ui.tab = el.dataset.tab; ui.lastPull = null;        // 招賢結果只顯示一次：離開分頁就清掉
       // 手機版：全景在上、內容在下，切換分頁後自動捲到內容區
       if (globalThis.matchMedia?.('(max-width: 860px)').matches) setTimeout(() => document.getElementById('right')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
     },
