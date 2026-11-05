@@ -532,7 +532,7 @@ button.meditate .mlabel { position: relative; }
 h3.sub { margin: 14px 0 6px; font-size: .95em; color: var(--gold); letter-spacing: 2px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
 h3.sub:first-child { margin-top: 0; }
 @media (max-width: 860px) {
-  #menu { position: relative; overflow: visible; flex-wrap: wrap; }
+  #menu { position: relative; left: auto; right: auto; top: auto; overflow: visible; flex-wrap: wrap; }
   #menuMore { right: auto; left: 0; }
 }
 
@@ -594,7 +594,7 @@ h3.sub:first-child { margin-top: 0; }
 .cmain[role=button] { cursor: pointer; } .cmain[role=button]:hover { background: rgba(255,255,255,.03); }
 .crow .ci { font-size: 26px; width: 36px; text-align: center; flex: none; }
 .crow .cm { flex: 1; min-width: 0; line-height: 1.35; }
-.crow .cs { font-size: .8em; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crow .cs { font-size: .8em; color: var(--dim); overflow-wrap: anywhere; }
 .crow .cs .gbar { margin: 3px 0 0; max-width: 220px; }
 .crow .ca { display: flex; gap: 8px; align-items: center; flex: none; flex-wrap: wrap; justify-content: flex-end; }
 .crow .cx { color: var(--dim); font-size: .8em; flex: none; }
@@ -606,7 +606,7 @@ h3.sub:first-child { margin-top: 0; }
 .btn.burst { max-width: 100%; }
 @media (max-width: 860px) {
   .cdetail { padding-left: 12px; } .crow .ci { font-size: 22px; width: 28px; }
-  .cmain { gap: 8px; padding: 8px; } .crow .ca .costs { display: none; }
+  .cmain { gap: 8px; padding: 8px; } .crow .ca { max-width: 55%; } .crow .ca .costs { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
   .scene .land { max-height: 34vh; }
 }
 @media (min-width: 861px) { #tabs { gap: 3px; } .tab { padding: 7px 9px; font-size: .94em; } }
@@ -635,3 +635,9 @@ h3.sub:first-child { margin-top: 0; }
 
 .irow { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; } .irow .iname { min-width: 8em; } .irow small { flex: 1 1 160px; }
 .dots { display: inline-flex; gap: 3px; vertical-align: middle; } .dots i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--dim); } .dots i.on { background: var(--gold); border-color: var(--gold); }
+/* 防止精簡列的單行省略文字把整個版面撐寬（grid 子項預設 min-width:auto） */
+main > section, #panel { min-width: 0; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+/* 「還沒抽過」之類的提示放在網格裡時，要橫跨整列，不要被擠進一格 */
+.gresults > p, .gresults > .hint { grid-column: 1 / -1; }

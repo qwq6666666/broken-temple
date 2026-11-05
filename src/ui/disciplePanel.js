@@ -15,7 +15,7 @@ import { bondStatus } from '../core/bonds.js';
 import { fmt } from '../core/format.js';
 import { hasFeature } from '../core/progress.js';
 import { BRANCHES, BRANCH_LEVEL } from '../data/branches.js';
-import { esc, costChips } from './dom.js';
+import { esc, costChips, crow } from './dom.js';
 
 const SORTS = [['rarity', '稀有度'], ['lv', '等級'], ['at', '派駐']];
 const FILTERS = [['all', '全部'], ['idle', '未派駐'], ['lvl', '可升級'], ['story', '可讀故事']];
