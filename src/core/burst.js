@@ -11,6 +11,8 @@ import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst } 
 import { chargeMult, disguiseFull, ratioOf, verdictOf } from './conceal.js';
 import { quote } from './events.js';
 import { isNemesis, nemOf, nemState, lineFor } from './nemesis.js';
+import { addRep, rewardMult, tierOfSect } from './factions.js';
+import { FACTION_RULES as FR } from '../data/factions.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { addDisciple } from './disciples.js';
 import { rollSurrender, applyLoss } from './endure.js';
@@ -29,7 +31,9 @@ function rewardFor(s, g, verdict) {
   const tbl = ENEMY_REWARDS[g.type];
   const vMult = verdict === 'crush' ? CONFIG.burst.crushMult : CONFIG.burst.narrowMult;
   const scale = (1 + REALM_SCALE * Math.floor(g.lvl)) * vMult
-    * (g.alert ? CONFIG.enemy.alertMult : 1);
+    * (g.alert ? CONFIG.enemy.alertMult : 1)
+    * rewardMult(s, g.sect)                                  // 勢力威望第一階起 +10%
+    * (g.returnBonus ? FR.revengeReward : 1);                // 復仇的回頭客獎勵 ×1.5
   const r = {
     qi: qiPerSec(s) * randInt(...tbl.qiSec) * scale,
     stone: randInt(...tbl.stone) * scale,
@@ -79,7 +83,7 @@ export function burst(s) {
   const chain = entries.filter(e => e.verdict !== 'fail').length;
   const cMult = chainMult(chain);
   const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward') + towerBurst(s);
-  const total = { qi: 0, stone: 0, token: 0 };
+  const total = { qi: 0, stone: 0, token: 0 }, reps = {}, comebacks = [];
   const surrendered = [], artifacts = [], nemesesDefeated = [];
   // 3) 發獎勵
   for (const e of entries) {
@@ -101,6 +105,15 @@ export function burst(s) {
       } else { const bonus = 20 * k; r.stone += bonus; total.stone += bonus; }   // 全收集 → 折算靈石
     }
     e.reward = r;
+    // 威望：碾壓 +2、險勝 +1；碾壓的一般仇人有機會日後回頭（復仇或求和）
+    const rp = addRep(s, e.g.sect, e.verdict === 'crush' ? 2 : 1);
+    if (rp) reps[rp.id] = (reps[rp.id] || 0) + (e.verdict === 'crush' ? 2 : 1);
+    if (e.verdict === 'crush' && !e.nemesis && chance(FR.returnChance)) {
+      const tier = tierOfSect(s, e.g.sect), mode = chance(FR.pleadBase + FR.pleadPerTier * tier) ? 'plead' : 'revenge';
+      s.returners.push({ name: e.g.name, sect: e.g.sect, type: e.g.type, role: e.g.role, personality: e.g.personality, lvl: e.g.lvl, mode,
+                         dueAt: s.t + randInt(...FR.returnDelayMin) * 60000 });
+      comebacks.push(e.g.name);
+    }
     // 宿敵被碾壓：固定獎勵 + 專屬法寶，劇情推進
     if (e.nemesis && e.verdict === 'crush') {
       const n = e.nemesis, rw = n.reward;
@@ -134,7 +147,7 @@ export function burst(s) {
   const outro = pickLine(LINES.burstOutro[[10, 5, 3, 1, 0].find(n => chain >= n) ?? 0]);
   s.burstActive = true;                     // 演出期間封鎖訪客；ui 結束後呼叫 endBurst
   return {
-    backfire, chargeMult: cm, chain, chainMult: cMult, entries, total, surrendered, artifacts, nemesesDefeated,
+    backfire, chargeMult: cm, chain, chainMult: cMult, entries, total, surrendered, artifacts, nemesesDefeated, reps, comebacks,
     intro: pickLine(LINES.burstIntro), outro,
   };
 }

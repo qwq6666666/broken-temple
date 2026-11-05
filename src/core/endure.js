@@ -10,10 +10,21 @@ import { DISCIPLES } from '../data/disciples.js';
 import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { quote, toast, cue } from './events.js';
 import { pickNemesis, makeNemesisVisitor } from './nemesis.js';
+import { addRep, tierOfSect } from './factions.js';
+import { FACTION_RULES as FR } from '../data/factions.js';
 
 const scheduleNext = s => {
   s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000;
 };
+
+// 回頭客：復仇者變強了、嘴更硬；求和者帶著賠禮
+function makeReturner(s, r) {
+  const plead = r.mode === 'plead';
+  const lines = PERSONALITIES[r.personality].taunt;
+  return { id: s.nextGid++, name: r.name, type: r.type, sect: r.sect, role: r.role, personality: r.personality,
+           lvl: plead ? r.lvl + 0.3 : r.lvl + FR.revengeLvlBonus, alert: false, returning: r.mode,
+           taunt: plead ? '宗主……上回是晚輩有眼無珠。這點薄禮，不成敬意，只求您別再提那天的事。' : `上次是我大意！這回我可是下過苦功的——${pick(lines)}` };
+}
 
 // 生成一位路人（名字不與復仇簿重複；境界以玩家目前境界為基準 + 類型偏移）
 function makeVisitor(s) {
@@ -37,6 +48,9 @@ export function tick(s) {
   if (s.burstActive || s.visitor.current) return;
   if (s.t < s.visitor.nextAt) return;
   if (s.grudges.length >= CONFIG.visitor.maxGrudges) { scheduleNext(s); return; }
+  // 回頭客：到時間就回來（優先於宿敵與隨機訪客）
+  const ri = s.returners.findIndex(r => s.t >= r.dueAt);
+  if (ri >= 0) { const [r] = s.returners.splice(ri, 1); s.visitor.current = makeReturner(s, r); toast(`回頭客：${r.name}（${r.mode === 'plead' ? '來求和' : '來復仇'}）`, 'warn'); cue('visitor'); return; }
   const nem = pickNemesis(s);
   if (nem && chance(CONFIG.nemesis.chance)) { s.visitor.current = makeNemesisVisitor(s, nem); toast(`宿敵現身：${nem.name}（${nem.title}）`, 'warn'); cue('nemesis'); }
   else { s.visitor.current = makeVisitor(s); cue('visitor'); }
@@ -83,7 +97,8 @@ export { applyLoss };
 function toBook(s, v) {
   s.visitor.current = null;
   s.grudges.push({ id: v.id, name: v.name, type: v.type, sect: v.sect, role: v.role,
-                   personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt, nemesisId: v.nemesisId });
+                   personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt, nemesisId: v.nemesisId,
+                   returnBonus: v.returning === 'revenge' });
   scheduleNext(s);
 }
 
@@ -129,6 +144,7 @@ export function showOff(s) {
       s.recruits.push({ uid: s.nextUid++, defId: def.id, from: v.name });
       got.surrender = def;
     }
+    addRep(s, v.sect, 1);                              // 當場打臉也累積威望
     s.visitor.current = null; scheduleNext(s);
     quote(pickLine(LINES.show));
     toast(`${v.name} 被打臉離開` + (got.surrender ? `，並拜入門下候選：${got.surrender.name}` : ''), 'good');
@@ -140,4 +156,25 @@ export function showOff(s) {
   quote(pickLine(LINES.show));
   toast(`${v.name} 警覺了` + (loss ? `（${loss}）` : ''), 'warn');
   return { outcome: a.showKind, line, loss };
+}
+
+// 求和的回頭客：收下賠禮（資源 + 威望，對方離開）或讓他滾（入復仇簿，偽裝 +1，不受損失）
+export function acceptPlea(s) {
+  const v = s.visitor.current; if (!v || v.returning !== 'plead') return null;
+  const tier = tierOfSect(s, v.sect);
+  const mult = tier >= 3 ? 2 : 1, stone = Math.max(3, stonePerSec(s) * FR.pleadGiftSec * mult), token = tier >= 3 ? 2 : 1;
+  s.res.stone += stone; s.res.token += token;
+  addRep(s, v.sect, 3);
+  s.visitor.current = null; scheduleNext(s);
+  quote('哼，識相。禮收下，人滾蛋。');
+  toast(`收下 ${v.name} 的賠禮：💎${Math.round(stone)} 🎫${token}，${v.sect}威望 +3`, 'good');
+  return { stone, token };
+}
+export function rejectPlea(s) {
+  const v = s.visitor.current; if (!v || v.returning !== 'plead') return null;
+  toBook(s, { ...v, returning: null });
+  s.disguise.value = Math.min(CONFIG.conceal.max, s.disguise.value + CONFIG.endure.disguiseGain);
+  quote('賠禮？本座的債，要當面討。');
+  toast(`${v.name} 被你拒於門外，記入復仇簿`, 'warn');
+  return true;
 }

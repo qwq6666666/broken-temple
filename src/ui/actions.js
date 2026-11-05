@@ -81,6 +81,8 @@ export function bindActions(s, ui, rerender) {
       const sum = I.resolve(s, +el.dataset.i);
       if (sum) { sfx('coin'); if (rect) burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2, { n: 18, speed: 150, color: /-|暫停/.test(sum) ? 'rgba(209,88,76,1)' : 'rgba(217,182,74,1)' }); }
     },
+    acceptPlea: () => { ghostOut('.visitor-card', 'exit-beat'); if (E.acceptPlea(s)) sfx('coin'); },
+    rejectPlea: () => { ghostOut('.visitor-card', 'exit-endure'); if (E.rejectPlea(s)) sfx('endure'); },
     endure: () => { ghostOut('.visitor-card', 'exit-endure'); if (E.endure(s)) sfx('endure'); },
     show: () => {
       const cur = s.visitor.current, win = cur && E.assess(s, cur).showKind === 'beat';

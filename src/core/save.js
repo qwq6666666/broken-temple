@@ -5,6 +5,7 @@ import { createState } from './state.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { STORIES, STORIES2 } from '../data/stories.js';
 import { SPECS } from '../data/specs.js';
+import { FACTIONS_BY_ID } from '../data/factions.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
@@ -43,6 +44,7 @@ function sanitizeGrudge(g) {
   out.lvl = Math.max(0, num(Number(out.lvl)));
   out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');
   out.alert = !!out.alert;
+  if (out.returning && out.returning !== 'plead' && out.returning !== 'revenge') delete out.returning;
   return out;
 }
 export function sanitize(s) {
@@ -69,6 +71,11 @@ export function sanitize(s) {
   if (!isPlain(s.visitor)) s.visitor = { current: null, nextAt: s.t };
   if (s.visitor.current) s.visitor.current = sanitizeGrudge(s.visitor.current);
   if (!isPlain(s.unlocked)) s.unlocked = {};
+  if (!isPlain(s.factions)) s.factions = {};
+  for (const id of Object.keys(s.factions)) { if (!FACTIONS_BY_ID[id]) delete s.factions[id]; else s.factions[id] = Math.max(0, num(Number(s.factions[id]))); }
+  s.returners = (Array.isArray(s.returners) ? s.returners : []).filter(r => isPlain(r) && (r.mode === 'plead' || r.mode === 'revenge')).map(r => ({
+    ...sanitizeGrudge({ ...r, id: 0 }), mode: r.mode, dueAt: num(Number(r.dueAt), 0) })).map(({ id, alert, nemesisId, ...r }) => r);
+  if (s.visitor.current && s.visitor.current.returning !== 'plead' && s.visitor.current.returning !== 'revenge') delete s.visitor.current.returning;
   if (!isPlain(s.specs)) s.specs = {};
   for (const id of Object.keys(s.specs)) if (!(SPECS[id] || []).some(o => o.id === s.specs[id])) delete s.specs[id];
   if (!isPlain(s.stories)) s.stories = {};

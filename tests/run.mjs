@@ -20,6 +20,7 @@ import * as Dao from '../src/core/dao.js';
 import * as St from '../src/core/stories.js';
 import * as Bond from '../src/core/bonds.js';
 import * as Sp from '../src/core/spec.js';
+import * as Fac from '../src/core/factions.js';
 import { SPECS, specText } from '../src/data/specs.js';
 import { STORIES, STORIES2 } from '../src/data/stories.js';
 import { BONDS } from '../src/data/bonds.js';
@@ -826,6 +827,66 @@ t('新建築解鎖提示只彈一次，舊存檔 quiet', () => {
   const s = createState(); s.realmIdx = 7; const toasts = []; bus.on('toast', x => toasts.push(x.text));
   Prog.tick(s); Prog.tick(s); assert.equal(toasts.filter(x => x.includes('鎮魔塔')).length, 1);
   const o = createState(); o.realmIdx = 13; const n0 = toasts.length; Prog.tick(o, true); assert.equal(toasts.length, n0);
+});
+
+// ── R12 勢力與回頭客 ──
+t('勢力：宗門對應勢力、威望分階、升階提示、第三階永久加成', () => {
+  assert.equal(Fac.factionOf('赤焰谷'), 'chiyan'); assert.equal(Fac.factionOf('南海商隊'), 'trade'); assert.equal(Fac.factionOf('不存在'), null);
+  const s = createState(); const toasts = []; bus.on('toast', x => toasts.push(x.text));
+  assert.equal(Fac.tierOf(s, 'chiyan'), 0); Fac.addRep(s, '赤焰谷', 10);
+  assert.equal(Fac.tierOf(s, 'chiyan'), 1); assert.ok(toasts.some(x => x.includes('赤焰谷') && x.includes('略有耳聞')));
+  assert.ok(Math.abs(Fac.rewardMult(s, '赤焰谷') - 1.1) < 1e-9); assert.equal(Fac.rewardMult(s, '落霞宗'), 1);
+  const q0 = eco.qiPerSec(s) || 1; Fac.addRep(s, '赤焰谷', 50);
+  assert.equal(Fac.tierOf(s, 'chiyan'), 3); assert.ok(Math.abs(Fac.factionPerm(s, 'qiMult') - 0.05) < 1e-9);
+  assert.ok(Math.abs(eco.qiPerSec(s) / q0 - 1.05) < 1e-9);
+});
+
+t('引爆：碾壓累積威望，並有機會讓仇人日後回頭；險勝不會', () => {
+  setRng(() => 0);                                           // 機率類必中；mode 必為 plead
+  const s = createState(); s.realmIdx = 8; s.disguise.value = 99;
+  s.grudges = [visitor('rival', 0, { id: 1, sect: '落霞宗' }), visitor('former', 0, { id: 2, name: 'B', sect: '青雲宗' })];
+  const r = X.burst(s); setRng(Math.random);
+  assert.equal(s.factions.luoxia, 2); assert.equal(s.factions.qingyun, 2); assert.equal(r.comebacks.length, 2); assert.equal(s.returners.length, 2);
+  assert.equal(s.returners[0].mode, 'plead'); assert.ok(s.returners[0].dueAt > s.t);
+  const s2 = createState(); s2.realmIdx = 3; s2.disguise.value = 99; s2.grudges = [visitor('former', 3.05, { id: 1, sect: '青雲宗' })];
+  const r2 = X.burst(s2); assert.equal(r2.entries[0].verdict, 'narrow'); assert.equal(s2.factions.qingyun, 1); assert.equal(s2.returners.length, 0);
+});
+
+t('回頭客：到時間回來；復仇者更強且獎勵 ×1.5；求和者帶賠禮', () => {
+  const s = createState(); s.t = 1000;
+  s.returners = [{ name: '舊人', sect: '赤焰谷', type: 'rival', role: 'r', personality: '傲慢', lvl: 3, mode: 'revenge', dueAt: 5000 }];
+  E.tick(s); assert.equal(s.visitor.current, null);          // 還沒到時間
+  s.t = 1e7; s.visitor.nextAt = 0; E.tick(s);
+  const v = s.visitor.current; assert.equal(v.returning, 'revenge'); assert.equal(v.name, '舊人'); assert.ok(v.lvl >= 4); assert.equal(s.returners.length, 0);
+  E.endure(s); assert.equal(s.grudges[0].returnBonus, true);
+  const mk = bonus => { setRng(() => 0.5); const x = createState(); x.realmIdx = 10; x.disguise.value = 99; x.grudges = [visitor('trader', 1, { id: 1, returnBonus: bonus, sect: '商盟?' })]; const r = X.burst(x).total.stone; setRng(Math.random); return r; };
+  assert.ok(Math.abs(mk(true) / mk(false) - 1.5) < 0.01);
+  // 求和
+  const p = createState(); p.buildings.alchemy.lv = 3; p.res.stone = 0;
+  p.visitor.current = { id: 9, name: '求和者', type: 'former', sect: '青雲宗', role: 'r', personality: '傲慢', lvl: 1, alert: false, returning: 'plead', taunt: 't' };
+  const g = E.acceptPlea(p); assert.ok(g.stone >= 3 && p.res.stone >= 3); assert.equal(p.visitor.current, null); assert.equal(p.factions.qingyun, 3);
+  p.visitor.current = { id: 10, name: '被拒者', type: 'former', sect: '青雲宗', role: 'r', personality: '傲慢', lvl: 1, alert: false, returning: 'plead', taunt: 't' };
+  const dg = p.disguise.value; E.rejectPlea(p);
+  assert.equal(p.grudges.length, 1); assert.equal(p.grudges[0].returnBonus, false); assert.equal(p.disguise.value, dg + 1);
+  assert.equal(E.acceptPlea(p), null);                       // 沒有待處理的求和者
+});
+
+t('當場打臉也累積威望；威望跨轉生保留、回頭客不保留；存檔清理', () => {
+  const s = withVisitor(createState(), visitor('former', 0, { sect: '青雲宗' })); s.realmIdx = 6;
+  E.showOff(s); assert.equal(s.factions.qingyun, 1);
+  const m = maxedRun(); m.factions = { chiyan: 20 }; m.returners = [{ name: 'x', sect: 's', type: 'former', personality: '傲慢', lvl: 1, mode: 'plead', dueAt: 1 }];
+  Dao.rebirth(m); assert.equal(m.factions.chiyan, 20); assert.deepEqual(m.returners, []);
+  const x = loadPatched(st => { st.factions = { gone: 5, chiyan: 'x', luoxia: 7 }; st.returners = [{ name: 'a', sect: 'x', type: '?', personality: '怪', lvl: 'q', mode: 'plead', dueAt: 'z' }, { mode: 'bad' }, 5]; });
+  assert.deepEqual(x.factions, { chiyan: 0, luoxia: 7 }); assert.equal(x.returners.length, 1);
+  assert.equal(x.returners[0].type, 'former'); assert.equal(x.returners[0].lvl, 0); assert.equal(x.returners[0].dueAt, 0);
+  tickAllCore(x);
+});
+
+t('勢力分頁與提示：有威望才解鎖；求和提示優先', () => {
+  const s = createState(); Prog.tick(s, true); assert.ok(!s.unlocked.factions);
+  Fac.addRep(s, '青雲宗', 1); Prog.tick(s, true); assert.ok(s.unlocked.factions);
+  s.visitor.current = { id: 1, name: 'a', type: 'former', sect: '青雲宗', role: 'r', personality: '傲慢', lvl: 1, alert: false, returning: 'plead' };
+  assert.match(Prog.nextStep(s).text, /求和/);
 });
 
 console.log(`\n${n} 項測試通過`);

@@ -5,6 +5,7 @@ import { createState } from './state.js';
 import { canAfford, pay } from './resources.js';
 import { toast, quote, cue } from './events.js';
 import { specSum } from './spec.js';
+import { factionPerm } from './factions.js';
 
 // 轉生次數的自動加成：前 softCap 次線性，之後只有小幅尾巴（遞減）
 export function autoBonus(count) {
@@ -19,7 +20,7 @@ export function perm(s, key) {
   let v = 0;
   for (const it of DAO_SHOP) if (it.key === key) v += shopLevel(s, it.id) * it.perLevel;
   if (key === 'qiMult' || key === 'stoneMult') v += autoBonus(s.reincarnation.count);
-  return v + specSum(s, key);                                // 建築專精
+  return v + specSum(s, key) + factionPerm(s, key);          // 建築專精、勢力威望
 }
 
 export const canRebirth = s => s.realmIdx >= CONFIG.reincarnation.minRealm && !s.burstActive;
@@ -42,7 +43,7 @@ export function rebirth(s) {
     disciples: s.disciples.map(d => ({ ...d, lv: 1, at: null })),
     nextUid: s.nextUid, nextGid: s.nextGid, recruits: s.recruits,
     artifacts: s.artifacts, goalsDone: s.goalsDone, nemeses: s.nemeses,
-    gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro, stories: s.stories,
+    gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro, stories: s.stories, factions: s.factions,
     reincarnation: { count: s.reincarnation.count + 1, shop: s.reincarnation.shop },
   };
   const t = s.t;

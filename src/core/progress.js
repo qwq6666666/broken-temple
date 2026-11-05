@@ -16,6 +16,7 @@ export const TAB_RULES = {
   gacha:     { name: '招賢',   when: s => s.realmIdx >= 1 || s.gacha.total > 0 || s.disciples.length > 0 },
   disciples: { name: '弟子',   when: s => s.disciples.length > 0 || s.recruits.length > 0 },
   avenge:    { name: '復仇簿', when: s => s.grudges.length > 0 || !!s.visitor.current || s.stats.bursts > 0 },
+  factions:  { name: '勢力',   when: s => Object.values(s.factions).some(v => v > 0) || s.returners.length > 0 },
   nemesis:   { name: '宿敵錄', when: s => Object.keys(s.nemeses).length > 0 },
   goals:     { name: '大事',   when: s => s.realmIdx >= 1 || s.goalsDone.length > 0 },
   dao:       { name: '道心',   when: s => s.realmIdx >= 13 || s.reincarnation.count > 0 },
@@ -44,6 +45,7 @@ export function tickBuildings(s, quiet = false) {
 // 下一步建議：依優先順序回傳第一個適用的 {text, tab?}
 export function nextStep(s) {
   const alch = s.buildings.alchemy;
+  if (s.visitor.current?.returning === 'plead') return { text: '有舊敵來求和！「收下賠禮」可得資源與威望，也可以「讓他滾」記進復仇簿。' };
   if (s.visitor.current) return { text: '有人來訪！「忍氣吞聲」累積偽裝值（記入復仇簿，之後引爆），打得過的人也可以「亮一手」當場打臉。' };
   if (canBurst(s)) return { text: '偽裝值已滿！按下方「💥 不裝了」，讓復仇簿裡的人全部出場。' };
   if (alch.lv === 0) {

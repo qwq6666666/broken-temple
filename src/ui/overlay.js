@@ -7,6 +7,7 @@ import { esc, sleep } from './dom.js';
 import { sfx } from './audio.js';
 import { daoGain } from '../core/dao.js';
 import { HELP, INTRO } from '../data/help.js';
+import { FACTIONS_BY_ID } from '../data/factions.js';
 import { getPrefs } from './prefs.js';
 import { shake, flash, particles, banner, countUp } from './fx.js';
 
@@ -126,6 +127,8 @@ function showSettlement(r) {
       <p>${esc(d.n.story.defeat)}</p>
       ${d.art ? `<span class="art rare">${d.art.emoji} ${esc(d.art.name)}<small>${esc(d.art.desc)}</small></span>` : ''}
       ${d.finale ? '<p class="gold"><b>🏯 破廟的真相已經揭開——這座廟，是青雲宗的祖庭。</b></p>' : ''}</div>`).join('')}
+    ${Object.keys(r.reps || {}).length ? `<p class="hint">🏴 威望：${Object.entries(r.reps).map(([id, n]) => `${FACTIONS_BY_ID[id].emoji}${esc(FACTIONS_BY_ID[id].name)} +${n}`).join('、')}</p>` : ''}
+    ${(r.comebacks || []).length ? `<p class="hint">🔙 ${esc(r.comebacks.slice(0, 4).join('、'))}${r.comebacks.length > 4 ? '…' : ''} 日後可能回頭。</p>` : ''}
     <h3>降服弟子（到「復仇簿」招募）</h3><div class="arts">${sur}</div>
     <h3>功法／法寶</h3><div class="arts">${arts}</div>
     ${r.backfire ? `<p class="warnline">⚠ 反噬！${esc(r.backfire.names.join('、'))} 實力遠勝於你，反擊造成損失 💎${fmt(r.backfire.lost)}${r.backfire.paused ? '，並有一處建築暫停產出' : ''}。</p>` : ''}

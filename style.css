@@ -502,3 +502,8 @@ button.meditate .mlabel { position: relative; }
 .specopts .btn { display: flex; flex-direction: column; text-align: left; gap: 2px; padding: 6px 8px; }
 .specopts small { white-space: normal; font-size: .72em; color: var(--paper); opacity: .8; }
 @media (max-width: 860px) { .specopts { grid-template-columns: 1fr; } }
+
+/* 勢力與回頭客 */
+.card.fac.dimmed { opacity: .6; }
+.card.fac .body { display: flex; flex-direction: column; gap: 2px; }
+.visitor-card.plea { border-color: var(--gold); }

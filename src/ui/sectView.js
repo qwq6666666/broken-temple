@@ -5,6 +5,9 @@ import { lvlLabel } from '../data/realms.js';
 import { CONFIG } from '../config.js';
 import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked } from '../core/buildings.js';
 import { SPECS, SPEC_LEVEL, specText } from '../data/specs.js';
+import { FACTION_RULES as FR } from '../data/factions.js';
+import { tierOfSect } from '../core/factions.js';
+import { stonePerSec } from '../core/economy.js';
 import { chosenSpec, canChoose as canSpec } from '../core/spec.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
@@ -125,6 +128,7 @@ function visitorCard(s, entering = false) {
   if (!v) return '';
   const t = VISITOR_TYPES[v.type], a = assess(s, v), [vc, vt] = a.escape ? ['v-narrow', '勉強勝，但他會脫身'] : VERDICT_TXT[a.verdict];
   const nem = v.nemesisId ? nemOf(v) : null;
+  if (v.returning === 'plead') return pleaCard(s, v, t, entering);
   const L = CONFIG.endure.loss;
   const lossOn = s.settings.loss;
   const endureText = `偽裝值 +${CONFIG.endure.disguiseGain}，記入復仇簿（保留連鎖與大獎勵）`
@@ -137,7 +141,7 @@ function visitorCard(s, entering = false) {
   }[a.showKind];
   return `<div class="visitor-card ${nem ? 'nemesis' : ''} ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${nem ? nem.emoji : t.emoji}</span>
-      <div><b>${esc(v.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
+      <div><b>${esc(v.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}${v.returning === 'revenge' ? '<span class="tag red">回頭客・復仇（獎勵 ×' + FR.revengeReward + '）</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
       <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small></div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">
@@ -169,4 +173,19 @@ function specBlock(s, id) {
   if (s.buildings[id].lv < SPEC_LEVEL) return `<small class="dim">🏗 升到 Lv${SPEC_LEVEL} 可選擇專精方向</small>`;
   return `<div class="specbox"><b>🏗 選擇專精（本輪有效，無法更換）</b><div class="specopts">${SPECS[id].map(o =>
     `<button class="btn primary" data-act="chooseSpec" data-id="${id}" data-opt="${o.id}"><b>${esc(o.name)}</b><small>${esc(specText(o.effects))}</small></button>`).join('')}</div></div>`;
+}
+
+// 求和的回頭客：收下賠禮或讓他滾
+function pleaCard(s, v, t, entering) {
+  const tier = tierOfSect(s, v.sect), mult = tier >= 3 ? 2 : 1;
+  const gift = `💎約${fmt(Math.max(3, stonePerSec(s) * FR.pleadGiftSec * mult))} 🎫${tier >= 3 ? 2 : 1}`;
+  return `<div class="visitor-card plea ${entering ? 'enter' : ''}">
+    <div class="vhead"><span class="vemoji">${t.emoji}</span>
+      <div><b>${esc(v.name)}</b> <span class="tag gold">回頭客・求和</span> <span class="tag">${esc(v.personality)}</span><br>
+      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small></div></div>
+    <p class="taunt">「${esc(v.taunt)}」</p>
+    <div class="vbtns">
+      <button class="btn show good" data-act="acceptPlea"><b>🎁 收下賠禮</b><small>${gift}，${esc(v.sect)}威望 +3；對方離開</small></button>
+      <button class="btn endure" data-act="rejectPlea"><b>🚪 讓他滾</b><small>記入復仇簿（偽裝值 +1，無損失）；日後引爆再算帳</small></button>
+    </div></div>`;
 }

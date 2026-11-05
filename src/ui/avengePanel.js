@@ -24,7 +24,7 @@ export function avengePanel(s) {
       <div class="big">${nem ? nem.emoji : t.emoji}</div>
       <div class="body">
         <div class="row"><b>${esc(g.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(g.personality)}</span>
-          ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}</div>
+          ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}</div>
         <small>${esc(g.sect)}・${esc(g.role)}</small><br>
         <small class="gap">對方 <b>${esc(gap.enemy)}</b>，你 <b>${esc(gap.me)}</b> — ${esc(gap.text)}</small>
       </div>

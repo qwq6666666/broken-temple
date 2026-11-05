@@ -26,6 +26,8 @@ export function createState() {
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）
     reincarnation: { count: 0, shop: {} },  // 轉生次數、道心商店等級
     run: { bursts: 0, maxChain: 0, nemeses: 0, goals: 0 },   // 本輪表現（轉生時結算道心）
+    factions: {},                           // 勢力威望 {factionId: rep}（跨轉生保留）
+    returners: [],                          // 日後可能回頭的仇人（本輪）
     specs: {},                              // 建築專精 {buildingId: optionId}（本輪）
     stories: {},                            // 已讀弟子故事章數 {defId: n}
     unlocked: {},                           // 已解鎖的分頁（新手引導）
