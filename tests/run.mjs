@@ -15,6 +15,7 @@ import * as X from '../src/core/burst.js';
 import * as M from '../src/core/meditate.js';
 import * as Goals from '../src/core/goals.js';
 import * as Inc from '../src/core/incidents.js';
+import { INCIDENTS_BY_ID } from '../src/data/incidents.js';
 import { sfx, unlock, applyVolume, SFX_NAMES } from '../src/ui/audio.js';
 import { getPrefs, setPref } from '../src/ui/prefs.js';
 import { stat, traitValue } from '../src/core/discipleMath.js';
@@ -442,7 +443,7 @@ t('事件：效果結算（資源、碎片、偽裝、招賢令、降服、法�
   forceIncident(s, 'meteor'); s.realmIdx = 5; Inc.resolve(s, 0);
   assert.equal(s.artifacts.length, 1);
   forceIncident(s, 'stele'); const sh = s.res.shard; Inc.resolve(s, 1);
-  assert.equal(s.res.shard, sh + 5);
+  assert.equal(s.res.shard, sh + INCIDENTS_BY_ID.stele.choices[1].effects.gamble.win.shard);
   setRng(Math.random);
   assert.equal(s.stats.incidents, 4);
 });
