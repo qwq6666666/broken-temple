@@ -4,6 +4,8 @@ import { BUILDINGS } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { goalPerm } from './goals.js';
+import { bondSum } from './bonds.js';
+import { STORY_RULES } from '../data/stories.js';
 import { perm as daoPerm } from './dao.js';
 import { contribution, stat, traitOf, traitValue } from './discipleMath.js';
 
@@ -14,9 +16,11 @@ export const artifactSum = (s, key) =>
   s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0), 0) + goalPerm(s, key) + daoPerm(s, key);
 
 // 特性加總：只計算「已派駐」的弟子
+// 弟子特性實際效果 = 基礎 × 星級 ×（1 + 每讀一章故事 +10%）
+export const traitValueS = (s, d) => traitValue(d) * (1 + STORY_RULES.bonusPerChapter * (s.stories?.[d.defId] || 0));
 export function traitSum(s, key) {
-  let v = 0;
-  for (const d of s.disciples) if (d.at && traitOf(d).key === key) v += traitValue(d);
+  let v = bondSum(s, key);                                  // 緣分加成
+  for (const d of s.disciples) if (d.at && traitOf(d).key === key) v += traitValueS(s, d);
   return v;
 }
 

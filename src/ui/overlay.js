@@ -203,3 +203,14 @@ export function showHelp(intro = false) {
     ${list.map(x => `<p><b class="gold">${esc(x.t)}</b><br>${esc(x.d)}</p>`).join('')}
     ${intro ? '' : `<label class="loss"><input type="checkbox" data-change="toggleHints" ${getPrefs().hints ? 'checked' : ''}> 顯示畫面上方的「下一步」提示</label>`}`);
 }
+
+// ── 弟子故事 ──
+export function showStory(r) {
+  const rw = Object.entries(r.reward).map(([k, v]) => ({ token: '🎫', stone: '💎', shard: '🧩' }[k] + v)).join('　');
+  return showModal(`<h3>${r.emoji} ${esc(r.name)}・${esc(r.title)}</h3>
+    <p class="storytext">${esc(r.text)}</p>
+    <p class="hint">獲得 ${rw}；${esc(r.name)} 的特性效果永久 +10%。</p>`);
+}
+export function showStoryLog(name, emoji, chapters) {
+  return showModal(`<h3>${emoji} ${esc(name)}的回憶</h3>` + chapters.map(([t, x]) => `<p><b class="gold">${esc(t)}</b><br><span class="storytext">${esc(x)}</span></p>`).join(''));
+}

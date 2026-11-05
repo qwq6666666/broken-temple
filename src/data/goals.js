@@ -17,6 +17,8 @@ export const GOALS = [
   { id: 'disc5',   name: '小有門徒', desc: '收集 5 位弟子', cur: s => s.disciples.length, target: 5, reward: { token: 3 } },
   { id: 'inc10',   name: '見多識廣', desc: '處理 10 則突發事件', cur: s => s.stats.incidents || 0, target: 10, reward: { token: 5, stone: 20 } },
   { id: 'nem1',    name: '第一滴血', desc: '擊敗第一位宿敵', cur: s => s.stats.nemesisDefeated || 0, target: 1, reward: { token: 5, perm: { qiMult: 0.05 } } },
+  { id: 'story5',  name: '傾聽者', desc: '讀完 5 章弟子故事', cur: s => Object.values(s.stories || {}).reduce((a, n) => a + n, 0), target: 5, reward: { token: 5, stone: 20 } },
+  { id: 'story20', name: '宗門說書人', desc: '讀完 20 章弟子故事', cur: s => Object.values(s.stories || {}).reduce((a, n) => a + n, 0), target: 20, reward: { token: 12, perm: { qiMult: 0.05 } } },
   { id: 'bld3',    name: '宗門初具規模', desc: '六棟建築都達 3 級', cur: minBuilding, target: 3, reward: { stone: 30, perm: { stoneMult: 0.05 } } },
   { id: 'chain3',  name: '三連', desc: '單次引爆連鎖達 3 人', cur: s => s.stats.maxChain || 0, target: 3, reward: { token: 5 } },
   { id: 'burst5',  name: '習慣性打臉', desc: '累計引爆 5 次', cur: s => s.stats.bursts, target: 5, reward: { token: 5, perm: { burstReward: 0.05 } } },

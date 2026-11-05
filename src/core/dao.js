@@ -41,7 +41,7 @@ export function rebirth(s) {
     disciples: s.disciples.map(d => ({ ...d, lv: 1, at: null })),
     nextUid: s.nextUid, nextGid: s.nextGid, recruits: s.recruits,
     artifacts: s.artifacts, goalsDone: s.goalsDone, nemeses: s.nemeses,
-    gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro,
+    gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro, stories: s.stories,
     reincarnation: { count: s.reincarnation.count + 1, shop: s.reincarnation.shop },
   };
   const t = s.t;

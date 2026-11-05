@@ -485,3 +485,11 @@ button.meditate .mlabel { position: relative; }
 /* 建築操作面板：放在山水下方，不遮住畫面，方便直接點其他建築切換 */
 .bpop { position: static; margin-top: 8px; }
 @media (max-width: 860px) { .bpop { left: auto; right: auto; bottom: auto; } }
+
+/* 弟子故事與緣分 */
+.storyrow { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; min-height: 1.6em; }
+.storytext { line-height: 1.8; display: block; font-style: italic; color: #f3d9c9; }
+.bonds { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px; }
+.bond { display: grid; grid-template-columns: 6em 1fr auto; gap: 6px; align-items: center; font-size: .85em; padding: 3px 6px; border-radius: 6px; background: #0e1613; }
+.bond small { grid-column: 1 / -1; color: var(--dim); } .bond.on { border: 1px solid var(--gold); } .bond.on small { color: var(--gold); } .bond.warn small { color: var(--red); }
+@media (max-width: 860px) { .bond { grid-template-columns: 1fr; } }

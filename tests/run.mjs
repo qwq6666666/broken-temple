@@ -17,6 +17,11 @@ import * as Goals from '../src/core/goals.js';
 import * as Inc from '../src/core/incidents.js';
 import * as Nem from '../src/core/nemesis.js';
 import * as Dao from '../src/core/dao.js';
+import * as St from '../src/core/stories.js';
+import * as Bond from '../src/core/bonds.js';
+import { STORIES, STORIES2 } from '../src/data/stories.js';
+import { BONDS } from '../src/data/bonds.js';
+import { DISCIPLES, DISCIPLES_BY_ID } from '../src/data/disciples.js';
 import * as Prog from '../src/core/progress.js';
 import { stepParticle, moteCount } from '../src/ui/particles.js';
 import { drawBuilding, POS, DRAW_ORDER, BACKDROP } from '../src/ui/sceneArt.js';
@@ -727,6 +732,47 @@ t('建築剪影：每棟每個外觀階段都有圖，且數量與資料的里�
   assert.equal(DRAW_ORDER.length, BUILDINGS.length);
   assert.ok(drawBuilding('temple', 99));                       // 超出階段取最高階，不丟錯
   assert.ok(BACKDROP.includes('d-cloudsea') && BACKDROP.includes('d-gate'));
+});
+
+// ── R10 弟子故事與緣分 ──
+t('故事資料完整：每位弟子有第一章，SR 以上有第二章', () => {
+  for (const d of DISCIPLES) {
+    assert.ok(STORIES[d.id] && STORIES[d.id][1].length > 20, `${d.id} 缺第一章`);
+    assert.equal(!!STORIES2[d.id], ['SR', 'SSR', 'UR'].includes(d.rarity), `${d.id} 第二章與稀有度不符`);
+  }
+  for (const b of BONDS) assert.ok(DISCIPLES_BY_ID[b.a] && DISCIPLES_BY_ID[b.b] && b.a !== b.b);
+});
+
+t('讀故事：條件、獎勵、特性永久加成、只能讀一次', () => {
+  const s = createState(); const d = D.addDisciple(s, 'yunqing').disciple;
+  assert.equal(St.nextChapter(s, d), null); assert.match(St.lockedHint(s, d), /Lv5/);
+  d.lv = 5; assert.equal(St.nextChapter(s, d).idx, 1);
+  s.buildings.alchemy.lv = 1; D.assign(s, d.uid, 'alchemy');
+  const before = eco.traitSum(s, 'stoneMult'), tok = s.res.token;
+  const r = St.read(s, d.uid); assert.equal(r.idx, 1); assert.ok(s.res.token > tok);
+  assert.ok(Math.abs(eco.traitSum(s, 'stoneMult') / before - 1.1) < 1e-9);          // 特性 +10%
+  assert.equal(St.read(s, d.uid), null);                                             // 第二章需要升星
+  d.star = 1; assert.equal(St.nextChapter(s, d).idx, 2);
+  St.read(s, d.uid); assert.equal(s.stories.yunqing, 2); assert.equal(St.nextChapter(s, d), null);
+  assert.equal(St.reread(s, 'yunqing').length, 2);
+});
+
+t('緣分：同一建築才生效，換棟就失效', () => {
+  const s = createState(); s.buildings.temple.lv = 1; s.buildings.field.lv = 1;
+  const a = D.addDisciple(s, 'qinwu').disciple, b = D.addDisciple(s, 'lingshuang').disciple;
+  assert.equal(Bond.bondStatus(s, BONDS[0]), 'apart');
+  D.assign(s, a.uid, 'temple'); D.assign(s, b.uid, 'field'); assert.equal(Bond.bondSum(s, 'power'), 0);
+  s.buildings.temple.lv = 4;                                                          // 先擴出第二個駐守位
+  D.assign(s, b.uid, 'temple');
+  assert.equal(Bond.bondStatus(s, BONDS[0]), 'active'); assert.ok(Math.abs(Bond.bondSum(s, 'power') - 0.04) < 1e-9);
+  assert.ok(eco.traitSum(s, 'power') >= 0.04);
+  assert.equal(Bond.bondStatus(createState(), BONDS[0]), 'none');
+});
+
+t('故事進度跨轉生保留；存檔清理未知弟子的故事', () => {
+  const s = maxedRun(); s.stories = { afu: 1 }; Dao.rebirth(s); assert.equal(s.stories.afu, 1);
+  const x = loadPatched(st => { st.stories = { gone: 1, afu: 9, yunqing: 'x' }; });
+  assert.equal(x.stories.gone, undefined); assert.equal(x.stories.afu, 1); assert.equal(x.stories.yunqing, 0);
 });
 
 console.log(`\n${n} 項測試通過`);

@@ -9,11 +9,12 @@ import * as E from '../core/endure.js';
 import * as X from '../core/burst.js';
 import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
+import * as St from '../core/stories.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITY_ORDER } from '../data/gachaRates.js';
-import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp } from './overlay.js';
+import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp, showStory, showStoryLog } from './overlay.js';
 import { sfx, unlock, applyVolume } from './audio.js';
 import { getPrefs, setPref } from './prefs.js';
 import { ghostOut, ripple, pulse } from './fx.js';
@@ -108,6 +109,8 @@ export function bindActions(s, ui, rerender) {
       finally { X.endBurst(s); ui.tab = 'avenge'; ui.busy = false; }    // 一定要解除封鎖，否則訪客與引爆都會卡死
     },
     closeSettle: () => closeOverlay(),
+    readStory: el => { const r = St.read(s, +el.dataset.uid); if (r) { sfx('goal'); showStory(r); } },
+    viewStory: el => { const df = DISCIPLES_BY_ID[el.dataset.def]; showStoryLog(df.name, df.emoji, St.reread(s, df.id)); },
     help: () => showHelp(false),
     hideHints: () => { setPref('hints', false); toast('已隱藏提示，可在「❓ 說明」重新開啟', 'info'); },
     toggleSound: () => { setPref('muted', !getPrefs().muted); if (!getPrefs().muted) sfx('click'); updateMenu(); },
