@@ -54,6 +54,9 @@ export function bindActions(s, ui, rerender) {
       const uid = +el.dataset.uid, t = ui.expTeam || [];
       ui.expTeam = t.includes(uid) ? t.filter(x => x !== uid) : t.length < 3 ? [...t, uid] : t;
     },
+    expAuto: () => { const bt = Ex.bestTeam(s, ui.expPick); if (bt) { ui.expTeam = [...bt.uids]; sfx('click'); } },
+    expClear: () => { ui.expTeam = []; },
+    expClaimAll: () => { let n = 0; for (let i = s.expeditions.length - 1; i >= 0; i--) if (Ex.claim(s, i)) n++; if (n) { sfx('goal'); toast(`已領取 ${n} 份秘境獎勵`, 'good'); } },
     expGo: () => { if (Ex.start(s, ui.expPick, ui.expTeam || [])) { ui.expTeam = []; ui.expPick = null; sfx('upgrade'); toast('隊伍出發了', 'good'); } },
     expClaim: el => {
       const r = Ex.claim(s, +el.dataset.i);

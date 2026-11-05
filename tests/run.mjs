@@ -33,7 +33,7 @@ import * as Wk from '../src/core/weekly.js';
 import { COMMISSION_RULES } from '../src/data/commissions.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
-import { EXPEDITIONS } from '../src/data/expeditions.js';
+import { EXPEDITIONS, EXPEDITIONS_BY_ID } from '../src/data/expeditions.js';
 import { MUTATORS } from '../src/data/mutators.js';
 import { SPECS, specText } from '../src/data/specs.js';
 import { STORIES, STORIES2 } from '../src/data/stories.js';
@@ -948,7 +948,7 @@ t('秘境：到期結算、領取獎勵、成功與失敗、隊員歸隊', () =>
 });
 
 t('離線期間秘境照常完成；轉生清空探索；存檔清理', () => {
-  const s = createState(); s.realmIdx = 5; const ids = teamOf(s, ['qinwu'], 5); Ex.start(s, 'field', ids);
+  const s = createState(); s.realmIdx = 5; const ids = teamOf(s, ['qinwu', 'lingshuang'], 5); Ex.start(s, 'field', ids);
   applyOffline(s, 2 * 3600 * 1000); assert.equal(s.expeditions[0].status, 'done');
   const m = maxedRun(); teamOf(m, ['afu']); m.expeditions = [{ id: 'cave', uids: [1], startAt: 0, endAt: 1, chance: 0.5, status: 'running' }];
   Dao.rebirth(m); assert.deepEqual(m.expeditions, []);
@@ -1159,6 +1159,32 @@ t('每週挑戰：週一對齊、詞條輪替、符合才加道心且每週一�
   assert.equal(Wk.weeklyEligible(b, MON + 86400000), false); assert.equal(Dao.rebirth(b, wid, MON + 86400000), gb2);
   b.realmIdx = 13; b.res.stone = 1e12; assert.equal(Wk.weeklyEligible(b, MON + 7 * 86400000), false);   // 下週詞條不同，本輪用的不是它
   assert.equal(sanitize(JSON.parse(JSON.stringify(createState()))).weekly.claimed, -1);
+});
+
+t('秘境隊伍限制與推薦：限制逐條檢查、不符不能出發、推薦隊伍合法且不比任何合法隊伍差', () => {
+  const s = createState(); s.realmIdx = 13; s.res.stone = 1e9;
+  const ids = ['afu', 'shenyao', 'qinwu', 'tieniu', 'zhaoling', 'xiaocui', 'moqi'];     // 農丹劍體陣農…
+  const ds = ids.map(id => { const d = D.addDisciple(s, id).disciple; d.lv = 8; return d; });
+  const E = id => EXPEDITIONS_BY_ID[id];
+  assert.equal(Ex.reqCheck(s, E('cave'), [ds[0].uid]).ok, true);
+  assert.equal(Ex.reqCheck(s, E('field'), [ds[0].uid]).ok, false);                      // 至少 2 人
+  assert.equal(Ex.start(s, 'field', [ds[0].uid]), false);                               // 不符限制不能出發
+  assert.ok(Ex.start(s, 'field', [ds[0].uid, ds[1].uid]));
+  const ab = E('abyss'); assert.equal(Ex.reqCheck(s, ab, [ds[0].uid, ds[1].uid, ds[2].uid]).ok, false);   // 缺體修
+  assert.equal(Ex.reqCheck(s, ab, [ds[3].uid, ds[0].uid, ds[2].uid]).ok, true);
+  // 推薦：合法，且戰力不低於所有合法 2~3 人組合
+  const s2 = createState(); s2.realmIdx = 13;
+  const pool = ['afu', 'shenyao', 'qinwu', 'tieniu', 'zhaoling', 'xiaocui', 'moqi', 'fangcun'].map(id => { const d = D.addDisciple(s2, id).disciple; d.lv = 3 + Math.floor(Math.random() * 1); return d; });
+  for (const id of ['cave', 'field', 'valley', 'maze', 'abyss']) {
+    const bt = Ex.bestTeam(s2, id); const e = EXPEDITIONS_BY_ID[id];
+    if (!bt) continue;
+    assert.ok(Ex.reqCheck(s2, e, bt.uids).ok, id + ' 推薦隊伍應合法'); assert.ok(bt.uids.length <= 3);
+    let top = 0; const u = pool.map(d => d.uid);
+    for (let i = 0; i < u.length; i++) for (let j = i + 1; j < u.length; j++) { for (const q of [[u[i], u[j]], ...u.slice(j + 1).map(k => [u[i], u[j], k])]) if (Ex.reqCheck(s2, e, q).ok) top = Math.max(top, Ex.teamPower(s2, id, q)); }
+    assert.ok(bt.power >= top - 1e-6, id + ' 推薦應為最佳');
+  }
+  // 沒有合法隊伍 → null
+  const s3 = createState(); s3.realmIdx = 13; D.addDisciple(s3, 'afu'); assert.equal(Ex.bestTeam(s3, 'abyss'), null);
 });
 
 console.log(`\n${n} 項測試通過`);

@@ -6,12 +6,25 @@ export const EXPEDITIONS = [
   { id: 'cave',  name: '後山洞府',   emoji: '🕳️', unlockRealm: 2,  minutes: 10, difficulty: 8,    want: { element: '土' },
     desc: '後山塌了半邊的洞府，據說藏著前人遺留的靈氣。', reward: { qiSec: 300, stoneSec: 60, token: 1 } },
   { id: 'field', name: '古戰場遺跡', emoji: '⚔️', unlockRealm: 5,  minutes: 20, difficulty: 40,   want: { specialty: '劍修' },
+    req: { minTeam: 2 },
     desc: '殘劍與骸骨遍地，戾氣沖天，適合劍修歷練。', reward: { qiSec: 600, stoneSec: 150, shard: 3, artifact: 0.10 } },
   { id: 'valley', name: '藥王谷',    emoji: '🌿', unlockRealm: 8,  minutes: 30, difficulty: 150,  want: { specialty: '丹修' },
+    req: { anyElement: ['木', '水'] },
     desc: '古藥王隱居的山谷，遍地靈藥，也遍地毒瘴。', reward: { stoneSec: 400, shard: 5, token: 2 } },
   { id: 'maze',  name: '天機迷陣',   emoji: '🌀', unlockRealm: 10, minutes: 45, difficulty: 600,  want: { specialty: '陣修' },
+    req: { minTeam: 2, noDupElement: true },
     desc: '天機閣廢棄的陣法試煉場，走對一步，機緣便多一分。', reward: { token: 4, shard: 8, artifact: 0.20, recruit: 0.15 } },
   { id: 'abyss', name: '龍脈深淵',   emoji: '🐉', unlockRealm: 12, minutes: 60, difficulty: 2500, want: { specialty: '體修' },
+    req: { minTeam: 3, specialty: '體修' },
     desc: '傳說盤著一條沉睡的龍脈，肉身不夠強的進去就別想出來。', reward: { stoneSec: 1500, token: 5, shard: 12, artifact: 0.35 } },
 ];
+// 隊伍限制（選填 req）：minTeam 至少幾人／anyElement 至少一位屬於這些五行／specialty 至少一位該專長／noDupElement 五行不可重複
+export const reqLines = e => {
+  const r = e.req || {}, out = [];
+  if (r.minTeam) out.push(`至少 ${r.minTeam} 人同行`);
+  if (r.anyElement) out.push(`需有${r.anyElement.join('或')}系弟子`);
+  if (r.specialty) out.push(`需有${r.specialty}弟子`);
+  if (r.noDupElement) out.push('隊員五行不可重複');
+  return out;
+};
 export const EXPEDITIONS_BY_ID = Object.fromEntries(EXPEDITIONS.map(e => [e.id, e]));
