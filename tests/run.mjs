@@ -124,18 +124,83 @@ t('蓄力倍率：每 10 分鐘 +5%，上限 ×3', () => {
   s.disguise.chargeMs = 1e12; assert.equal(C.chargeMult(s), 3);
 });
 
-t('忍／亮一手：偽裝值、損失開關、警覺', () => {
-  const s = createState(); s.res.stone = 100;
-  s.t = 1e6; E.tick(s); assert.ok(s.visitor.current);
+const visitor = (type, lvl, extra = {}) => ({ id: 99, name: '測試人', type, sect: 's', role: 'r', personality: '傲慢', lvl, alert: false, taunt: 'x', ...extra });
+const withVisitor = (s, v) => { s.visitor.current = v; return s; };
+
+t('忍氣吞聲：偽裝 +1、入簿、損失開關可關', () => {
+  const s = withVisitor(createState(), visitor('former', 1)); s.res.stone = 100;
   E.endure(s);
-  assert.equal(s.disguise.value, 1); assert.equal(s.grudges.length, 1);
+  assert.equal(s.disguise.value, 1); assert.equal(s.grudges.length, 1); assert.equal(s.visitor.current, null);
   assert.ok(s.res.stone < 100 || Object.values(s.buildings).some(b => b.pausedUntil > s.t));
-  // 關閉損失
-  s.settings.loss = false; s.res.stone = 100; s.t += 1e6; E.tick(s);
+  s.settings.loss = false; s.res.stone = 100; withVisitor(s, visitor('former', 1, { id: 100 }));
   E.endure(s); assert.equal(s.res.stone, 100);
-  // 亮一手
-  s.t += 1e6; E.tick(s); const before = s.disguise.value;
-  E.showOff(s); assert.equal(s.disguise.value, before); assert.equal(s.grudges.at(-1).alert, true);
+});
+
+t('憋屈值：連續忍損失倍率上升，亮一手歸零，上限 ×3', () => {
+  const s = createState();
+  assert.equal(E.streakMult(s), 1);
+  for (let i = 0; i < 3; i++) { withVisitor(s, visitor('former', 1, { id: i })); E.endure(s); }
+  assert.ok(Math.abs(E.streakMult(s) - 1.75) < 1e-9);
+  s.endureStreak = 99; assert.equal(E.streakMult(s), 3);
+  s.realmIdx = 8; withVisitor(s, visitor('former', 0, { id: 50 })); E.showOff(s);
+  assert.equal(s.endureStreak, 0);
+});
+
+t('亮一手（前同門，打得過）：當場打臉 +招賢令，不入簿、不加偽裝', () => {
+  const s = withVisitor(createState(), visitor('former', 0)); s.realmIdx = 6;
+  const tok = s.res.token, dg = s.disguise.value;
+  const r = E.showOff(s);
+  assert.equal(r.outcome, 'beat'); assert.equal(s.res.token, tok + 1);
+  assert.equal(s.grudges.length, 0); assert.equal(s.disguise.value, dg); assert.equal(s.visitor.current, null);
+});
+
+t('亮一手（商隊，打得過）：得到靈氣與靈石', () => {
+  const s = withVisitor(createState(), visitor('trader', 0)); s.realmIdx = 6; s.buildings.alchemy.lv = 2;
+  const qi = s.res.qi, st = s.res.stone;
+  assert.equal(E.showOff(s).outcome, 'beat');
+  assert.ok(s.res.qi > qi && s.res.stone > st);
+});
+
+t('亮一手（他宗弟子，打得過）：機率降服，必定離開', () => {
+  setRng(() => 0);                                   // 必中降服
+  const s = withVisitor(createState(), visitor('rival', 0)); s.realmIdx = 6;
+  const r = E.showOff(s);
+  assert.equal(r.outcome, 'beat'); assert.ok(r.got.surrender); assert.equal(s.recruits.length, 1);
+  assert.equal(s.grudges.length, 0);
+  setRng(Math.random);
+});
+
+t('亮一手（打不過）：逞強，警覺入簿、損失 ×2', () => {
+  const s = withVisitor(createState(), visitor('former', 9)); s.res.stone = 100; s.buildings.alchemy.lv = 1;
+  const rate = eco.stonePerSec(s);
+  setRng(() => 0);                                   // chance(0.5) → 必走靈石損失
+  const r = E.showOff(s);
+  setRng(Math.random);
+  assert.equal(r.outcome, 'rash');
+  assert.equal(s.grudges.length, 1); assert.equal(s.grudges[0].alert, true);
+  assert.equal(s.res.stone, 100 - Math.max(1, Math.floor(rate * CONFIG.endure.loss.stoneSec * CONFIG.endure.rashLossMult)));
+});
+
+t('亮一手（長老）：即使打得過也得罪，損失 ×3', () => {
+  const s = withVisitor(createState(), visitor('elder', 0)); s.realmIdx = 8;
+  assert.equal(E.assess(s, s.visitor.current).showKind, 'offend');
+  const r = E.showOff(s);
+  assert.equal(r.outcome, 'offend'); assert.equal(s.grudges.length, 1); assert.equal(s.grudges[0].alert, true);
+});
+
+t('引爆預覽與實際判定一致；弱勢長老反噬（受損失開關控制）', () => {
+  const mk = () => {
+    const s = createState(); s.realmIdx = 1; s.res.stone = 500; s.buildings.alchemy.lv = 1; s.disguise.value = 99;
+    s.grudges = [visitor('elder', 12, { id: 1 }), visitor('former', 0, { id: 2 })];
+    return s;
+  };
+  const s = mk(), pv = X.previewBurst(s);
+  assert.equal(pv.backfires, 1);
+  const r = X.burst(s);
+  assert.deepEqual(r.entries.map(e => e.verdict), pv.entries.map(e => e.verdict));
+  assert.ok(r.backfire && r.backfire.names.length === 1 && s.res.stone < 500 + r.total.stone);
+  const s2 = mk(); s2.settings.loss = false;
+  assert.equal(X.burst(s2).backfire, null);
 });
 
 t('連鎖倍率', () => {

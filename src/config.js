@@ -64,6 +64,10 @@ export const CONFIG = {
 
   endure: {
     disguiseGain: 1,           // 忍氣吞聲 +偽裝值
+    streakStep: 0.25,          // 憋屈值：連續忍氣吞聲，損失倍率 +25%/次
+    streakMaxMult: 3,          // 損失倍率上限 ×3（亮一手或引爆後歸零）
+    rashLossMult: 2,           // 打不過卻亮一手（逞強）：損失 ×2
+    elderLossMult: 3,          // 得罪長老：損失 ×3
     loss: { stoneSec: 20, pauseMs: 5 * 60 * 1000 },   // 損失：約 20 秒的靈石產出（隨進度縮放，不會卡死囤積）或 建築暫停 5 分鐘
   },
 
@@ -95,6 +99,8 @@ export const CONFIG = {
     crushMult: 2, narrowMult: 1,
     // 連鎖加成（由大到小比對）
     chain: [{ n: 10, mult: 3 }, { n: 5, mult: 2 }, { n: 3, mult: 1.5 }],
+    backfireRatio: 0.4,        // 戰力比低於此值的長老會反噬
+    backfire: { stoneSec: 60, pauseMs: 5 * 60 * 1000 },
     recruitStone: 10,          // 招募降服弟子的靈石成本
     stepMs: 2300,              // 每位仇人出場演出時間
   },

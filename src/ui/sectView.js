@@ -8,6 +8,7 @@ import { clickPower } from '../core/economy.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { cooldownLeft } from '../core/meditate.js';
+import { assess } from '../core/endure.js';
 import { esc, setHTML, setText } from './dom.js';
 
 export function mountScene(root) {
@@ -51,20 +52,28 @@ export function updateScene(root, refs, s, ui) {
   setText(refs.mlabel, ready ? `🧘 引氣打坐 +${fmt(clickPower(s))} 靈氣` : `🧘 調息中… ${(left / 1000).toFixed(1)}s`);
 }
 
+const VERDICT_TXT = { crush: ['v-crush', '你能碾壓他'], narrow: ['v-narrow', '你勉強勝他'], fail: ['v-fail', '你打不過他'] };
+
 function visitorCard(s) {
   const v = s.visitor.current;
   if (!v) return '';
-  const t = VISITOR_TYPES[v.type];
-  const lossText = s.settings.loss
-    ? `偽裝值 +${CONFIG.endure.disguiseGain}，承受輕微損失（約 ${CONFIG.endure.loss.stoneSec} 秒靈石產出，或建築暫停 ${CONFIG.endure.loss.pauseMs / 60000} 分鐘）`
-    : `偽裝值 +${CONFIG.endure.disguiseGain}（已關閉損失）`;
+  const t = VISITOR_TYPES[v.type], a = assess(s, v), [vc, vt] = VERDICT_TXT[a.verdict];
+  const L = CONFIG.endure.loss;
+  const lossOn = s.settings.loss;
+  const endureText = `偽裝值 +${CONFIG.endure.disguiseGain}，記入復仇簿（保留連鎖與大獎勵）`
+    + (lossOn ? `；損失約 ${L.stoneSec} 秒靈石或建築暫停 ${L.pauseMs / 60000} 分${a.endureMult > 1 ? `　<b class="gold">憋屈 ×${a.endureMult.toFixed(2)}</b>` : ''}` : '（已關閉損失）');
+  const showText = {
+    beat: `${a.winText}（對方不入簿、不加偽裝值）`,
+    rash: `<b class="red">⚠ 逞強</b>：打不過還亮，損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,
+    offend: `<b class="red">⚠ 長老得罪不起</b>：損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,
+  }[a.showKind];
   return `<div class="visitor-card">
     <div class="vhead"><span class="vemoji">${t.emoji}</span>
-      <div><b>${esc(v.name)}</b> <span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span><br>
+      <div><b>${esc(v.name)}</b> <span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
       <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small></div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">
-      <button class="btn endure" data-act="endure"><b>😤 忍氣吞聲</b><small>${esc(lossText)}；記入復仇簿</small></button>
-      <button class="btn show" data-act="show"><b>😏 亮一手</b><small>無損失、不加偽裝值；對方警覺，日後爆擊獎勵 ×${CONFIG.enemy.alertMult}</small></button>
+      <button class="btn endure" data-act="endure"><b>😤 忍氣吞聲</b><small>${endureText}</small></button>
+      <button class="btn show ${a.showKind === 'beat' ? 'good' : 'bad'}" data-act="show"><b>😏 亮一手</b><small>${showText}</small></button>
     </div></div>`;
 }

@@ -21,6 +21,7 @@ export function createState() {
     artifacts: [],                          // 已獲得的功法法寶 id
     settings: { loss: true },               // 承受損失開關
     tokenAcc: 0,
+    endureStreak: 0,                        // 連續忍氣吞聲次數（憋屈值）
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）
     burstActive: false,
     stats: { meditations: 0, bursts: 0 },

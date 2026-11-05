@@ -3,16 +3,15 @@
 import { CONFIG } from '../config.js';
 import { ENEMY_REWARDS, REALM_SCALE, RARE_EXTRA } from '../data/enemies.js';
 import { PERSONALITIES } from '../data/visitors.js';
-import { DISCIPLES } from '../data/disciples.js';
 import { ARTIFACTS } from '../data/artifacts.js';
-import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { LINES, pickLine } from '../data/lines.js';
 import { lvlLabel } from '../data/realms.js';
 import { pick, randInt, chance, weighted } from './rng.js';
-import { qiPerSec, artifactSum, rareChance } from './economy.js';
+import { qiPerSec, stonePerSec, artifactSum, rareChance } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf } from './conceal.js';
 import { quote } from './events.js';
 import { addDisciple } from './disciples.js';
+import { rollSurrender, applyLoss } from './endure.js';
 import { canAfford, pay } from './resources.js';
 
 export const canBurst = s => disguiseFull(s) && s.grudges.length > 0 && !s.burstActive && !s.visitor.current;
@@ -43,12 +42,14 @@ function rewardFor(s, g, verdict) {
   return r;
 }
 
-// 降服：從非 N 池抽一位（優先抽未擁有的）
-function pickSurrender(s) {
-  const rar = weighted(Object.keys(SURRENDER_WEIGHTS), k => SURRENDER_WEIGHTS[k]);
-  const pool = DISCIPLES.filter(d => d.rarity === rar);
-  const fresh = pool.filter(d => !s.disciples.some(x => x.defId === d.id) && !s.recruits.some(x => x.defId === d.id));
-  return pick(fresh.length ? fresh : pool);
+// 引爆前預覽：預估每位的結果、連鎖、哪些長老可能反噬
+export function previewBurst(s) {
+  const entries = [...s.grudges].sort((a, b) => a.lvl - b.lvl).map(g => {
+    const ratio = ratioOf(s, g), verdict = verdictOf(ratio);
+    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, risk: g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
+  });
+  const chain = entries.filter(e => e.verdict !== 'fail').length;
+  return { entries, chain, chainMult: chainMult(chain), chargeMult: chargeMult(s), backfires: entries.filter(e => e.risk).length };
 }
 
 export function burst(s) {
@@ -77,7 +78,7 @@ export function burst(s) {
     r.qi *= k; r.stone *= k; r.token = Math.round(r.token * cMult * art);
     total.qi += r.qi; total.stone += r.stone; total.token += r.token;
     if (r.surrender) {
-      const def = pickSurrender(s);
+      const def = rollSurrender(s);
       s.recruits.push({ uid: s.nextUid++, defId: def.id, from: e.g.name });
       surrendered.push({ def, from: e.g.name });
       r.surrenderDef = def;
@@ -91,15 +92,28 @@ export function burst(s) {
     e.reward = r;
   }
   s.res.qi += total.qi; s.res.stone += total.stone; s.res.token += total.token;
+  // 3.5) 反噬：戰力遠不如的長老會反擊（損失靈石、一棟建築暫停；最多一次暫停）
+  let backfire = null;
+  const risky = entries.filter(e => e.g.type === 'elder' && e.ratio < CONFIG.burst.backfireRatio);
+  if (risky.length && s.settings.loss) {
+    const B = CONFIG.burst.backfire;
+    const lost = Math.min(s.res.stone, Math.floor(stonePerSec(s) * B.stoneSec * risky.length));
+    s.res.stone -= lost;
+    const built = Object.entries(s.buildings).filter(([, b]) => b.lv > 0);
+    let paused = null;
+    if (built.length) { const [id, b] = pick(built); b.pausedUntil = s.t + B.pauseMs; paused = id; }
+    backfire = { names: risky.map(e => e.g.name), lost, paused };
+    for (const e of risky) e.backfire = true;
+  }
   // 4) 結算狀態：擊敗者出簿、偽裝與蓄力歸零
   const beaten = new Set(entries.filter(e => e.verdict !== 'fail').map(e => e.g.id));
   s.grudges = s.grudges.filter(g => !beaten.has(g.id));
-  s.disguise.value = 0; s.disguise.chargeMs = 0;
+  s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0;
   s.stats.bursts++;
   const outro = pickLine(LINES.burstOutro[[10, 5, 3, 1, 0].find(n => chain >= n) ?? 0]);
   s.burstActive = true;                     // 演出期間封鎖訪客；ui 結束後呼叫 endBurst
   return {
-    chargeMult: cm, chain, chainMult: cMult, entries, total, surrendered, artifacts,
+    backfire, chargeMult: cm, chain, chainMult: cMult, entries, total, surrendered, artifacts,
     intro: pickLine(LINES.burstIntro), outro,
   };
 }

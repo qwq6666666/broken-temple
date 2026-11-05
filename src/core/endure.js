@@ -4,7 +4,10 @@ import { VISITOR_TYPES, SURNAMES, GIVEN, PERSONALITIES, PERSONALITY_KEYS } from 
 import { LINES, pickLine } from '../data/lines.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { pick, randInt, randFloat, weighted, chance } from './rng.js';
-import { rareChance, stonePerSec } from './economy.js';
+import { rareChance, stonePerSec, qiPerSec } from './economy.js';
+import { ratioOf, verdictOf } from './conceal.js';
+import { DISCIPLES } from '../data/disciples.js';
+import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { quote, toast } from './events.js';
 
 const scheduleNext = s => {
@@ -36,24 +39,40 @@ export function tick(s) {
   s.visitor.current = makeVisitor(s);
 }
 
-// 「承受損失」：8% 靈石 或 隨機一棟建築暫停 5 分鐘。回傳說明文字（無損失則 null）
-function applyLoss(s) {
+// 憋屈值：連續忍氣吞聲越多次，下一次的損失越重（亮一手／引爆後歸零）
+export const streakMult = s =>
+  Math.min(CONFIG.endure.streakMaxMult, 1 + CONFIG.endure.streakStep * s.endureStreak);
+
+// 評估眼前訪客：玩家打不打得過、亮一手會是什麼結果（供 ui 顯示）
+export function assess(s, v) {
+  const verdict = verdictOf(ratioOf(s, v));
+  const T = VISITOR_TYPES[v.type];
+  let showKind, showMult = 1;
+  if (T.showOff.offends) { showKind = 'offend'; showMult = CONFIG.endure.elderLossMult; }
+  else if (verdict === 'fail') { showKind = 'rash'; showMult = CONFIG.endure.rashLossMult; }
+  else showKind = 'beat';
+  return { verdict, showKind, showMult, endureMult: streakMult(s), winText: T.showOff.winText };
+}
+
+// 「承受損失」：約 N 秒靈石產出 或 隨機一棟建築暫停 5 分鐘；mult 為倍率。回傳說明文字（無損失則 null）
+function applyLoss(s, mult = 1) {
   if (!s.settings.loss) return null;
   const built = Object.entries(s.buildings).filter(([, b]) => b.lv > 0 && s.t >= b.pausedUntil);
-  const canStone = s.res.stone >= 1;
-  const useStone = canStone && (!built.length || chance(0.5));
+  const useStone = s.res.stone >= 1 && (!built.length || chance(0.5));
   if (useStone) {
-    const lost = Math.min(s.res.stone, Math.max(1, Math.floor(stonePerSec(s) * CONFIG.endure.loss.stoneSec)));
+    const lost = Math.min(s.res.stone, Math.max(1, Math.floor(stonePerSec(s) * CONFIG.endure.loss.stoneSec * mult)));
     s.res.stone -= lost;
     return `損失 ${lost} 靈石`;
   }
   if (built.length) {
     const [id, b] = pick(built);
-    b.pausedUntil = s.t + CONFIG.endure.loss.pauseMs;
-    return `${BUILDINGS_BY_ID[id].name}暫停產出 5 分鐘`;
+    const ms = CONFIG.endure.loss.pauseMs * mult;
+    b.pausedUntil = s.t + ms;
+    return `${BUILDINGS_BY_ID[id].name}暫停產出 ${Math.round(ms / 60000)} 分鐘`;
   }
   return null;
 }
+export { applyLoss };
 
 function toBook(s, v) {
   s.visitor.current = null;
@@ -62,24 +81,57 @@ function toBook(s, v) {
   scheduleNext(s);
 }
 
-// 忍氣吞聲：偽裝值 +1、承受輕微損失、仇人入簿
+// 忍氣吞聲：偽裝值 +1、承受損失（含憋屈值倍率）、仇人入簿
 export function endure(s) {
   const v = s.visitor.current; if (!v) return null;
+  const mult = streakMult(s);
   toBook(s, v);
+  s.endureStreak++;
   s.disguise.value = Math.min(CONFIG.conceal.max, s.disguise.value + CONFIG.endure.disguiseGain);
-  const loss = applyLoss(s);
+  const loss = applyLoss(s, mult);
   quote(pickLine(LINES.endure));
   toast(`已記入復仇簿：${v.name}` + (loss ? `（${loss}）` : ''), 'warn');
-  return { loss };
+  return { loss, mult };
 }
 
-// 亮一手：無損失、不加偽裝值，仇人入簿但「警覺」（爆擊獎勵 ×0.7）
+// 降服：從非 N 池抽一位（優先抽未擁有的）；供當場降服與爆擊降服共用
+export function rollSurrender(s) {
+  const rar = weighted(Object.keys(SURRENDER_WEIGHTS), k => SURRENDER_WEIGHTS[k]);
+  const pool = DISCIPLES.filter(d => d.rarity === rar);
+  const fresh = pool.filter(d => !s.disciples.some(x => x.defId === d.id) && !s.recruits.some(x => x.defId === d.id));
+  return pick(fresh.length ? fresh : pool);
+}
+
+// 亮一手：依「打不打得過」與「對方類型」決定結果
+//  beat   打得過 → 當場打臉，拿即時獎勵，對方離開（不入簿、不加偽裝、不加連鎖）
+//  rash   打不過 → 逞強，受損 ×2，對方警覺入簿
+//  offend 長老   → 得罪，受損 ×3，對方警覺入簿
 export function showOff(s) {
   const v = s.visitor.current; if (!v) return null;
-  v.alert = true;
+  const a = assess(s, v);
+  const T = VISITOR_TYPES[v.type];
   const line = pick(PERSONALITIES[v.personality].counter);
+  s.endureStreak = 0;
+  if (a.showKind === 'beat') {
+    const w = T.showOff.win, got = {};
+    if (w.token) got.token = w.token;
+    if (w.qiSec) got.qi = qiPerSec(s) * w.qiSec;
+    if (w.stoneSec) got.stone = Math.max(1, stonePerSec(s) * w.stoneSec);
+    for (const [k, n] of Object.entries(got)) s.res[k] += n;
+    if (w.surrender && chance(w.surrender)) {
+      const def = rollSurrender(s);
+      s.recruits.push({ uid: s.nextUid++, defId: def.id, from: v.name });
+      got.surrender = def;
+    }
+    s.visitor.current = null; scheduleNext(s);
+    quote(pickLine(LINES.show));
+    toast(`${v.name} 被打臉離開` + (got.surrender ? `，並拜入門下候選：${got.surrender.name}` : ''), 'good');
+    return { outcome: 'beat', line, got };
+  }
+  v.alert = true;
+  const loss = applyLoss(s, a.showMult);
   toBook(s, v);
   quote(pickLine(LINES.show));
-  toast(`${v.name} 已警覺。`, 'info');
-  return { line };
+  toast(`${v.name} 警覺了` + (loss ? `（${loss}）` : ''), 'warn');
+  return { outcome: a.showKind, line, loss };
 }

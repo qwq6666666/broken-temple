@@ -2,13 +2,18 @@
 // 新增性格：在 PERSONALITIES 加一組 taunt/counter/kneel/narrow/fail 即可。
 export const VISITOR_TYPES = {
   former: { id: 'former', label: '前同門', emoji: '🧑‍🎓', weight: 38, rare: false, offset: [0, 2],
-            sects: ['青雲宗'], roles: ['外門弟子', '內門師兄', '雜役房管事', '執事'] },
+            sects: ['青雲宗'], roles: ['外門弟子', '內門師兄', '雜役房管事', '執事'],
+            // 亮一手：打得過時的「當場打臉」獎勵；對方離開、不入復仇簿
+            showOff: { win: { token: 1 }, winText: '當場打臉：+1 招賢令，對方灰溜溜離開' } },
   rival:  { id: 'rival',  label: '他宗弟子', emoji: '🤺', weight: 36, rare: false, offset: [0, 3],
-            sects: ['赤焰谷', '落霞宗', '玄冰門', '百煉閣', '萬劍山莊'], roles: ['親傳弟子', '首席弟子', '真傳'] },
+            sects: ['赤焰谷', '落霞宗', '玄冰門', '百煉閣', '萬劍山莊'], roles: ['親傳弟子', '首席弟子', '真傳'],
+            showOff: { win: { qiSec: 30, surrender: 0.25 }, winText: '當場折服：獲得少量靈氣，有機會直接降服為弟子' } },
   elder:  { id: 'elder',  label: '長老', emoji: '🧙', weight: 12, rare: true, offset: [3, 5],
-            sects: ['青雲宗', '赤焰谷', '天機閣', '萬劍山莊'], roles: ['長老', '護法長老', '執法長老'] },
+            sects: ['青雲宗', '赤焰谷', '天機閣', '萬劍山莊'], roles: ['長老', '護法長老', '執法長老'],
+            showOff: { offends: true } },    // 長老得罪不起：不論勝負都吃虧
   trader: { id: 'trader', label: '商隊散修', emoji: '🐪', weight: 14, rare: true, offset: [-1, 2],
-            sects: ['南海商隊', '黑市商會', '雲遊散修', '西域駝隊'], roles: ['領隊', '散修', '掌櫃'] },
+            sects: ['南海商隊', '黑市商會', '雲遊散修', '西域駝隊'], roles: ['領隊', '散修', '掌櫃'],
+            showOff: { win: { qiSec: 120, stoneSec: 60 }, winText: '現場「交易」：得到一筆資源，對方離開' } },
 };
 
 export const SURNAMES = ['趙', '錢', '孫', '李', '周', '吳', '鄭', '王', '馮', '陳', '褚', '衛', '蔣', '沈', '韓', '楊', '朱', '秦', '尤', '許', '何', '呂', '施', '張', '孔', '曹', '嚴', '華', '金', '魏'];

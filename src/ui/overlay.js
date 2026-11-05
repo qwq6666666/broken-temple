@@ -99,6 +99,7 @@ function showSettlement(r) {
     </div>
     <h3>降服弟子（到「復仇簿」招募）</h3><div class="arts">${sur}</div>
     <h3>功法／法寶</h3><div class="arts">${arts}</div>
+    ${r.backfire ? `<p class="warnline">⚠ 反噬！${esc(r.backfire.names.join('、'))} 實力遠勝於你，反擊造成損失 💎${fmt(r.backfire.lost)}${r.backfire.paused ? '，並有一處建築暫停產出' : ''}。</p>` : ''}
     <p class="lineq">老祖：「${esc(r.outro)}」</p>
     <button class="btn primary big" data-act="closeSettle">收工</button>
   </div></div>`;
@@ -140,4 +141,16 @@ export function showModal(html) {
     <div style="text-align:right;margin-top:10px"><button class="btn" data-act="closeSettle">關閉</button></div></div></div>`;
   o.classList.add('on');
   return new Promise(res => { o._done = res; });
+}
+
+// ── 引爆前預覽 ──
+const PV = { crush: ['v-crush', '碾壓'], narrow: ['v-narrow', '險勝'], fail: ['v-fail', '打不過'] };
+export function showBurstPreview(pv) {
+  const rows = pv.entries.map(e => `<div class="pvrow"><span>${esc(e.g.name)} <small>${esc(e.g.label)}</small></span>
+    <span>${e.risk ? '<span class="tag red">⚠ 可能反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span></span></div>`).join('');
+  return showModal(`<h3>💥 引爆預覽</h3>
+    <p>預計擊敗 <b class="gold">${pv.chain}</b> 人，連鎖加成 <b class="gold">×${pv.chainMult}</b>，蓄力倍率 <b class="gold">×${fmt(pv.chargeMult)}</b>。打不過的人會留在名單上。</p>
+    <div class="pvlist">${rows}</div>
+    ${pv.backfires ? '<p class="warnline">⚠ 有長老實力遠勝於你，引爆會遭到反噬（損失靈石、建築暫停）。可以再蓄力、突破後再爆。</p>' : ''}
+    <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmBurst">不裝了！</button></div>`);
 }

@@ -10,7 +10,7 @@ import * as X from '../core/burst.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
-import { playBreakthrough, playBurst, closeOverlay } from './overlay.js';
+import { playBreakthrough, playBurst, closeOverlay, showBurstPreview } from './overlay.js';
 import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from './saveMenu.js';
 
 export function bindActions(s, ui, rerender) {
@@ -39,16 +39,24 @@ export function bindActions(s, ui, rerender) {
     endure: () => { E.endure(s); },
     show: () => {
       const r = E.showOff(s);
-      if (r) toast(r.line, 'info');
+      if (r) toast(r.line, r.outcome === 'beat' ? 'good' : 'info');
     },
     recruit: el => {
       const r = X.recruit(s, +el.dataset.uid);
       if (r) toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧩${r.shards}`, 'good');
     },
-    burst: async () => {
+    // 第一步：先看預覽（可以反悔）
+    burst: () => {
       if (ui.busy) return;
+      if (!X.canBurst(s)) { quote(LINES.noGrudge); return; }
+      showBurstPreview(X.previewBurst(s));
+    },
+    // 第二步：確認後才真正引爆
+    confirmBurst: async () => {
+      if (ui.busy) return;
+      closeOverlay();
       const result = X.burst(s);
-      if (!result) { quote(LINES.noGrudge); return; }
+      if (!result) return;
       ui.busy = true; rerender();
       await playBurst(result);
       X.endBurst(s);
