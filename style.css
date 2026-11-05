@@ -250,3 +250,65 @@ button.meditate .mlabel { position: relative; }
 #hint .hx { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 1em; padding: 4px 8px; }
 #hint { background: rgba(217,182,74,.08); border: 1px solid rgba(217,182,74,.3); border-radius: 10px; padding: 8px 14px; margin: 10px 16px 0; }
 @media (min-width: 1312px) { #hint { margin: 10px auto 0; max-width: 1248px; } }
+
+/* ══════ 手機版面（≤860px）══════ */
+@media (max-width: 860px) {
+  body { padding-bottom: 68px; }                                   /* 讓出底部導覽列的位置 */
+  #topbar { position: static; padding: 8px 12px 6px; }
+  #topbar h1 { font-size: 1.1em; margin-bottom: 4px; letter-spacing: 2px; }
+  #topbar h1 small { display: none; }
+  #resbar { flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .res { min-width: 78px; padding: 3px 8px; flex: none; }
+  .res b { font-size: 1em; } .res span, .res small { font-size: .68em; }
+  #menu { position: static; margin-top: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  #menu .btn { white-space: nowrap; flex: none; min-height: 34px; }
+  #hint { margin: 8px 12px 0; padding: 6px 10px; font-size: .85em; }
+  #hint .hbulb { font-size: .85em; }
+  main { padding: 10px 12px 20px; gap: 10px; }
+
+  /* 全景縮小 */
+  .scene { min-height: 0; padding: 10px; }
+  .sky, .ridge { display: none; }
+  .ancestor { max-width: 100%; margin-bottom: 6px; }
+  .avatar { width: 42px; height: 42px; font-size: 26px; }
+  .bubble { font-size: .85em; min-height: 0; padding: 6px 10px; }
+  .tiles { gap: 6px; margin-top: 8px; }
+  .tile { padding: 4px 2px; } .tile .emoji, .tile.st-2 .emoji, .tile.st-3 .emoji, .tile.st-4 .emoji { font-size: 28px; }
+  .tname { font-size: .72em; } .tstage, .crew { font-size: .62em; min-height: 0; }
+  button.meditate { padding: 12px 22px; width: 100%; font-size: 1.05em; }
+  .vbtns { grid-template-columns: 1fr; }                            /* 訪客選項改成上下排列 */
+  .conceal { padding: 8px 12px; }
+
+  /* 分頁改成固定在底部的導覽列 */
+  #tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; margin: 0; padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+          background: rgba(14,19,17,.97); border-top: 1px solid var(--line); flex-wrap: nowrap; overflow-x: auto; gap: 6px; }
+  .tab { flex: none; border-radius: 10px; min-height: 44px; padding: 6px 12px; white-space: nowrap; }
+
+  /* 觸控尺寸 */
+  .btn { min-height: 40px; }
+  select.assign { min-height: 40px; }
+  .card { padding: 8px 10px; gap: 8px; } .card .big { font-size: 28px; width: 36px; }
+  .card.bcard, .card.goal, .card.gcrd { flex-wrap: wrap; }
+  .card .act { flex-direction: row; align-items: center; margin-left: auto; }
+  .dgrid { grid-template-columns: repeat(2, 1fr); }
+  .gresults { grid-template-columns: repeat(2, 1fr); }
+
+  /* 提示訊息：只留 2 則，放在導覽列上方 */
+  #toasts { left: 8px; right: 8px; bottom: 76px; max-width: none; }
+  .toast { font-size: .85em; padding: 6px 10px; }
+  .toast:nth-last-child(n+3) { display: none; }
+  #banner { font-size: .85em; }
+
+  /* 全螢幕演出 */
+  .ov { padding: 16px 10px; } .narr { font-size: 1em; } .enemy { padding: 8px 10px; }
+  .settle .panel { padding: 14px 14px; max-height: 92vh; overflow: auto; }
+  .chainbig { top: 44px; left: 10px; font-size: 22px; }
+  .skipbtn { top: 8px; right: 8px; }
+}
+
+@media (max-width: 860px) {
+  #tabs { gap: 2px; padding-left: 4px; padding-right: 4px; justify-content: space-between; overflow-x: auto; }
+  .tab { flex: 1 1 0; min-width: 44px; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; position: relative; border-radius: 8px; font-size: 11px; }
+  .tab .ti { font-size: 20px; }
+  .tab i { position: absolute; top: 0; right: 2px; font-size: 10px; padding: 0 4px; }
+}

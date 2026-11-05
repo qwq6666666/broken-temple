@@ -62,7 +62,8 @@ export function createRenderer(s, ui) {
     setHTML(tabsEl, TABS.filter(([id]) => isUnlocked(s, id)).map(([id, label]) => {
       const badge = id === 'avenge' && s.grudges.length ? ` <i>${s.grudges.length}</i>` : '';
       const alert = (id === 'avenge' && s.recruits.length) ? ' <i class="new">新</i>' : (id === 'goals' ? ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>` : '');
-      return `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}">${label}${badge}${alert}</button>`;
+      const [ico, ...txt] = label.split(' ');       // 手機版：圖示在上、文字在下
+      return `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}"><span class="ti">${ico}</span> <span class="tl">${txt.join(' ')}</span>${badge}${alert}</button>`;
     }).join(''));
 
     const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel }[ui.tab];
