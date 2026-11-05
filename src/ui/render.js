@@ -23,10 +23,19 @@ import { pulse, floatText } from './fx.js';
 import { GOALS } from '../data/goals.js';
 import { TAB_TIPS } from '../data/help.js';
 
-const TABS = [
-  ['buildings', '🏯 建築'], ['realm', '🧘 境界'], ['gacha', '🎫 招賢'],
-  ['disciples', '👥 弟子'], ['avenge', '📖 復仇簿'], ['expedition', '🧭 秘境'], ['factions', '🏴 勢力'], ['nemesis', '⚔️ 宿敵錄'], ['dao', '☯️ 道心'], ['goals', '🎯 大事'],
+// 分頁精簡：10 個功能分頁收成 6 組（組內依解鎖進度由上而下堆疊）。內部分頁 id 不變（解鎖旗標、說明、提示都沿用）。
+const GROUPS = [
+  { id: 'buildings', label: '🏯 建築', members: ['buildings'] },
+  { id: 'realm',     label: '🧘 境界', members: ['realm', 'dao'] },
+  { id: 'people',    label: '👥 弟子', members: ['gacha', 'disciples'] },
+  { id: 'grudge',    label: '📖 仇怨', members: ['avenge', 'nemesis'] },
+  { id: 'world',     label: '🧭 江湖', members: ['expedition', 'factions'] },
+  { id: 'goals',     label: '🎯 大事', members: ['goals'] },
 ];
+const SUB_TITLE = { dao: '☯️ 道心', gacha: '🎫 招賢', disciples: '👥 弟子', avenge: '📖 復仇簿', nemesis: '⚔️ 宿敵錄', expedition: '🧭 秘境', factions: '🏴 勢力' };
+const GROUP_OF = Object.fromEntries(GROUPS.flatMap(g => g.members.map(m => [m, g.id])));
+const PANELS = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel, factions: factionPanel, expedition: expeditionPanel };
+const groupOpen = (s, g) => g.members.some(m => isUnlocked(s, m));
 
 export function createRenderer(s, ui) {
   const sceneEl = $('#scene'), concealEl = $('#conceal');
@@ -35,7 +44,7 @@ export function createRenderer(s, ui) {
   const concealRefs = mountConceal(concealEl);
   const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar'), hintEl = $('#hint');
   // 資源列骨架
-  resEl.innerHTML = [['qi', '✨ 靈氣'], ['stone', '💎 靈石'], ['token', '🎫 招賢令'], ['shard', '🧩 碎片'], ['dao', '☯️ 道心'], ['realm', '境界']]
+  resEl.innerHTML = [['qi', '✨ 靈氣'], ['stone', '💎 靈石'], ['realm', '境界']]
     .map(([k, l]) => `<div class="res ${k === 'realm' ? 'realm' : ''}" data-k="${k}"><span>${l}</span><b></b><small></small></div>`).join('');
   const resRefs = Object.fromEntries([...resEl.children].map(e => [e.dataset.k, { root: e, b: e.querySelector('b'), sm: e.querySelector('small'), prev: null }]));
   ui.quote = pickLine(LINES.idle);
@@ -50,9 +59,6 @@ export function createRenderer(s, ui) {
     const rows = {
       qi:    { show: true, v: s.res.qi, sub: '+' + fmtRate(qiPerSec(s)), rate: qiPerSec(s) },
       stone: { show: true, v: s.res.stone, sub: stonePerSec(s) > 0 ? '+' + fmtRate(stonePerSec(s)) : '建煉丹房產出', rate: stonePerSec(s) },
-      token: { show: s.unlocked.gacha || s.res.token > 0, v: s.res.token, sub: '', rate: 0 },
-      shard: { show: s.res.shard > 0 || s.disciples.length > 0, v: s.res.shard, sub: '', rate: 0 },
-      dao:   { show: s.unlocked.dao || s.res.daoHeart > 0, v: s.res.daoHeart, sub: s.reincarnation.count ? '轉生 ' + s.reincarnation.count + ' 次' : '化神後可轉生', rate: 0 },
     };
     for (const [k, row] of Object.entries(rows)) {
       const el = resRefs[k]; el.root.style.display = row.show ? '' : 'none';
@@ -74,20 +80,25 @@ export function createRenderer(s, ui) {
     updateScene(sceneEl, sceneRefs, s, ui);
     updateConceal(concealRefs, s);
 
-    // 分頁
-    if (!isUnlocked(s, ui.tab)) ui.tab = 'buildings';
-    setHTML(tabsEl, TABS.filter(([id]) => isUnlocked(s, id)).map(([id, label]) => {
-      const badge = id === 'avenge' && s.grudges.length ? ` <i>${s.grudges.length}</i>` : '';
-      const alert = (id === 'avenge' && s.recruits.length) ? ' <i class="new">新</i>' : (id === 'goals' ? ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>` : '');
-      const [ico, ...txt] = label.split(' ');       // 手機版：圖示在上、文字在下
-      return `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}"><span class="ti">${ico}</span> <span class="tl">${txt.join(' ')}</span>${badge}${alert}</button>`;
+    // 分頁（舊的內部分頁 id 一律換算成所屬分組）
+    ui.tab = GROUP_OF[ui.tab] || ui.tab;
+    const groups = GROUPS.filter(g => groupOpen(s, g));
+    if (!groups.some(g => g.id === ui.tab)) ui.tab = 'buildings';
+    const grp = groups.find(g => g.id === ui.tab);
+    setHTML(tabsEl, groups.map(g => {
+      const m = id => g.members.includes(id) && isUnlocked(s, id);
+      const badge = m('avenge') && s.grudges.length ? ` <i>${s.grudges.length}</i>` : '';
+      const alert = (m('disciples') && s.recruits.length) ? ' <i class="new">新</i>' : (g.id === 'goals' ? ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>` : '');
+      const [ico, ...txt] = g.label.split(' ');       // 手機版：圖示在上、文字在下
+      return `<button class="tab ${ui.tab === g.id ? 'on' : ''}" data-act="tab" data-tab="${g.id}"><span class="ti">${ico}</span> <span class="tl">${txt.join(' ')}</span>${badge}${alert}</button>`;
     }).join(''));
 
-    const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel, factions: factionPanel, expedition: expeditionPanel }[ui.tab];
     const prefs = getPrefs();
-    const tip = prefs.tips && !prefs.tipsSeen[ui.tab] && TAB_TIPS[ui.tab]
-      ? `<div class="tip"><span>💡 ${TAB_TIPS[ui.tab]}</span><button class="btn mini" data-act="dismissTip" data-tab="${ui.tab}">知道了</button></div>` : '';
-    setHTML(panelEl, tip + body(s, ui));
+    const open = grp.members.filter(m => isUnlocked(s, m));
+    const tipId = prefs.tips ? open.find(m => !prefs.tipsSeen[m] && TAB_TIPS[m]) : null;
+    const tip = tipId ? `<div class="tip"><span>💡 ${TAB_TIPS[tipId]}</span><button class="btn mini" data-act="dismissTip" data-tab="${tipId}">知道了</button></div>` : '';
+    const body = open.map(m => (open.length > 1 ? `<h3 class="sub">${SUB_TITLE[m] || ''}</h3>` : '') + PANELS[m](s, ui)).join('');
+    setHTML(panelEl, tip + body);
   }
   return render;
 }

@@ -127,6 +127,7 @@ export function bindActions(s, ui, rerender) {
     closeSettle: () => closeOverlay(),
     readStory: el => { const r = St.read(s, +el.dataset.uid); if (r) { sfx('goal'); showStory(r); } },
     viewStory: el => { const df = DISCIPLES_BY_ID[el.dataset.def]; showStoryLog(df.name, df.emoji, St.reread(s, df.id)); },
+    menuToggle: () => setMenu(document.getElementById('menuMore')?.hidden),
     help: () => showHelp(false),
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },
@@ -152,12 +153,21 @@ export function bindActions(s, ui, rerender) {
     const el = ev.target.closest('[data-act]');
     if (!el || el.disabled) return;
     const fn = act[el.dataset.act];
+    if (el.dataset.act !== 'menuToggle') setMenu(false);              // 點選單內外任一操作都收合
     if (fn) { fn(el, ev); rerender(); }
   });
+  document.addEventListener('click', ev => { if (!ev.target.closest('#menu')) setMenu(false); });
   document.addEventListener('change', ev => {
     const el = ev.target.closest('[data-change]');
     if (el && change[el.dataset.change]) { change[el.dataset.change](el); rerender(); }
   });
+}
+
+// 頂部「⚙️ 更多」下拉選單
+function setMenu(open) {
+  const box = document.getElementById('menuMore'), btn = document.querySelector('[data-act=menuToggle]');
+  if (box) box.hidden = !open;
+  btn?.setAttribute('aria-expanded', String(!!open));
 }
 
 // 選單上的音效／動態按鈕文字

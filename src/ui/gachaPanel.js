@@ -22,7 +22,7 @@ export function gachaPanel(s, ui) {
   const results = ui.lastPull ? ui.lastPull.map((r, i) => gachaCard(r, i, Date.now() < (ui.pullAnimUntil || 0))).join('') : '<p class="hint">還沒抽過。老祖說：「招賢令，是用來換人的，不是拿來看的。」</p>';
   return `<div class="card gacha">
     <div class="body">
-      <div class="row"><b>🎫 招賢令：${fmt(t)}</b></div>
+      <div class="row"><b>🎫 招賢令：${fmt(t)}</b>${s.res.shard > 0 ? `　<span class="tag">🧩 碎片 ${fmt(s.res.shard)}</span>` : ''}</div>
       <small>${rates}</small><br>
       <small class="dim">保底：${CONFIG.gacha.pitySR} 抽 SR（${g.sinceSR}/${CONFIG.gacha.pitySR}）・${CONFIG.gacha.pitySSR} 抽 SSR（${g.sinceSSR}/${CONFIG.gacha.pitySSR}）・累計 ${g.total} 抽</small>
     </div>

@@ -522,3 +522,16 @@ button.meditate .mlabel { position: relative; }
 
 /* 說明視窗內容較長：桌面也限制高度並可捲動 */
 .settle .panel { max-height: 90vh; overflow: auto; }
+
+/* 精簡版面：頂部選單收合、分頁內小標題 */
+#menu { align-items: flex-start; }
+#menuMore { position: absolute; right: 0; top: calc(100% + 4px); z-index: 80; display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+#menuMore[hidden] { display: none; }
+#menuMore .btn { text-align: left; white-space: nowrap; }
+#menu { position: absolute; }
+h3.sub { margin: 14px 0 6px; font-size: .95em; color: var(--gold); letter-spacing: 2px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+h3.sub:first-child { margin-top: 0; }
+@media (max-width: 860px) {
+  #menu { position: relative; overflow: visible; flex-wrap: wrap; }
+  #menuMore { right: auto; left: 0; }
+}
