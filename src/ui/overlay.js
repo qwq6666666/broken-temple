@@ -202,10 +202,14 @@ export function showBurstPreview(pv) {
   const pct = x => (x >= 0 ? '+' : '') + Math.round(x * 100) + '%';
   const rows = pv.entries.map(e => {
     const sq = e.sq.parts.length ? `　陣容 ${pct(e.sq.mult - 1)}` : '';
-    return `<div class="pvrow pv2"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}${e.adv > 1 ? '↑' : e.adv < 1 ? '↓' : ''}・${esc(e.g.personality || '')}</small>
-      <br><small class="dim">我方 ${fmt(e.mine)} ／ 對方 ${fmt(e.theirs)} ＝ <b>×${e.ratio.toFixed(2)}</b>${sq}</small>
+    const ripe = e.g.ripe ? ` <span class="tag gold">熟成 ${e.g.ripe}（獎勵 +${e.g.ripe * 25}%）</span>` : '', foe = e.g.foe ? ` <span class="tag ${e.g.foe >= 3 ? 'gold' : ''}">${e.g.foe >= 3 ? '老對頭' : '舊識'}・擊敗過 ${e.g.foe} 次</span>` : '';
+    const weak = e.weak ? `<br><small class="${e.weakHit ? 'gold' : 'red'}">弱點：${esc(e.weak)}${e.weakHit ? ' ✔ 陣容已命中' : ' ✘ 未命中，碾壓門檻 ×1.5'}</small>` : '';
+    const spare = !e.nemesis ? `<label class="spare"><input type="checkbox" data-change="spare" data-gid="${e.g.id}" ${e.sparing ? 'checked' : ''}> 放過（留著養）</label>` : '';
+    if (e.sparing) return `<div class="pvrow pv2 sparing"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}・${esc(e.g.personality || '')}</small>${ripe}<br><small class="dim">這次不打，下次熟成 +25% 獎勵、境界 +0.3（仍占名額）</small></div><span>${spare}</span></div>`;
+    return `<div class="pvrow pv2"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}${e.adv > 1 ? '↑' : e.adv < 1 ? '↓' : ''}・${esc(e.g.personality || '')}${e.bias ? `（${esc(e.bias)}）` : ''}</small>${ripe}${foe}
+      <br><small class="dim">我方 ${fmt(e.mine)} ／ 對方 ${fmt(e.theirs)} ＝ <b>×${e.ratio.toFixed(2)}</b>${sq}</small>${weak}
       <div class="pvbar"><i style="width:${Math.min(100, e.ratio / (pv.crushRatio * 1.25) * 100)}%"></i><u style="left:${pv.narrowRatio / (pv.crushRatio * 1.25) * 100}%"></u><u style="left:${pv.crushRatio / (pv.crushRatio * 1.25) * 100}%"></u></div></div>
-      <span>${e.risk ? '<span class="tag red">⚠ 反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span></span></div>`;
+      <span>${e.risk ? '<span class="tag red">⚠ 反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span><br>${spare}</span></div>`;
   }).join('');
   const SQ = pv.pool.filter(p => p.on);
   const slot = pv.squad.map(d => { const df = DISCIPLES_BY_ID[d.defId]; return `<button class="chip on" data-act="squadToggle" data-uid="${d.uid}" title="點擊撤下">${df.emoji} ${esc(df.name)}</button>`; }).join('')
@@ -221,7 +225,8 @@ export function showBurstPreview(pv) {
       ${pool ? `<details><summary class="dim">候選弟子（括號為對目前名單的平均加成）</summary><div class="chips">${pool}</div></details>` : ''}</div>
     <div class="pvlist">${rows}</div>
     ${pv.backfires ? '<p class="warnline">⚠ 有長老實力遠勝於你，引爆會遭到反噬（損失靈石、建築暫停）。可以再蓄力、突破後再爆。</p>' : ''}
-    <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmBurst">不裝了！</button></div>`);
+    ${pv.spared ? `<p class="hint">已放過 ${pv.spared} 人：他們留在名單上繼續長大（占復仇簿名額，名單滿了就沒有新訪客）。</p>` : ''}
+    <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmBurst" ${pv.spared >= pv.entries.length ? 'disabled' : ''}>不裝了！</button></div>`);
 }
 
 // ── 轉生確認 ──

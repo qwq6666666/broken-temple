@@ -1,5 +1,6 @@
 // 忍：路人隨機造訪嘲諷，玩家二選一（忍氣吞聲 / 亮一手）。
 import { CONFIG } from '../config.js';
+import { FOE } from '../data/enemies.js';
 import { ELEMENTS } from '../data/elements.js';
 import { VISITOR_TYPES, SURNAMES, GIVEN, PERSONALITIES, PERSONALITY_KEYS } from '../data/visitors.js';
 import { LINES, pickLine } from '../data/lines.js';
@@ -24,7 +25,7 @@ function makeReturner(s, r) {
   const plead = r.mode === 'plead';
   const lines = PERSONALITIES[r.personality].taunt;
   return { id: s.nextGid++, name: r.name, type: r.type, sect: r.sect, role: r.role, personality: r.personality, element: r.element,
-           lvl: plead ? r.lvl + 0.3 : r.lvl + FR.revengeLvlBonus, alert: false, returning: r.mode,
+           lvl: (plead ? r.lvl + 0.3 : r.lvl + FR.revengeLvlBonus) + (r.foe || 0) * FOE.lvl, alert: false, returning: r.mode, foe: r.foe || 0,
            taunt: plead ? '宗主……上回是晚輩有眼無珠。這點薄禮，不成敬意，只求您別再提那天的事。' : `上次是我大意！這回我可是下過苦功的——${pick(lines)}` };
 }
 
@@ -100,7 +101,7 @@ function toBook(s, v) {
   s.visitor.current = null;
   s.grudges.push({ id: v.id, name: v.name, type: v.type, sect: v.sect, role: v.role,
                    personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt, nemesisId: v.nemesisId, awaken: v.awaken || 0, element: v.element,
-                   returnBonus: v.returning === 'revenge' });
+                   returnBonus: v.returning === 'revenge', foe: v.foe || 0 });
   scheduleNext(s);
 }
 

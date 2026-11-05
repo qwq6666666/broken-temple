@@ -660,3 +660,7 @@ main > section, #panel { min-width: 0; }
 .exfind { background: #14201a; border: 1px solid var(--gold, #d9b64a); border-radius: 8px; padding: 8px 10px; margin: 8px 0; display: flex; flex-direction: column; gap: 8px; }
 .exev { display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--line); padding-top: 6px; }
 .exev .row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ── 放過與弱點 ── */
+.spare { display: inline-flex; align-items: center; gap: 4px; font-size: .78em; color: var(--dim, #9aa); cursor: pointer; white-space: nowrap; }
+.pvrow.sparing { opacity: .75; border-style: dashed; }

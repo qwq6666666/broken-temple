@@ -1447,4 +1447,37 @@ t('招賢令：靈石限購遞增價、時段重置、功勳兌換、委託與�
   X.burst(b); assert.ok(b.res.merit >= 1);
 });
 
+t('仇敵：放過熟成、仇人記憶與老對頭、個性偏好、宿敵弱點、存檔清理', () => {
+  const mk = (s, o) => ({ id: s.nextGid++, name: '甲', type: 'rival', sect: '青雲宗', personality: '傲慢', lvl: 1, alert: false, element: '木', ...o });
+  const full = s => { s.disguise.value = CONFIG.conceal.max; };
+  // 放過：不參戰、熟成 +1、境界上升、旗標重置；宿敵不能放過
+  const s = createState(); s.realmIdx = 9; const a = mk(s, { name: '甲' }), b = mk(s, { name: '乙' }), nm = mk(s, { name: '錢貫', nemesisId: 'qian' });
+  s.grudges = [a, b, nm]; full(s);
+  assert.equal(X.toggleSpare(s, a.id), true); assert.equal(X.toggleSpare(s, nm.id), false);
+  const pv = X.previewBurst(s); assert.equal(pv.spared, 1); assert.ok(pv.entries.find(e => e.g.name === '甲').sparing);
+  const lv0 = a.lvl; const r = X.burst(s); X.endBurst(s);
+  assert.ok(!r.entries.some(e => e.g.name === '甲'), '被放過的不參戰');
+  const left = s.grudges.find(g => g.name === '甲'); assert.ok(left && left.ripe === 1 && left.lvl > lv0 && left.spare === false);
+  // 全部放過 → 無法引爆
+  const t2 = createState(); t2.realmIdx = 9; const c = mk(t2, {}); t2.grudges = [c]; full(t2); X.toggleSpare(t2, c.id); assert.equal(X.burst(t2), null);
+  // 記憶：擊敗後記錄次數，第 3 次成為老對頭並給功勳；回頭客帶著次數並變強
+  const m = createState(); m.realmIdx = 12; setRng(() => 0);
+  for (let i = 1; i <= 3; i++) { m.grudges = [mk(m, { name: '丙', lvl: 1 })]; full(m); X.burst(m); X.endBurst(m); assert.equal(m.foes['丙'].beaten, i); }
+  setRng(Math.random); assert.ok(m.res.merit >= 2 && m.chronicle.some(e => /老對頭/.test(e.text)));
+  assert.ok(m.returners.every(rt => rt.foe >= 1));
+  // 個性偏好：勢利 → 靈石較多（同條件期望值較高）
+  const rewardOf = pers => { setRng(() => 0.5); const q = createState(); q.realmIdx = 12; q.grudges = [mk(q, { personality: pers, type: 'trader', lvl: 3 })]; full(q); const st = q.res.stone; X.burst(q); setRng(Math.random); return q.res.stone - st; };
+  assert.ok(rewardOf('勢利') > rewardOf('虛偽') * 1.3);
+  // 宿敵弱點：弱點專長 = 個性對應的專長；陣容命中才用一般碾壓門檻
+  const w = createState(); w.realmIdx = 13; const xiao = mk(w, { name: '蕭承曜', nemesisId: 'xiao', personality: '傲慢', lvl: 5 });
+  assert.equal(X.weakOf(xiao), '劍修'); assert.equal(X.weakOf(mk(w, {})), null);
+  const sword = D.addDisciple(w, 'qinwu').disciple, farm = D.addDisciple(w, 'afu').disciple;
+  assert.equal(X.weakHit(xiao, [farm]), false); assert.equal(X.weakHit(xiao, [sword]), true);
+  // 存檔清理
+  const raw = JSON.parse(JSON.stringify(m)); raw.grudges = [{ id: 1, name: 'x', type: 'rival', personality: '傲慢', lvl: 1, ripe: 99, foe: -3, spare: 1 }]; raw.foes = { 甲: { beaten: 500 }, 乙: 'bad' };
+  const cl = sanitize(raw); assert.equal(cl.grudges[0].ripe, 4); assert.equal(cl.grudges[0].foe, 0); assert.equal(cl.grudges[0].spare, true); assert.equal(cl.foes['甲'].beaten, 99); assert.ok(!('乙' in cl.foes));
+  // 轉生保留記憶
+  m.realmIdx = 13; m.res.stone = 1e12; Dao.rebirth(m); assert.equal(m.foes['丙'].beaten, 3);
+});
+
 console.log(`\n${n} 項測試通過`);

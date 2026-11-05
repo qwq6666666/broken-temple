@@ -14,6 +14,7 @@ import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { GLORY_LEVELS } from '../data/glory.js';
+import { RIPE } from '../data/enemies.js';
 import { MAT_KEYS } from '../data/materials.js';
 import { EXPLORATION } from '../data/exploration.js';
 import { INSIGHTS, INSIGHT_MAX } from '../data/insights.js';
@@ -55,7 +56,8 @@ function sanitizeGrudge(g) {
   out.awaken = out.nemesisId ? Math.max(0, Math.min(3, Math.floor(num(Number(out.awaken))))) : 0;
   out.lvl = Math.max(0, num(Number(out.lvl)));
   out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');
-  out.alert = !!out.alert;
+  out.alert = !!out.alert; out.spare = !!out.spare;
+  out.ripe = Math.max(0, Math.min(RIPE.max, Math.floor(num(Number(out.ripe))))); out.foe = Math.max(0, Math.min(99, Math.floor(num(Number(out.foe)))));
   if (out.returning && out.returning !== 'plead' && out.returning !== 'revenge') delete out.returning;
   return out;
 }
@@ -70,6 +72,7 @@ export function sanitize(s) {
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };
+  s.foes = Object.fromEntries(Object.entries(isPlain(s.foes) ? s.foes : {}).filter(([k, v]) => isPlain(v)).slice(0, 300).map(([k, v]) => [k, { beaten: Math.max(0, Math.min(99, Math.floor(num(Number(v.beaten))))) }]));
   s.squad = Array.isArray(s.squad) ? [...new Set(s.squad)].filter(u => s.disciples.some(d => d.uid === u)).slice(0, 3) : [];
   s.explore = Object.fromEntries(Object.keys(EXPLORATION).map(id => [id, Math.max(0, Math.min(999, Math.floor(num(isPlain(s.explore) ? Number(s.explore[id]) : 0))))]));
   s.exMile = Object.fromEntries(Object.keys(EXPLORATION).map(id => {

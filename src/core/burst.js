@@ -1,7 +1,9 @@
 // 爆：偽裝值滿後「不裝了」。逐人判定 → 連鎖加成 → 依類型發獎勵。
 // 核心一次算完並套用結果，回傳 result 供 ui 播放演出與結算畫面。
 import { CONFIG } from '../config.js';
-import { ENEMY_REWARDS, REALM_SCALE, RARE_EXTRA } from '../data/enemies.js';
+import { ENEMY_REWARDS, REALM_SCALE, RARE_EXTRA, PERSONALITY_BIAS, RIPE, FOE, WEAK_MISS_MULT } from '../data/enemies.js';
+import { COUNTER_SPEC } from '../data/squad.js';
+import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { PERSONALITIES } from '../data/visitors.js';
 import { ARTIFACTS } from '../data/artifacts.js';
 import { LINES, pickLine } from '../data/lines.js';
@@ -34,52 +36,61 @@ export function chainMult(n) {
 
 // 計算單人獎勵（尚未乘連鎖）
 function rewardFor(s, g, verdict) {
-  const tbl = ENEMY_REWARDS[g.type];
+  const tbl = ENEMY_REWARDS[g.type], PB = PERSONALITY_BIAS[g.personality] || {};
   const vMult = verdict === 'crush' ? CONFIG.burst.crushMult : CONFIG.burst.narrowMult;
   const scale = (1 + REALM_SCALE * Math.floor(g.lvl)) * vMult
     * (g.alert ? CONFIG.enemy.alertMult : 1)
     * rewardMult(s, g.sect)                                  // 勢力威望第一階起 +10%
-    * (g.returnBonus ? FR.revengeReward : 1);                // 復仇的回頭客獎勵 ×1.5
+    * (g.returnBonus ? FR.revengeReward : 1)                // 復仇的回頭客獎勵 ×1.5
+    * (1 + RIPE.per * (g.ripe || 0))                        // 放過養成
+    * (1 + FOE.reward * (g.foe || 0))                       // 老對頭：每擊敗過一次 +20%
+    * (PB.all || 1);
   const r = {
-    qi: qiPerSec(s) * randInt(...tbl.qiSec) * scale,
-    stone: randInt(...tbl.stone) * scale,
-    token: randInt(...tbl.token) * vMult * (g.alert ? CONFIG.enemy.alertMult : 1),
+    qi: qiPerSec(s) * randInt(...tbl.qiSec) * scale * (PB.qi || 1),
+    stone: randInt(...tbl.stone) * scale * (PB.stone || 1),
+    token: randInt(...tbl.token) * vMult * (g.alert ? CONFIG.enemy.alertMult : 1) * (PB.token || 1),
+    shard: PB.shard || 0,
     surrender: false, artifact: false,
   };
   const v = verdict === 'crush' ? 'crush' : 'narrow';
-  if (tbl.surrender && chance(tbl.surrender[v])) r.surrender = true;
-  if (tbl.artifact && chance(tbl.artifact[v])) r.artifact = true;
+  if (tbl.surrender && chance(Math.min(1, tbl.surrender[v] * (PB.surrender || 1)))) r.surrender = true;
+  if (tbl.artifact && chance(Math.min(1, tbl.artifact[v] * (PB.artifact || 1)))) r.artifact = true;
   // 護山大陣的稀有事件：額外掉落
   if (chance(rareChance(s) * 0.5)) { r.token += RARE_EXTRA.token; r.stone += RARE_EXTRA.stone * scale; r.rare = true; }
   return r;
 }
 
 // 單人判定：宿敵只有「碾壓」才算擊敗；險勝時他會脫身（escaped），視同沒打贏
+export const weakOf = g => (isNemesis(g) ? COUNTER_SPEC[g.personality] || null : null);
+export const weakHit = (g, members) => { const w = weakOf(g); return !w || members.some(d => DISCIPLES_BY_ID[d.defId].specialty === w); };
 function judge(s, g, members = squadOf(s)) {
   const ratio = ratioOf(s, g) * squadVs(s, g, members).mult;
   let verdict = verdictOf(ratio), escaped = false;
+  if (verdict === 'crush' && !weakHit(g, members) && ratio < CONFIG.burst.crushRatio * WEAK_MISS_MULT) verdict = 'narrow';   // 宿敵：沒打中弱點要更大的差距才能碾壓
   if (isNemesis(g) && verdict === 'narrow') { verdict = 'fail'; escaped = true; }
   return { ratio, verdict, escaped };
 }
 // 出場順序：一般仇人由弱到強，宿敵壓軸
+const fighters = s => s.grudges.filter(g => !g.spare || isNemesis(g));         // 被勾選「放過」的普通仇人不參戰
 const order = grudges => [...grudges].sort((a, b) => (isNemesis(a) - isNemesis(b)) || a.lvl - b.lvl);
 
 // 引爆前預覽：預估每位的結果、連鎖、哪些長老可能反噬
 export function previewBurst(s) {
   const entries = order(s.grudges).map(g => {
-    const { ratio, verdict } = judge(s, g);
+    const sparing = !!g.spare && !isNemesis(g);
+    const { ratio, verdict } = sparing ? { ratio: 0, verdict: 'fail' } : judge(s, g);
     const sq = squadVs(s, g), adv = elementAdvantage(s, g).mult;
-    return { g: { ...g, label: lvlLabel(g.lvl), element: elementOfGrudge(g) }, adv, sq, mine: combatPower(s) * adv * sq.mult, theirs: powerOfLvl(g.lvl), ratio, verdict, nemesis: isNemesis(g), risk: g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
+    return { g: { ...g, label: lvlLabel(g.lvl), element: elementOfGrudge(g) }, adv, sq, mine: combatPower(s) * adv * sq.mult, theirs: powerOfLvl(g.lvl), ratio, verdict, sparing, nemesis: isNemesis(g), weak: weakOf(g), weakHit: weakHit(g, squadOf(s)), bias: PERSONALITY_BIAS[g.personality]?.label || '', risk: !sparing && g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
   });
-  const chain = entries.filter(e => e.verdict !== 'fail').length;
-  return { entries, chain, chainMult: chainMult(chain), squad: squadOf(s), pool: squadPool(s), crushRatio: CONFIG.burst.crushRatio, narrowRatio: CONFIG.burst.narrowRatio, chargeMult: chargeMult(s), backfires: entries.filter(e => e.risk).length };
+  const chain = entries.filter(e => e.verdict !== 'fail' && !e.sparing).length;
+  return { entries, chain, chainMult: chainMult(chain), squad: squadOf(s), pool: squadPool(s), crushRatio: CONFIG.burst.crushRatio, narrowRatio: CONFIG.burst.narrowRatio, chargeMult: chargeMult(s), backfires: entries.filter(e => e.risk).length, spared: entries.filter(e => e.sparing).length };
 }
 
 export function burst(s) {
-  if (!canBurst(s)) return null;
+  if (!canBurst(s) || !fighters(s).length) return null;
   const cm = chargeMult(s);
   // 1) 依境界由弱到強出場，逐人判定
-  const entries = order(s.grudges).map(g => {
+  const entries = order(fighters(s)).map(g => {
     const { ratio, verdict, escaped } = judge(s, g);
     const p = PERSONALITIES[g.personality], nem = isNemesis(g) ? nemOf(g) : null;
     const line = nem ? lineFor(nem, verdict, escaped) : pick(verdict === 'crush' ? p.kneel : verdict === 'narrow' ? p.narrow : p.fail);
@@ -98,7 +109,7 @@ export function burst(s) {
     const r = rewardFor(s, e.g, e.verdict);
     const k = cm * cMult * art;
     r.qi *= k; r.stone *= k; r.token = Math.round(r.token * cMult * art);
-    total.qi += r.qi; total.stone += r.stone; total.token += r.token;
+    total.qi += r.qi; total.stone += r.stone; total.token += r.token; s.res.shard += r.shard || 0; total.shard = (total.shard || 0) + (r.shard || 0);
     if (r.surrender) {
       const def = rollSurrender(s);
       s.recruits.push({ uid: s.nextUid++, defId: def.id, from: e.g.name });
@@ -115,9 +126,13 @@ export function burst(s) {
     // 威望：碾壓 +2、險勝 +1；碾壓的一般仇人有機會日後回頭（復仇或求和）
     const rp = addRep(s, e.g.sect, e.verdict === 'crush' ? 2 : 1);
     if (rp) reps[rp.id] = (reps[rp.id] || 0) + (e.verdict === 'crush' ? 2 : 1);
+    if (!e.nemesis) {                                               // 仇人記憶：擊敗過的人會被記住；第 3 次起成為「老對頭」
+      const f = (s.foes[e.g.name] ||= { beaten: 0 }); f.beaten++; e.g.foeNow = f.beaten;
+      if (f.beaten === FOE.titleAt) { note(s, '🗡️', `「${e.g.name}」成了老對頭（擊敗 ${f.beaten} 次）`); s.res.merit += FOE.titleMerit; e.newTitle = true; }
+    }
     if (e.verdict === 'crush' && !e.nemesis && chance(FR.returnChance)) {
       const tier = tierOfSect(s, e.g.sect), mode = chance(FR.pleadBase + FR.pleadPerTier * tier) ? 'plead' : 'revenge';
-      s.returners.push({ name: e.g.name, sect: e.g.sect, type: e.g.type, role: e.g.role, personality: e.g.personality, lvl: e.g.lvl, mode, element: e.g.element,
+      s.returners.push({ name: e.g.name, sect: e.g.sect, type: e.g.type, role: e.g.role, personality: e.g.personality, lvl: e.g.lvl, mode, element: e.g.element, foe: s.foes[e.g.name]?.beaten || 0,
                          dueAt: s.t + randInt(...FR.returnDelayMin) * 60000 });
       comebacks.push(e.g.name);
     }
@@ -159,6 +174,8 @@ export function burst(s) {
   // 4) 結算狀態：擊敗者出簿、偽裝與蓄力歸零
   const beaten = new Set(entries.filter(e => e.verdict !== 'fail').map(e => e.g.id));
   s.grudges = s.grudges.filter(g => !beaten.has(g.id));
+  for (const g of s.grudges) if (g.spare && !isNemesis(g)) { g.ripe = Math.min(RIPE.max, (g.ripe || 0) + 1); g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + RIPE.lvl); }
+  for (const g of s.grudges) g.spare = false;           // 放過只對這一次引爆有效
   s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0;
   const prevMax = s.stats.maxChain || 0;
   if (s.stats.bursts === 0) note(s, '💥', `首次引爆，連鎖 ${chain} 人`);
@@ -191,9 +208,16 @@ export function recruit(s, uid) {
 
 // 推薦陣容：擊敗人數（碾壓算 2）依仇人境界加權最大；同分再比總戰力比
 export function recommendSquad(s) {
-  const gs = order(s.grudges);
+  const gs = order(fighters(s));
   return bestSquad(s, members => gs.reduce((a, g) => {
     const { ratio, verdict } = judge(s, g, members);
     return a + (verdict === 'crush' ? 2 : verdict === 'narrow' ? 1 : 0) * (1 + g.lvl) * 100 + Math.min(ratio, 3);
   }, 0));
+}
+
+// 放過：勾選後這次引爆不打他，留在名單上熟成（宿敵不能放過）
+export function toggleSpare(s, gid) {
+  const g = s.grudges.find(x => x.id === gid);
+  if (!g || isNemesis(g) || s.burstActive) return false;
+  g.spare = !g.spare; return true;
 }

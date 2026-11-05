@@ -5,7 +5,8 @@ import { RARITIES } from '../data/gachaRates.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { gapInfo } from '../core/conceal.js';
 import { nemOf } from '../core/nemesis.js';
-import { recruitCost } from '../core/burst.js';
+import { recruitCost, weakOf } from '../core/burst.js';
+import { PERSONALITY_BIAS } from '../data/enemies.js';
 import { canAfford } from '../core/resources.js';
 import { CONFIG } from '../config.js';
 import { esc, costChips, crow } from './dom.js';
@@ -27,7 +28,7 @@ export function avengePanel(s, ui) {
     const detail = `<small class="gap">對方 <b>${esc(gap.enemy)}</b>，你 <b>${esc(gap.me)}</b> — ${esc(gap.text)}</small>
       <small>五行：<b>${esc(gap.element)}</b>　${esc(advTxt)}</small>
       <div class="tags"><span class="tag">${esc(t.label)}</span> <span class="tag">${esc(g.personality)}</span>
-        ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}</div>`;
+        ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${PERSONALITY_BIAS[g.personality]?.label ? `<span class="tag" title="個性偏好">${esc(PERSONALITY_BIAS[g.personality].label)}</span>` : ''}${g.ripe ? `<span class="tag gold">熟成 ${g.ripe}・獎勵 +${g.ripe * 25}%</span>` : ''}${g.foe ? `<span class="tag ${g.foe >= 3 ? 'gold' : ''}">${g.foe >= 3 ? '老對頭' : '舊識'}・擊敗過 ${g.foe} 次</span>` : ''}${nem && weakOf(g) ? `<span class="tag">弱點：${esc(weakOf(g))}</span>` : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}</div>`;
     return crow(ui, { key: 'g' + g.id, cls: `${nem ? 'nemesis' : ''} vr-${escapes ? 'fail' : gap.verdict}`, icon: nem ? nem.emoji : t.emoji,
       title: `<b>${esc(g.name)}</b>`, badges: nem ? ` <span class="tag gold">${g.awaken ? '覺醒宿敵' : '宿敵'}</span>` : '',
       sub: `${esc(gap.enemy)}・${esc(gap.element)}${gap.adv.mult > 1 ? '↑' : gap.adv.mult < 1 ? '↓' : ''}・${esc(g.sect)}・${esc(g.role)}`, act: `<span class="verdict ${v.c}">${v.t}</span>`, detail });

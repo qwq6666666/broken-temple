@@ -1,5 +1,6 @@
 // 藏：偽裝值隨時間增加、蓄力倍率、仇人成長、差距指標。
 import { CONFIG } from '../config.js';
+import { PERSONALITY_BIAS } from '../data/enemies.js';
 import { KE, elementFromName } from '../data/elements.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { REALMS, lvlLabel, tierOfLvl, powerOfLvl, TIER_NAMES } from '../data/realms.js';
@@ -19,7 +20,7 @@ export function tick(s, dt) {
   d.value = Math.min(CONFIG.conceal.max, d.value + dt * (1 + traitSum(s, 'disguiseRate') + daoPerm(s, 'disguiseRate')) / (CONFIG.conceal.timeGainSec * 1000));
   d.chargeMs += dt;
   const grow = CONFIG.enemy.growthPerMin * dt / 60000;
-  for (const g of s.grudges) g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + grow);
+  for (const g of s.grudges) g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + grow * (PERSONALITY_BIAS[g.personality]?.growth || 1));
 }
 
 // 單一仇人的預估結果：'crush' | 'narrow' | 'fail'

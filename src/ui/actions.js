@@ -183,6 +183,7 @@ export function bindActions(s, ui, rerender) {
       if (!ok) toast('駐守位已滿', 'warn');
     },
     dElem: el => { ui.dElem = el.value; },
+    spare: el => { if (X.toggleSpare(s, +el.dataset.gid)) showBurstPreview(X.previewBurst(s)); },
     toggleTips: el => { setPref('tips', el.checked); },
     toggleHints: el => { setPref('hints', el.checked); },
     toggleLoss: el => { s.settings.loss = el.checked; },
