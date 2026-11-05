@@ -109,7 +109,7 @@ export function burst(s) {
   const beaten = new Set(entries.filter(e => e.verdict !== 'fail').map(e => e.g.id));
   s.grudges = s.grudges.filter(g => !beaten.has(g.id));
   s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0;
-  s.stats.bursts++;
+  s.stats.bursts++; s.stats.maxChain = Math.max(s.stats.maxChain || 0, chain);
   const outro = pickLine(LINES.burstOutro[[10, 5, 3, 1, 0].find(n => chain >= n) ?? 0]);
   s.burstActive = true;                     // 演出期間封鎖訪客；ui 結束後呼叫 endBurst
   return {

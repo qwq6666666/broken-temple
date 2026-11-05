@@ -11,10 +11,12 @@ import { realmPanel } from './realmPanel.js';
 import { gachaPanel } from './gachaPanel.js';
 import { disciplePanel } from './disciplePanel.js';
 import { avengePanel } from './avengePanel.js';
+import { goalPanel } from './goalPanel.js';
+import { GOALS } from '../data/goals.js';
 
 const TABS = [
   ['buildings', '🏯 建築'], ['realm', '🧘 境界'], ['gacha', '🎫 招賢'],
-  ['disciples', '👥 弟子'], ['avenge', '📖 復仇簿'],
+  ['disciples', '👥 弟子'], ['avenge', '📖 復仇簿'], ['goals', '🎯 大事'],
 ];
 
 export function createRenderer(s, ui) {
@@ -45,11 +47,11 @@ export function createRenderer(s, ui) {
     // 分頁
     setHTML(tabsEl, TABS.map(([id, label]) => {
       const badge = id === 'avenge' && s.grudges.length ? ` <i>${s.grudges.length}</i>` : '';
-      const alert = (id === 'avenge' && s.recruits.length) ? ' <i class="new">新</i>' : '';
+      const alert = (id === 'avenge' && s.recruits.length) ? ' <i class="new">新</i>' : (id === 'goals' ? ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>` : '');
       return `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}">${label}${badge}${alert}</button>`;
     }).join(''));
 
-    const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel }[ui.tab];
+    const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel }[ui.tab];
     setHTML(panelEl, body(s, ui));
   }
   return render;

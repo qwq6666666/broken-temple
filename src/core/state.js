@@ -23,7 +23,8 @@ export function createState() {
     tokenAcc: 0,
     endureStreak: 0,                        // 連續忍氣吞聲次數（憋屈值）
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）
+    goalsDone: [],                          // 已完成的宗門大事
     burstActive: false,
-    stats: { meditations: 0, bursts: 0 },
+    stats: { meditations: 0, bursts: 0, maxChain: 0 },
   };
 }

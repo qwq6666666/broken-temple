@@ -13,6 +13,7 @@ import * as E from '../src/core/endure.js';
 import * as C from '../src/core/conceal.js';
 import * as X from '../src/core/burst.js';
 import * as M from '../src/core/meditate.js';
+import * as Goals from '../src/core/goals.js';
 import { stat, traitValue } from '../src/core/discipleMath.js';
 import * as S from '../src/core/save.js';
 import { applyOffline } from '../src/core/offline.js';
@@ -352,6 +353,26 @@ t('升星：花碎片，屬性與特性 +25%、等級上限 +2，滿星為止', 
   assert.equal(d.star, 3); assert.equal(D.starCost(d), null); assert.equal(D.starUp(s, d.uid), false);
   const old = { uid: 9, defId: 'afu', lv: 1, at: null };       // 舊存檔沒有 star
   assert.equal(stat(old), 1);
+});
+
+t('宗門大事：達成一次、只發一次獎勵、永久加成生效', () => {
+  const s = createState(); s.res.token = 0; s.res.stone = 0;
+  Goals.tick(s); assert.equal(s.goalsDone.length, 0);
+  s.stats.bursts = 1;
+  Goals.tick(s); assert.ok(s.goalsDone.includes('burst1'));
+  const tok = s.res.token; assert.ok(tok > 0);
+  Goals.tick(s); assert.equal(s.res.token, tok);                  // 不重複發
+  const q0 = eco.qiPerSec(s);
+  s.realmIdx = 5; Goals.tick(s);                                  // qi5：靈氣永久 +5%
+  assert.ok(s.goalsDone.includes('qi5'));
+  assert.ok(Math.abs(Goals.goalPerm(s, 'qiMult') - 0.05) < 1e-9);
+  assert.ok(eco.qiPerSec(s) > q0 * eco.realmOf(s).mult);
+});
+
+t('引爆會記錄最大連鎖數', () => {
+  const s = createState(); s.realmIdx = 8; s.disguise.value = 99;
+  s.grudges = [1, 2, 3].map(i => visitor('former', 0, { id: i, name: 'N' + i }));
+  X.burst(s); assert.equal(s.stats.maxChain, 3);
 });
 
 console.log(`\n${n} 項測試通過`);

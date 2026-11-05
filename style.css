@@ -195,3 +195,12 @@ button.meditate .mlabel { position: relative; }
 
 /* 弟子特性 */
 .trait { color: var(--dim); } .trait.on { color: var(--jade); }
+
+/* 宗門大事／圖鑑 */
+.tab i.prog { background: #0e1613; color: var(--jade); border: 1px solid var(--line); }
+.goal.done { opacity: .6; border-color: var(--jade); }
+.gbar { height: 6px; background: #0b100e; border-radius: 4px; overflow: hidden; margin: 4px 0; }
+.gbar div { height: 100%; background: linear-gradient(90deg, #3c6a52, var(--jade)); }
+.dexgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; }
+.dex { display: flex; flex-direction: column; align-items: center; font-size: 28px; border: 1px solid var(--rc, var(--line)); border-radius: 8px; padding: 4px; background: var(--panel); }
+.dex small, .art small { font-size: 11px; color: var(--dim); } .dex.off, .art.off { opacity: .4; border-color: var(--line); }

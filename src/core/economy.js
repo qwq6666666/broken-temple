@@ -3,13 +3,14 @@ import { CONFIG } from '../config.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
+import { goalPerm } from './goals.js';
 import { contribution, stat, traitOf, traitValue } from './discipleMath.js';
 
 export const realmOf = s => REALMS[s.realmIdx];
 
-// 永久加成（功法／法寶）總和
+// 永久加成（功法／法寶／宗門大事）總和
 export const artifactSum = (s, key) =>
-  s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0), 0);
+  s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0), 0) + goalPerm(s, key);
 
 // 特性加總：只計算「已派駐」的弟子
 export function traitSum(s, key) {
