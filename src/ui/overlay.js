@@ -2,6 +2,7 @@
 import { CONFIG } from '../config.js';
 import { VISITOR_TYPES } from '../data/visitors.js';
 import { RARITIES } from '../data/gachaRates.js';
+import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { weeklyMutator, weeklyEligible, weeklyBonusFor, weekIndex, weekDaysLeft } from '../core/weekly.js';
 import { OFFLINE_EVENTS_BY_ID } from '../data/offlineEvents.js';
@@ -198,10 +199,26 @@ export function showModal(html) {
 // ── 引爆前預覽 ──
 const PV = { crush: ['v-crush', '碾壓'], narrow: ['v-narrow', '險勝'], fail: ['v-fail', '打不過'] };
 export function showBurstPreview(pv) {
-  const rows = pv.entries.map(e => `<div class="pvrow"><span>${esc(e.g.name)} <small>${esc(e.g.label)}・${esc(e.g.element || '')}${e.adv > 1 ? '↑' : e.adv < 1 ? '↓' : ''}</small></span>
-    <span>${e.risk ? '<span class="tag red">⚠ 可能反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span></span></div>`).join('');
+  const pct = x => (x >= 0 ? '+' : '') + Math.round(x * 100) + '%';
+  const rows = pv.entries.map(e => {
+    const sq = e.sq.parts.length ? `　陣容 ${pct(e.sq.mult - 1)}` : '';
+    return `<div class="pvrow pv2"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}${e.adv > 1 ? '↑' : e.adv < 1 ? '↓' : ''}・${esc(e.g.personality || '')}</small>
+      <br><small class="dim">我方 ${fmt(e.mine)} ／ 對方 ${fmt(e.theirs)} ＝ <b>×${e.ratio.toFixed(2)}</b>${sq}</small>
+      <div class="pvbar"><i style="width:${Math.min(100, e.ratio / (pv.crushRatio * 1.25) * 100)}%"></i><u style="left:${pv.narrowRatio / (pv.crushRatio * 1.25) * 100}%"></u><u style="left:${pv.crushRatio / (pv.crushRatio * 1.25) * 100}%"></u></div></div>
+      <span>${e.risk ? '<span class="tag red">⚠ 反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span></span></div>`;
+  }).join('');
+  const SQ = pv.pool.filter(p => p.on);
+  const slot = pv.squad.map(d => { const df = DISCIPLES_BY_ID[d.defId]; return `<button class="chip on" data-act="squadToggle" data-uid="${d.uid}" title="點擊撤下">${df.emoji} ${esc(df.name)}</button>`; }).join('')
+    + Array.from({ length: Math.max(0, 3 - pv.squad.length) }, () => '<span class="chip empty">空位</span>').join('');
+  const pool = pv.pool.filter(p => !p.on).map(p => { const df = DISCIPLES_BY_ID[p.d.defId];
+    return `<button class="chip" data-act="squadToggle" data-uid="${p.d.uid}" ${pv.squad.length >= 3 ? 'disabled' : ''} title="${esc(df.specialty)}・${esc(df.element)}">${df.emoji} ${esc(df.name)} <small>${esc(df.element)}${esc(df.specialty)} ${pct(p.avg)}</small></button>`; }).join('');
   return showModal(`<h3>💥 引爆預覽</h3>
-    <p>預計擊敗 <b class="gold">${pv.chain}</b> 人，連鎖加成 <b class="gold">×${pv.chainMult}</b>，蓄力倍率 <b class="gold">×${fmt(pv.chargeMult)}</b>。打不過的人會留在名單上。</p>
+    <p>預計擊敗 <b class="gold">${pv.chain}</b> 人，連鎖 <b class="gold">×${pv.chainMult}</b>，蓄力 <b class="gold">×${fmt(pv.chargeMult)}</b>。比值 ≥ <b>${pv.crushRatio}</b> 碾壓、≥ <b>${pv.narrowRatio}</b> 險勝，其餘打不過（宿敵只有碾壓才算擊敗）。</p>
+    <div class="squadbox"><div class="squadhd"><b class="gold">⚔️ 出戰陣容</b>（最多 3 人）
+      <span><button class="btn mini" data-act="squadAuto">⚡ 推薦陣容</button> <button class="btn mini" data-act="squadClear" ${SQ.length ? '' : 'disabled'}>清空</button></span></div>
+      <div class="chips">${slot}</div>
+      <small class="dim">每位出戰者：稀有度底子 ＋ 五行剋制該仇人 +5%（被剋 −3%）＋ 專長剋制其個性 +4%。陣容對每位仇人分別計算，所以要看這次名單挑人。</small>
+      ${pool ? `<details><summary class="dim">候選弟子（括號為對目前名單的平均加成）</summary><div class="chips">${pool}</div></details>` : ''}</div>
     <div class="pvlist">${rows}</div>
     ${pv.backfires ? '<p class="warnline">⚠ 有長老實力遠勝於你，引爆會遭到反噬（損失靈石、建築暫停）。可以再蓄力、突破後再爆。</p>' : ''}
     <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmBurst">不裝了！</button></div>`);

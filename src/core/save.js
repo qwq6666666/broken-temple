@@ -68,6 +68,7 @@ export function sanitize(s) {
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };
+  s.squad = Array.isArray(s.squad) ? [...new Set(s.squad)].filter(u => s.disciples.some(d => d.uid === u)).slice(0, 3) : [];
   const ins = isPlain(s.insight) ? s.insight : {};
   s.insight = Object.fromEntries(INSIGHTS.map(i => [i.spec, Math.max(0, Math.min(INSIGHT_MAX, Math.floor(num(Number(ins[i.spec])))))]));
   const av = isPlain(s.achv) ? s.achv : {};

@@ -9,6 +9,9 @@ import { lvlLabel } from '../data/realms.js';
 import { pick, randInt, chance, weighted } from './rng.js';
 import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf, elementOfGrudge, elementAdvantage } from './conceal.js';
+import { squadOf, squadVs, bestSquad, squadPool } from './squad.js';
+import { powerOfLvl } from '../data/realms.js';
+import { combatPower } from './economy.js';
 import { note } from './chronicle.js';
 import { quote } from './events.js';
 import { isNemesis, nemOf, nemState, lineFor } from './nemesis.js';
@@ -51,8 +54,8 @@ function rewardFor(s, g, verdict) {
 }
 
 // 單人判定：宿敵只有「碾壓」才算擊敗；險勝時他會脫身（escaped），視同沒打贏
-function judge(s, g) {
-  const ratio = ratioOf(s, g);
+function judge(s, g, members = squadOf(s)) {
+  const ratio = ratioOf(s, g) * squadVs(s, g, members).mult;
   let verdict = verdictOf(ratio), escaped = false;
   if (isNemesis(g) && verdict === 'narrow') { verdict = 'fail'; escaped = true; }
   return { ratio, verdict, escaped };
@@ -64,10 +67,11 @@ const order = grudges => [...grudges].sort((a, b) => (isNemesis(a) - isNemesis(b
 export function previewBurst(s) {
   const entries = order(s.grudges).map(g => {
     const { ratio, verdict } = judge(s, g);
-    return { g: { ...g, label: lvlLabel(g.lvl), element: elementOfGrudge(g) }, adv: elementAdvantage(s, g).mult, ratio, verdict, nemesis: isNemesis(g), risk: g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
+    const sq = squadVs(s, g), adv = elementAdvantage(s, g).mult;
+    return { g: { ...g, label: lvlLabel(g.lvl), element: elementOfGrudge(g) }, adv, sq, mine: combatPower(s) * adv * sq.mult, theirs: powerOfLvl(g.lvl), ratio, verdict, nemesis: isNemesis(g), risk: g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
   });
   const chain = entries.filter(e => e.verdict !== 'fail').length;
-  return { entries, chain, chainMult: chainMult(chain), chargeMult: chargeMult(s), backfires: entries.filter(e => e.risk).length };
+  return { entries, chain, chainMult: chainMult(chain), squad: squadOf(s), pool: squadPool(s), crushRatio: CONFIG.burst.crushRatio, narrowRatio: CONFIG.burst.narrowRatio, chargeMult: chargeMult(s), backfires: entries.filter(e => e.risk).length };
 }
 
 export function burst(s) {
@@ -181,4 +185,13 @@ export function recruit(s, uid) {
   pay(s, recruitCost());
   const [r] = s.recruits.splice(i, 1);
   return addDisciple(s, r.defId);
+}
+
+// 推薦陣容：擊敗人數（碾壓算 2）依仇人境界加權最大；同分再比總戰力比
+export function recommendSquad(s) {
+  const gs = order(s.grudges);
+  return bestSquad(s, members => gs.reduce((a, g) => {
+    const { ratio, verdict } = judge(s, g, members);
+    return a + (verdict === 'crush' ? 2 : verdict === 'narrow' ? 1 : 0) * (1 + g.lvl) * 100 + Math.min(ratio, 3);
+  }, 0));
 }

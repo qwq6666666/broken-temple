@@ -1,5 +1,5 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
-// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart]
+// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [squad]
 //   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission/insight = 開啟對應新功能的最佳化行為
 //   smart = 用「補滿空位」依專長五行派駐；環境變數 ELEMENT=0 關閉五行效果（比較基準）
 //   亂數種子可用環境變數 SEED=… 指定（比較設定時請多跑幾個種子取平均）
@@ -101,6 +101,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   for (const r of [...s.recruits]) if (s.res.stone > (R.breakCost(s)?.stone ?? 0) * 1.5 + 10) X.recruit(s, r.uid);
   // 引爆：偽裝滿且仇人 ≥3
   if (X.canBurst(s) && s.grudges.length >= 3) {
+    if (FLAG('squad')) s.squad = X.recommendSquad(s);      // squad = 引爆前用推薦陣容出戰
     const res = X.burst(s); X.endBurst(s);
     once('首次引爆', true);
     s.simBursts = (s.simBursts || 0) + 1;

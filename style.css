@@ -641,3 +641,17 @@ main > section, #panel { min-width: 0; }
 
 /* 「還沒抽過」之類的提示放在網格裡時，要橫跨整列，不要被擠進一格 */
 .gresults > p, .gresults > .hint { grid-column: 1 / -1; }
+
+/* ── 出戰陣容與戰力判定 ── */
+.pv2 { align-items: flex-start; gap: 8px; }
+.pv2 > div { flex: 1; min-width: 0; }
+.pvbar { position: relative; height: 5px; background: #1a2621; border-radius: 3px; margin-top: 4px; }
+.pvbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--gold, #d9b64a); border-radius: 3px; }
+.pvbar u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: #8fcfa8; }
+.squadbox { background: #0e1613; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+.squadhd { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.chip { font: inherit; font-size: .82em; padding: 3px 8px; border-radius: 12px; border: 1px solid var(--line); background: #16211d; color: inherit; cursor: pointer; }
+.chip.on { border-color: var(--gold, #d9b64a); }
+.chip.empty { border-style: dashed; color: #6b7a73; cursor: default; }
+.chip:disabled { opacity: .4; cursor: default; }

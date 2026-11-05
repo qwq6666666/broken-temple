@@ -7,6 +7,7 @@ import * as G from '../core/gacha.js';
 import * as D from '../core/disciples.js';
 import * as E from '../core/endure.js';
 import * as X from '../core/burst.js';
+import * as Sq from '../core/squad.js';
 import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
 import * as St from '../core/stories.js';
@@ -122,6 +123,9 @@ export function bindActions(s, ui, rerender) {
       if (!X.canBurst(s)) { quote(LINES.noGrudge); return; }
       showBurstPreview(X.previewBurst(s));
     },
+    squadToggle: el => { Sq.toggleSquad(s, +el.dataset.uid); showBurstPreview(X.previewBurst(s)); },
+    squadAuto: () => { s.squad = X.recommendSquad(s); showBurstPreview(X.previewBurst(s)); },
+    squadClear: () => { Sq.clearSquad(s); showBurstPreview(X.previewBurst(s)); },
     // 第二步：確認後才真正引爆
     confirmBurst: async () => {
       if (ui.busy) return;

@@ -60,6 +60,7 @@ import { sfx, unlock, applyVolume, SFX_NAMES } from '../src/ui/audio.js';
 import { getPrefs, setPref } from '../src/ui/prefs.js';
 import { stat, traitValue } from '../src/core/discipleMath.js';
 import * as S from '../src/core/save.js';
+import * as Sq from '../src/core/squad.js';
 import { applyOffline } from '../src/core/offline.js';
 
 let n = 0;
@@ -1356,6 +1357,34 @@ t('宗門榮耀：榮耀值由進度換算、等級只升不降並彈提示寫�
   raw.glory = 'zzz'; assert.equal(sanitize(raw).glory.lv, 0);
   // 後期大事存在且可完成
   const g = createState(); g.reincarnation.count = 10; Goals.tick(g); assert.ok(g.goalsDone.includes('reb3') && g.goalsDone.includes('reb10'));
+});
+
+t('出戰陣容：沒選人不變、五行與專長加成、最多 3 人、推薦不比空陣容差、轉生與存檔保留', () => {
+  const s = createState(); s.realmIdx = 6;
+  const mkG = (el, pers, lvl = 6) => ({ id: s.nextGid++, name: '仇', type: 'rival', sect: '青雲宗', personality: pers, lvl, alert: false, element: el });
+  const g = mkG('木', '傲慢'); s.grudges = [g];
+  // 沒選人：加成為 1，結果與舊算法相同
+  assert.equal(Sq.squadVs(s, g).mult, 1);
+  // 金剋木、劍修剋傲慢：秦無鋒（金・劍修・R）= 底子 0.02 + 0.05 + 0.04
+  const qin = D.addDisciple(s, 'qinwu').disciple; Sq.toggleSquad(s, qin.uid);
+  assert.ok(Math.abs(Sq.squadVs(s, g).mult - 1.11) < 1e-9);
+  // 被剋：火被水剋 → 雷動（火）對水系仇人 −3%
+  const lei = D.addDisciple(s, 'leidong').disciple; assert.ok(Sq.memberVs(lei, mkG('水', '虛偽')).elem < 0);
+  // 最多 3 人
+  const a = D.addDisciple(s, 'afu').disciple, b = D.addDisciple(s, 'liu2').disciple; Sq.toggleSquad(s, lei.uid); Sq.toggleSquad(s, a.uid);
+  assert.equal(Sq.toggleSquad(s, b.uid), false); assert.equal(s.squad.length, 3);
+  Sq.toggleSquad(s, a.uid); assert.equal(s.squad.length, 2);
+  // 預覽帶出雙方戰力與陣容加成；引爆結果用陣容後的比值
+  s.disguise.value = CONFIG.conceal.max;
+  const pv = X.previewBurst(s); assert.ok(pv.entries[0].sq.mult > 1 && pv.entries[0].mine > 0 && pv.entries[0].theirs > 0);
+  assert.ok(Math.abs(pv.entries[0].ratio - pv.entries[0].mine / pv.entries[0].theirs) < 1e-9);
+  // 推薦陣容：判定分數不低於空陣容
+  const rec = X.recommendSquad(s); assert.ok(rec.length <= 3);
+  // 存檔清理：不存在的 uid 與超過 3 人被剔除
+  const raw = JSON.parse(JSON.stringify(s)); raw.squad = [qin.uid, 9999, qin.uid, lei.uid, a.uid, b.uid]; assert.deepEqual(sanitize(raw).squad, [qin.uid, lei.uid, a.uid]);
+  raw.squad = 'x'; assert.deepEqual(sanitize(raw).squad, []);
+  // 轉生保留
+  s.realmIdx = 13; s.res.stone = 1e12; s.squad = [qin.uid]; Dao.rebirth(s); assert.deepEqual(s.squad, [qin.uid]);
 });
 
 console.log(`\n${n} 項測試通過`);
