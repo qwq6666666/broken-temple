@@ -11,6 +11,7 @@ import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { playBreakthrough, playBurst, closeOverlay } from './overlay.js';
+import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from './saveMenu.js';
 
 export function bindActions(s, ui, rerender) {
   const act = {
@@ -54,6 +55,7 @@ export function bindActions(s, ui, rerender) {
       ui.tab = 'avenge'; ui.busy = false;
     },
     closeSettle: () => closeOverlay(),
+    saveNow: () => saveNow(s), exportSave: () => openExport(s), copyExport, importSave: openImport, doImport, resetSave,
   };
   const change = {
     assign: el => {

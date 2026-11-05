@@ -81,6 +81,14 @@ export const CONFIG = {
     maxLevel: 13,
   },
 
+  offline: {
+    capMs: 8 * 3600 * 1000,    // 離線收益最多算 8 小時
+    efficiency: 0.5,           // 離線產出效率（資源與招賢令）；偽裝蓄力與仇人成長照常進行
+    minMs: 60 * 1000,          // 離開不到 1 分鐘不結算
+    stepMs: 60 * 1000,         // 結算步長
+  },
+  save: { key: 'broken-temple-save', autosaveMs: 10000 },
+
   burst: {
     crushRatio: 1.8,           // 玩家戰力 / 仇人戰力 ≥ 此值 → 碾壓
     narrowRatio: 0.85,         // ≥ 此值 → 險勝，否則打不過

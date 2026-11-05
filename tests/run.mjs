@@ -13,6 +13,8 @@ import * as E from '../src/core/endure.js';
 import * as C from '../src/core/conceal.js';
 import * as X from '../src/core/burst.js';
 import * as M from '../src/core/meditate.js';
+import * as S from '../src/core/save.js';
+import { applyOffline } from '../src/core/offline.js';
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ✓', name); };
@@ -167,6 +169,59 @@ t('警覺仇人的獎勵較低（×0.7）', () => {
   const normal = run(false), alerted = run(true);
   setRng(Math.random);
   assert.ok(Math.abs(alerted / normal - 0.7) < 0.01, `${alerted}/${normal}`);
+});
+
+// 假 storage，測存檔不需要瀏覽器
+const fakeStorage = () => { const m = {}; return { getItem: k => m[k] ?? null, setItem: (k, v) => { m[k] = v; }, removeItem: k => { delete m[k]; } }; };
+
+t('存檔往返一致，且 burstActive 會被重置', () => {
+  const st = fakeStorage(), s = createState();
+  s.res.qi = 12345.5; s.realmIdx = 4; s.buildings.field.lv = 3; s.burstActive = true;
+  D.addDisciple(s, 'afu'); s.artifacts.push('yinqi');
+  assert.equal(S.save(s, st), true);
+  const r = S.load(st);
+  assert.equal(r.state.res.qi, 12345.5); assert.equal(r.state.realmIdx, 4);
+  assert.equal(r.state.buildings.field.lv, 3); assert.equal(r.state.disciples.length, 1);
+  assert.deepEqual(r.state.artifacts, ['yinqi']); assert.equal(r.state.burstActive, false);
+});
+
+t('舊存檔缺欄位會以預設值補齊', () => {
+  const text = JSON.stringify({ version: 1, savedAt: Date.now(), state: { res: { qi: 5 }, buildings: { temple: { lv: 2, pausedUntil: 0 } } } });
+  const { state } = S.parse(text);
+  assert.equal(state.res.qi, 5); assert.equal(state.res.token, CONFIG.start.token);
+  assert.equal(state.buildings.temple.lv, 2); assert.equal(state.buildings.arena.lv, 0);
+  assert.ok(state.settings && state.disguise);
+});
+
+t('壞檔不丟例外：load 回傳 error，無存檔回傳 null', () => {
+  const st = fakeStorage();
+  assert.equal(S.load(st), null);
+  st.setItem(CONFIG.save.key, '{壞掉');
+  assert.ok(S.load(st).error);
+  st.setItem(CONFIG.save.key, JSON.stringify({ version: 99, state: { res: {}, buildings: {} } }));
+  assert.ok(S.load(st).error);
+  assert.throws(() => S.parse('[]'));
+});
+
+t('離線收益：效率、上限、不產生訪客', () => {
+  const s = createState(); s.buildings.field.lv = 2;
+  const rate = eco.qiPerSec(s);
+  assert.equal(applyOffline(s, 10 * 1000), null);                 // 不到 1 分鐘不結算
+  const r = applyOffline(s, 3600 * 1000);                         // 離開 1 小時
+  assert.ok(Math.abs(r.gains.qi - rate * 3600 * CONFIG.offline.efficiency) < 1e-6 * r.gains.qi);
+  assert.equal(r.capped, false); assert.equal(s.visitor.current, null);
+  const s2 = createState(); const r2 = applyOffline(s2, 100 * 3600 * 1000);
+  assert.equal(r2.capped, true); assert.equal(r2.usedMs, CONFIG.offline.capMs);
+});
+
+t('離線：偽裝與蓄力照常增加、仇人成長、暫停計時到期', () => {
+  const s = createState();
+  s.grudges = [{ id: 1, name: 'A', type: 'former', sect: 's', role: 'r', personality: '傲慢', lvl: 1.0, alert: false }];
+  s.buildings.field.lv = 1; s.buildings.field.pausedUntil = s.t + 5 * 60000;
+  const r = applyOffline(s, 2 * 3600 * 1000);
+  assert.ok(r.disguiseGain > 0); assert.ok(r.chargeMinutes >= 119);
+  assert.ok(s.grudges[0].lvl > 1.0);
+  assert.ok(s.t >= s.buildings.field.pausedUntil);
 });
 
 console.log(`\n${n} 項測試通過`);

@@ -2,7 +2,7 @@
 import { CONFIG } from '../config.js';
 import { VISITOR_TYPES } from '../data/visitors.js';
 import { RARITIES } from '../data/gachaRates.js';
-import { fmt } from '../core/format.js';
+import { fmt, fmtTime } from '../core/format.js';
 import { esc, sleep } from './dom.js';
 
 const root = () => document.getElementById('overlay');
@@ -109,4 +109,35 @@ export function closeOverlay() {
   const o = root();
   o.classList.remove('on'); o.innerHTML = '';
   if (o._done) { o._done(); o._done = null; }
+}
+
+// ── 歡迎回來（離線收益） ──
+export function showWelcome(r) {
+  const o = root();
+  const away = fmtTime(r.elapsedMs).replace(/^(\d+):(\d+)$/, (_, m, sec) => `${Math.floor(m / 60) ? Math.floor(m / 60) + ' 小時 ' : ''}${m % 60} 分`);
+  const grown = r.grown.length ? `<p class="hint">仇人們沒閒著：${r.grown.slice(0, 5).map(g => `${esc(g.name)}→${esc(g.to)}`).join('、')}${r.grown.length > 5 ? '…' : ''}</p>` : '';
+  o.innerHTML = `<div class="ov settle"><div class="panel">
+    <h2>🏯 歡迎回來，宗主</h2>
+    <p class="hint">離開 ${away}${r.capped ? `（離線收益最多計 ${CONFIG.offline.capMs / 3600000} 小時）` : ''}，宗門以 ${Math.round(r.efficiency * 100)}% 效率運轉。</p>
+    <div class="sgrid">
+      <div><span>✨ 靈氣</span><b>+${fmt(r.gains.qi)}</b></div>
+      <div><span>💎 靈石</span><b>+${fmt(r.gains.stone)}</b></div>
+      <div><span>🎫 招賢令</span><b>+${fmt(r.gains.token)}</b></div>
+    </div>
+    <p>🎭 偽裝 +${fmt(r.disguiseGain)}　蓄力 +${Math.floor(r.chargeMinutes)} 分鐘${r.disguiseFull ? '　<b class="gold">蓄力已滿！</b>' : ''}</p>
+    ${grown}
+    <p class="lineq">老祖：「你不在的時候，本座一個人守著這座破廟，還好有蜘蛛陪我說話。」</p>
+    <button class="btn primary big" data-act="closeSettle">繼續</button>
+  </div></div>`;
+  o.classList.add('on');
+  return new Promise(res => { o._done = res; });
+}
+
+// ── 通用彈窗（存檔選單用） ──
+export function showModal(html) {
+  const o = root();
+  o.innerHTML = `<div class="ov settle"><div class="panel" style="text-align:left">${html}
+    <div style="text-align:right;margin-top:10px"><button class="btn" data-act="closeSettle">關閉</button></div></div></div>`;
+  o.classList.add('on');
+  return new Promise(res => { o._done = res; });
 }
