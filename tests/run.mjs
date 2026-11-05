@@ -34,6 +34,7 @@ import { COMMISSION_RULES } from '../src/data/commissions.js';
 import { relation, SHENG, KE, ELEMENTS } from '../src/data/elements.js';
 import { elementEffect, contribution } from '../src/core/discipleMath.js';
 import * as Conc from '../src/core/conceal.js';
+import * as Ins from '../src/core/insight.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID } from '../src/data/expeditions.js';
@@ -1256,6 +1257,26 @@ t('仇人五行：訪客／宿敵／回頭客都有、克制讓戰力比 +3% 每
   const old = { ...g }; delete old.element; assert.equal(Conc.elementOfGrudge(old), Conc.elementOfGrudge({ ...old })); assert.ok(ELEMENTS.includes(Conc.elementOfGrudge(old)));
   const raw = JSON.parse(JSON.stringify(createState())); raw.grudges = [{ ...old, element: 'zzz' }];
   assert.ok(ELEMENTS.includes(sanitize(raw).grudges[0].element));
+});
+
+t('專長心得：花碎片領悟、需該專長弟子派駐才生效、各效果併入對應加成、轉生與存檔保留', () => {
+  const s = createState(); s.realmIdx = 6; s.buildings.arena.lv = 1; s.buildings.alchemy.lv = 1; s.buildings.field.lv = 1;
+  assert.equal(Ins.learn(s, '劍修'), false);                                         // 沒碎片
+  s.res.shard = 100;
+  const sword = D.addDisciple(s, 'qinwu').disciple, alch = D.addDisciple(s, 'shenyao').disciple;   // 劍修、丹修
+  const p0 = eco.combatPower(s); assert.ok(Ins.learn(s, '劍修')); assert.equal(s.res.shard, 96);
+  assert.equal(eco.combatPower(s), p0, '劍修弟子未派駐：不生效');
+  sword.at = 'arena'; const p1 = eco.combatPower(s);
+  assert.ok(p1 > p0, '派駐後生效'); assert.ok(Math.abs(Ins.insightPerm(s, 'powerMult', 'perm') - 0.05) < 1e-9);
+  assert.ok(Ins.learn(s, '劍修') && Ins.learn(s, '劍修') && !Ins.learn(s, '劍修'), '三層後不能再領悟'); assert.equal(s.res.shard, 100 - 4 - 10 - 20);
+  assert.ok(Math.abs(Ins.insightPerm(s, 'powerMult', 'perm') - 0.15) < 1e-9); assert.ok(s.chronicle.some(e => e.text.includes('劍修心得大成')));
+  // 丹修 → stoneMult；體修 → endureLoss（走特性加總，不重複計入 perm）
+  alch.at = 'alchemy'; const st0 = eco.stonePerSec(s); Ins.learn(s, '丹修'); assert.ok(eco.stonePerSec(s) > st0);
+  assert.equal(Ins.insightPerm(s, 'endureLoss', 'perm'), 0); assert.equal(Ins.insightPerm(s, 'stoneMult', 'trait'), 0);
+  const tank = D.addDisciple(s, 'tieniu').disciple; Ins.learn(s, '體修'); const e0 = eco.traitSum(s, 'endureLoss'); tank.at = 'temple'; assert.ok(eco.traitSum(s, 'endureLoss') > e0);
+  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.insight['劍修'], 3);
+  const raw = JSON.parse(JSON.stringify(s)); raw.insight = { 劍修: 99, 丹修: -3, zzz: 1 }; const back = sanitize(raw).insight;
+  assert.equal(back['劍修'], 3); assert.equal(back['丹修'], 0); assert.equal(back['zzz'], undefined);
 });
 
 console.log(`\n${n} 項測試通過`);

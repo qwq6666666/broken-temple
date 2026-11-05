@@ -8,6 +8,8 @@ import { slots } from '../core/buildings.js';
 import { stat, isSpecialtyMatch, isElementMatch, starOf, contribution, elementEffect } from '../core/discipleMath.js';
 import { traitValueS } from '../core/economy.js';
 import { nextChapter, chaptersRead, chapterCount, lockedHint } from '../core/stories.js';
+import { INSIGHTS, INSIGHT_MAX } from '../data/insights.js';
+import { insightLv, insightCost, canLearn, insightActive } from '../core/insight.js';
 import { BONDS } from '../data/bonds.js';
 import { bondStatus } from '../core/bonds.js';
 import { fmt } from '../core/format.js';
@@ -41,7 +43,7 @@ export function disciplePanel(s, ui) {
         <select class="assign" data-change="dElem"><option value="">五行：全部</option>${ELEMS.map(e => `<option value="${e}" ${elem === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
     </div>`;
   const cards = shown.map(d => card(s, ui, d, away)).join('') || '<p class="hint">沒有符合條件的弟子。</p>';
-  return `${summaryBar(s, ui)}${slotsView(s, ui, away)}${tools}<div class="dgrid">${cards}</div>`;
+  return `${summaryBar(s, ui)}${insightBox(s, ui)}${slotsView(s, ui, away)}${tools}<div class="dgrid">${cards}</div>`;
 }
 
 // 頁首摘要：緣分啟用數與碎片，點開看緣分清單
@@ -50,6 +52,19 @@ function summaryBar(s, ui) {
   const act = rows.filter(x => x.st === 'active').length;
   return `<div class="dsum"><button class="dsumhead" data-act="toggleBonds" aria-expanded="${!!ui.bondsOpen}">🔗 緣分 ${act}/${rows.length} 已啟用 <span>${ui.bondsOpen ? '▴' : '▾'}</span></button>
     <span class="chip">🧩 ${fmt(s.res.shard)}</span></div>${ui.bondsOpen ? bondsBox(s) : ''}`;
+}
+
+// 專長心得：5 種專長各 3 層，用碎片領悟；該專長弟子派駐中才生效
+function insightBox(s, ui) {
+  const total = INSIGHTS.reduce((a, i) => a + insightLv(s, i.spec), 0);
+  const rows = INSIGHTS.map(i => {
+    const lv = insightLv(s, i.spec), act = insightActive(s, i.spec), cost = insightCost(s, i.spec), can = canLearn(s, i.spec);
+    const dots = Array.from({ length: INSIGHT_MAX }, (_, k) => `<i class="${k < lv ? 'on' : ''}"></i>`).join('');
+    return `<div class="irow"><span class="iname">${i.icon} <b>${i.spec}</b> <span class="dots">${dots}</span></span>
+      <small class="${lv && act ? 'gold' : 'dim'}">${lv ? `${esc(i.names[lv - 1])}：${i.label} +${Math.round(lv * i.per * 100)}%${act ? '（生效中）' : `（需派駐${i.spec}弟子）`}` : `尚未領悟（${i.label} 每層 +${Math.round(i.per * 100)}%）`}</small>
+      ${cost ? `<button class="btn mini ${can ? 'primary' : ''}" data-act="learnInsight" data-spec="${i.spec}" ${can ? '' : 'disabled'}>領悟「${esc(i.names[lv])}」 ${costChips(s, cost)}</button>` : '<span class="tag gold">大成</span>'}</div>`;
+  }).join('');
+  return crow(ui, { key: 'insight', icon: '📚', title: `<b>專長心得 ${total}/${INSIGHTS.length * INSIGHT_MAX}</b>`, sub: '用碎片領悟；有該專長的弟子派駐中才生效', detail: rows });
 }
 
 // 建築視角：每棟有駐守位的建築一列，點空位挑弟子、點已派駐的弟子取消

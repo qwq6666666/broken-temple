@@ -15,6 +15,7 @@ import { autoAssign } from '../core/autoAssign.js';
 import * as Ach from '../core/achievements.js';
 import * as Off from '../core/offlineEvent.js';
 import * as Eq from '../core/equip.js';
+import * as Ins from '../core/insight.js';
 import * as Cm from '../core/commissions.js';
 import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
@@ -156,6 +157,7 @@ export function bindActions(s, ui, rerender) {
     },
     toggleEquip: el => { if (!Eq.toggleEquip(s, el.dataset.id)) toast('裝備欄已滿，先卸下一件', 'warn'); },
     branch: el => { if (D.setBranch(s, +el.dataset.uid, el.dataset.b)) { sfx('goal'); toast('進階完成', 'good'); } },
+    learnInsight: el => { if (Ins.learn(s, el.dataset.spec)) { sfx('goal'); toast('心得領悟', 'good'); } },
     toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },

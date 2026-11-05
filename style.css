@@ -632,3 +632,6 @@ h3.sub:first-child { margin-top: 0; }
 .red { color: var(--red); }
 
 .slot i { font-style: normal; font-size: .75em; } .slot i.up { color: var(--jade); } .slot i.down { color: var(--red); } .slot small { margin-left: 4px; }
+
+.irow { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; } .irow .iname { min-width: 8em; } .irow small { flex: 1 1 160px; }
+.dots { display: inline-flex; gap: 3px; vertical-align: middle; } .dots i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--dim); } .dots i.on { background: var(--gold); border-color: var(--gold); }
