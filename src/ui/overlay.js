@@ -10,7 +10,7 @@ import { esc, sleep } from './dom.js';
 import { sfx } from './audio.js';
 import { daoGain } from '../core/dao.js';
 import { HELP, INTRO } from '../data/help.js';
-import { FACTIONS_BY_ID } from '../data/factions.js';
+import { FACTIONS_BY_ID, FACTION_RULES as FR } from '../data/factions.js';
 import { MUTATORS } from '../data/mutators.js';
 import { getPrefs } from './prefs.js';
 import { shake, flash, particles, banner, countUp } from './fx.js';
@@ -204,10 +204,12 @@ export function showBurstPreview(pv) {
     const sq = e.sq.parts.length ? `　陣容 ${pct(e.sq.mult - 1)}` : '';
     const ripe = e.g.ripe ? ` <span class="tag gold">熟成 ${e.g.ripe}（獎勵 +${e.g.ripe * 25}%）</span>` : '', foe = e.g.foe ? ` <span class="tag ${e.g.foe >= 3 ? 'gold' : ''}">${e.g.foe >= 3 ? '老對頭' : '舊識'}・擊敗過 ${e.g.foe} 次</span>` : '';
     const weak = e.weak ? `<br><small class="${e.weakHit ? 'gold' : 'red'}">弱點：${esc(e.weak)}${e.weakHit ? ' ✔ 陣容已命中' : ' ✘ 未命中，碾壓門檻 ×1.5'}</small>` : '';
+    const fd = e.fac ? FACTIONS_BY_ID[e.fac] : null;
+    const facTag = fd && e.verdict !== 'fail' ? `<br><small class="dim">${fd.emoji} ${esc(fd.name)}・威望 +${e.verdict === 'crush' ? 2 : 1}${e.facTier >= 1 ? `・勢力加成 +${Math.round(FR.tier1Reward * 100)}%` : ''}</small>` : (fd ? `<br><small class="dim">${fd.emoji} ${esc(fd.name)}</small>` : '');
     const spare = !e.nemesis ? `<label class="spare"><input type="checkbox" data-change="spare" data-gid="${e.g.id}" ${e.sparing ? 'checked' : ''}> 放過（留著養）</label>` : '';
     if (e.sparing) return `<div class="pvrow pv2 sparing"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}・${esc(e.g.personality || '')}</small>${ripe}<br><small class="dim">這次不打，下次熟成 +25% 獎勵、境界 +0.3（仍占名額）</small></div><span>${spare}</span></div>`;
     return `<div class="pvrow pv2"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}${e.adv > 1 ? '↑' : e.adv < 1 ? '↓' : ''}・${esc(e.g.personality || '')}${e.bias ? `（${esc(e.bias)}）` : ''}</small>${ripe}${foe}
-      <br><small class="dim">我方 ${fmt(e.mine)} ／ 對方 ${fmt(e.theirs)} ＝ <b>×${e.ratio.toFixed(2)}</b>${sq}</small>${weak}
+      <br><small class="dim">我方 ${fmt(e.mine)} ／ 對方 ${fmt(e.theirs)} ＝ <b>×${e.ratio.toFixed(2)}</b>${sq}</small>${facTag}${weak}
       <div class="pvbar"><i style="width:${Math.min(100, e.ratio / (pv.crushRatio * 1.25) * 100)}%"></i><u style="left:${pv.narrowRatio / (pv.crushRatio * 1.25) * 100}%"></u><u style="left:${pv.crushRatio / (pv.crushRatio * 1.25) * 100}%"></u></div></div>
       <span>${e.risk ? '<span class="tag red">⚠ 反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span><br>${spare}</span></div>`;
   }).join('');
@@ -224,9 +226,20 @@ export function showBurstPreview(pv) {
       <small class="dim">每位出戰者：稀有度底子 ＋ 五行剋制該仇人 +5%（被剋 −3%）＋ 專長剋制其個性 +4%。陣容對每位仇人分別計算，所以要看這次名單挑人。</small>
       ${pool ? `<details><summary class="dim">候選弟子（括號為對目前名單的平均加成）</summary><div class="chips">${pool}</div></details>` : ''}</div>
     <div class="pvlist">${rows}</div>
+    ${facBox(pv)}
     ${pv.backfires ? '<p class="warnline">⚠ 有長老實力遠勝於你，引爆會遭到反噬（損失靈石、建築暫停）。可以再蓄力、突破後再爆。</p>' : ''}
     ${pv.spared ? `<p class="hint">已放過 ${pv.spared} 人：他們留在名單上繼續長大（占復仇簿名額，名單滿了就沒有新訪客）。</p>` : ''}
     <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmBurst" ${pv.spared >= pv.entries.length ? 'disabled' : ''}>不裝了！</button></div>`);
+}
+
+// 勢力彙整：這次引爆會推進哪些勢力的威望、有沒有升階、一網打盡
+function facBox(pv) {
+  if (!pv.factions || !pv.factions.length) return '';
+  return `<div class="facbox"><b class="gold">🏴 勢力威望預告</b>` + pv.factions.map(f => {
+    const up = f.tierAfter > f.tierBefore;
+    return `<div class="facrow"><span>${f.emoji} ${esc(f.name)}　${f.n} 人・威望 <b>+${f.rep}</b>${f.sweep > 1 ? `　<span class="tag gold">一網打盡 獎勵 ×${f.sweep.toFixed(1)}</span>` : f.n >= 2 ? `　<small class="dim">再多 ${FR.sweep.at - f.n} 人可一網打盡</small>` : ''}</span>
+      <span>${up ? `<span class="tag gold">⬆ 升階「${esc(f.tierName)}」</span>` : f.toNext ? `<small class="dim">距「${esc(f.nextName)}」還差 ${f.toNext}</small>` : '<small class="dim">已滿階</small>'}</span></div>`;
+  }).join('') + '</div>';
 }
 
 // ── 轉生確認 ──

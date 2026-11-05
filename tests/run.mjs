@@ -1480,4 +1480,26 @@ t('仇敵：放過熟成、仇人記憶與老對頭、個性偏好、宿敵弱�
   m.realmIdx = 13; m.res.stone = 1e12; Dao.rebirth(m); assert.equal(m.foes['丙'].beaten, 3);
 });
 
+t('勢力接觸點：引爆預覽彙整威望與升階、一網打盡加成、訪客個性傾向、進貢與婉拒', () => {
+  const mk = (s, o) => ({ id: s.nextGid++, name: 'x' + s.nextGid, type: 'former', sect: '青雲宗', personality: '傲慢', lvl: 1, alert: false, element: '木', ...o });
+  const s = createState(); s.realmIdx = 12; s.disguise.value = CONFIG.conceal.max; s.factions.qingyun = 8;
+  s.grudges = [mk(s, {}), mk(s, {}), mk(s, {}), mk(s, { sect: '赤焰谷', type: 'rival' })];
+  const pv = X.previewBurst(s), q = pv.factions.find(f => f.id === 'qingyun');
+  assert.equal(q.n, 3); assert.equal(q.rep, 6); assert.equal(q.tierBefore, 0); assert.equal(q.tierAfter, 1); assert.ok(Math.abs(q.sweep - 1.1) < 1e-9);
+  assert.equal(pv.factions.find(f => f.id === 'chiyan').sweep, 1);
+  // 一網打盡：同樣的結果下，3 人的單人獎勵高於 2 人
+  const per = n => { setRng(() => 0.5); const t = createState(); t.realmIdx = 12; t.disguise.value = CONFIG.conceal.max; t.grudges = Array.from({ length: n }, () => mk(t, { type: 'trader', sect: '南海商隊', lvl: 3 })); const st = t.res.stone; X.burst(t); setRng(Math.random); return (t.res.stone - st) / n; };
+  assert.ok(per(3) > per(2) * 1.05 * 0.99);
+  // 個性傾向：赤焰谷的訪客暴躁／狂妄偏多
+  let hot = 0, N = 400; const vs = createState(); vs.realmIdx = 5;
+  for (let i = 0; i < N; i++) { const v = E.makeVisitorForTest(vs, '赤焰谷'); if (['暴躁', '狂妄'].includes(v.personality)) hot++; }
+  assert.ok(hot / N > 2 / 7 * 1.4, `傾向應明顯高於平均 ${hot / N}`);
+  // 進貢：第 2 階以上才會出現；收下得賠禮與威望；婉拒不入簿
+  const tr = createState(); tr.realmIdx = 6; assert.equal(E.pickTributeForTest(tr), null);
+  tr.factions.qingyun = 70; setRng(() => 0); const v = E.pickTributeForTest(tr); setRng(Math.random);
+  assert.ok(v && v.tribute && v.returning === 'plead'); tr.visitor.current = v;
+  assert.equal(E.rejectPlea(tr), true); assert.equal(tr.grudges.length, 0); assert.equal(tr.visitor.current, null);
+  tr.visitor.current = v; const rep0 = tr.factions.qingyun; assert.ok(E.acceptPlea(tr)); assert.equal(tr.factions.qingyun, rep0 + 3);
+});
+
 console.log(`\n${n} 項測試通過`);

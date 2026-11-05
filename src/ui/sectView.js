@@ -6,7 +6,8 @@ import { CONFIG } from '../config.js';
 import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked } from '../core/buildings.js';
 import { SPECS, SPEC_LEVEL, specText } from '../data/specs.js';
 import { FACTION_RULES as FR } from '../data/factions.js';
-import { tierOfSect } from '../core/factions.js';
+import { tierOfSect, repOf } from '../core/factions.js';
+import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_TIERS } from '../data/factions.js';
 import { stonePerSec } from '../core/economy.js';
 import { chosenSpec, canChoose as canSpec } from '../core/spec.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
@@ -149,7 +150,7 @@ function visitorCard(s, entering = false) {
   return `<div class="visitor-card ${nem ? 'nemesis' : ''} ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${nem ? nem.emoji : t.emoji}</span>
       <div><b>${esc(v.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}${v.returning === 'revenge' ? '<span class="tag red">回頭客・復仇（獎勵 ×' + FR.revengeReward + '）</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
-      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}・五行${esc(elementOfGrudge(v))}${elAdv(s, v)}</small></div></div>
+      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}・五行${esc(elementOfGrudge(v))}${elAdv(s, v)}</small>${facLine(s, v)}</div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">
       <button class="btn endure" data-act="endure"><b>😤 忍氣吞聲</b><small>${endureText}</small></button>
@@ -188,11 +189,20 @@ function pleaCard(s, v, t, entering) {
   const gift = `💎約${fmt(Math.max(3, stonePerSec(s) * FR.pleadGiftSec * mult))} 🎫${tier >= 3 ? 2 : 1}`;
   return `<div class="visitor-card plea ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${t.emoji}</span>
-      <div><b>${esc(v.name)}</b> <span class="tag gold">回頭客・求和</span> <span class="tag">${esc(v.personality)}</span><br>
-      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small></div></div>
+      <div><b>${esc(v.name)}</b> <span class="tag gold">${v.tribute ? '勢力進貢' : '回頭客・求和'}</span> <span class="tag">${esc(v.personality)}</span><br>
+      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small>${facLine(s, v)}</div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">
-      <button class="btn show good" data-act="acceptPlea"><b>🎁 收下賠禮</b><small>${gift}，${esc(v.sect)}威望 +3；對方離開</small></button>
-      <button class="btn endure" data-act="rejectPlea"><b>🚪 讓他滾</b><small>記入復仇簿（偽裝值 +1，無損失）；日後引爆再算帳</small></button>
+      <button class="btn show good" data-act="acceptPlea"><b>🎁 收下${v.tribute ? '貢禮' : '賠禮'}</b><small>${gift}，${esc(v.sect)}威望 +3；對方離開</small></button>
+      ${v.tribute ? '<button class="btn endure" data-act="rejectPlea"><b>🚪 婉拒</b><small>不收禮、不加威望；對方離開，不入復仇簿</small></button>'
+      : '<button class="btn endure" data-act="rejectPlea"><b>🚪 讓他滾</b><small>記入復仇簿（偽裝值 +1，無損失）；日後引爆再算帳</small></button>'}
     </div></div>`;
+}
+
+// 訪客的勢力列：勢力、威望階級與進度，以及這次互動可得的威望
+function facLine(s, v) {
+  const id = FACTION_OF_SECT[v.sect], f = id && FACTIONS_BY_ID[id]; if (!f) return '';
+  const rep = repOf(s, id), tier = tierOfSect(s, v.sect), th = FR.thresholds, next = th[tier], prev = tier ? th[tier - 1] : 0;
+  const pct = next ? Math.floor((rep - prev) / (next - prev) * 100) : 100;
+  return `<div class="vfac"><small>${f.emoji} ${esc(f.name)}・<b class="${tier ? 'gold' : ''}">${esc(FACTION_TIERS[tier])}</b>・威望 ${rep}${next ? '/' + next : '（已滿）'}</small><div class="gbar"><div style="width:${pct}%"></div></div></div>`;
 }

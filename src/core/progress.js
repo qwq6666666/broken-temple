@@ -70,7 +70,7 @@ export function tickBuildings(s, quiet = false) {
 // 下一步建議：依優先順序回傳第一個適用的 {text, tab?}
 export function nextStep(s) {
   const alch = s.buildings.alchemy;
-  if (s.visitor.current?.returning === 'plead') return { text: '舊敵來求和：收下賠禮，或讓他滾。' };
+  if (s.visitor.current?.returning === 'plead') return { text: s.visitor.current.tribute ? '勢力派人進貢：收下貢禮（威望 +3），或婉拒。' : '舊敵來求和：收下賠禮，或讓他滾。' };
   if (s.visitor.current) return { text: '有人來訪：忍氣吞聲（記入復仇簿），打得過也可「亮一手」。' };
   if (canBurst(s)) return { text: '偽裝值已滿，按「💥 不裝了」！' };
   if (alch.lv === 0) {

@@ -683,3 +683,8 @@ main > section, #panel { min-width: 0; }
 .rv-sum { position: relative; z-index: 1; max-height: 92vh; overflow: auto; padding: 14px; width: min(760px, 94vw); text-align: center; display: flex; flex-direction: column; gap: 10px; }
 .rv-sum .gresults { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 .pullfx.rv .banner { top: 9%; font-size: clamp(30px, 7vw, 64px); }
+
+/* ── 勢力預告與訪客勢力列 ── */
+.facbox { background: #0e1613; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.facrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .88em; }
+.vfac { margin-top: 4px; max-width: 260px; } .vfac .gbar { height: 4px; margin-top: 2px; }

@@ -1,6 +1,7 @@
 // 忍：路人隨機造訪嘲諷，玩家二選一（忍氣吞聲 / 亮一手）。
 import { CONFIG } from '../config.js';
 import { FOE } from '../data/enemies.js';
+import { FACTIONS_BY_ID, FACTION_OF_SECT } from '../data/factions.js';
 import { ELEMENTS } from '../data/elements.js';
 import { VISITOR_TYPES, SURNAMES, GIVEN, PERSONALITIES, PERSONALITY_KEYS } from '../data/visitors.js';
 import { LINES, pickLine } from '../data/lines.js';
@@ -12,7 +13,7 @@ import { DISCIPLES } from '../data/disciples.js';
 import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { quote, toast, cue } from './events.js';
 import { pickNemesis, makeNemesisVisitor } from './nemesis.js';
-import { addRep, tierOfSect } from './factions.js';
+import { addRep, tierOfSect, tierOf } from './factions.js';
 import { mutSum } from './mutators.js';
 import { FACTION_RULES as FR } from '../data/factions.js';
 
@@ -38,9 +39,10 @@ function makeVisitor(s) {
   do { name = pick(SURNAMES) + pick(GIVEN); } while (s.grudges.some(g => g.name === name) && ++tries < 20);
   const [lo, hi] = type.offset;
   const lvl = Math.max(0, Math.min(CONFIG.enemy.maxLevel, s.realmIdx + randInt(lo, hi))) + randFloat(0, 0.95);
-  const personality = pick(PERSONALITY_KEYS);
+  const sect = pick(type.sects), fac = FACTIONS_BY_ID[FACTION_OF_SECT[sect]];
+  const personality = weighted(PERSONALITY_KEYS, k => (fac?.lean?.includes(k) ? FR.leanWeight : 1));   // 勢力有各自的個性傾向
   return {
-    id: s.nextGid++, name, type: type.id, sect: pick(type.sects), role: pick(type.roles),
+    id: s.nextGid++, name, type: type.id, sect, role: pick(type.roles),
     personality, lvl, alert: false, element: pick(ELEMENTS),
     taunt: pick(PERSONALITIES[personality].taunt),
   };
@@ -56,7 +58,22 @@ export function tick(s) {
   if (ri >= 0) { const [r] = s.returners.splice(ri, 1); s.visitor.current = makeReturner(s, r); toast(`回頭客：${r.name}（${r.mode === 'plead' ? '來求和' : '來復仇'}）`, 'warn'); cue('visitor'); return; }
   const nem = pickNemesis(s);
   if (nem && chance(CONFIG.nemesis.chance)) { s.visitor.current = makeNemesisVisitor(s, nem); toast(`宿敵現身：${nem.name}（${nem.title}）`, 'warn'); cue('nemesis'); }
-  else { s.visitor.current = makeVisitor(s); cue('visitor'); }
+  else {
+    const tr = pickTribute(s);
+    if (tr) { s.visitor.current = tr; toast(`${FACTIONS_BY_ID[FACTION_OF_SECT[tr.sect]].emoji} ${tr.sect}派人進貢`, 'good'); cue('visitor'); }
+    else { s.visitor.current = makeVisitor(s); cue('visitor'); }
+  }
+}
+
+// 進貢：第 2 階起的勢力有機會派人送禮（用「求和」介面：收下賠禮或婉拒；婉拒不入復仇簿）
+function pickTribute(s) {
+  const opts = Object.values(FACTIONS_BY_ID).map(f => [f, tierOf(s, f.id)]).filter(([, t]) => t >= 2);
+  if (!opts.length) return null;
+  const [f, tier] = pick(opts);
+  if (!chance(FR.tribute.perTier * (tier - 1))) return null;
+  const v = makeVisitor(s), sect = pick(f.sects), type = Object.values(VISITOR_TYPES).find(t => t.sects.includes(sect));
+  return { ...v, type: type.id, sect, role: pick(type.roles), returning: 'plead', tribute: true, alert: false, lvl: Math.max(0, s.realmIdx - 1),
+           taunt: `${f.name}久仰宗主大名。這點薄禮，不成敬意——只盼往後相安無事。` };
 }
 
 // 憋屈值：連續忍氣吞聲越多次，下一次的損失越重（亮一手／引爆後歸零）
@@ -176,9 +193,14 @@ export function acceptPlea(s) {
 }
 export function rejectPlea(s) {
   const v = s.visitor.current; if (!v || v.returning !== 'plead') return null;
+  if (v.tribute) { s.visitor.current = null; scheduleNext(s); quote('心意領了，禮就先不收了。'); toast(`婉拒了 ${v.name} 的進貢`, 'warn'); return true; }
   toBook(s, { ...v, returning: null });
   s.disguise.value = Math.min(CONFIG.conceal.max, s.disguise.value + CONFIG.endure.disguiseGain);
   quote('賠禮？本座的債，要當面討。');
   toast(`${v.name} 被你拒於門外，記入復仇簿`, 'warn');
   return true;
 }
+
+// 測試用：直接取得指定宗門的訪客／進貢訪客
+export const makeVisitorForTest = (s, sect) => { for (let i = 0; i < 200; i++) { const v = makeVisitor(s); if (v.sect === sect) return v; } return makeVisitor(s); };
+export const pickTributeForTest = pickTribute;
