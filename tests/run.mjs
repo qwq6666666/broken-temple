@@ -1290,4 +1290,24 @@ t('補滿空位依建築價值加權：沒有專長的弟子優先去產出建�
   CONFIG.assignValue.field = 3; CONFIG.assignValue.library = 0.3;
 });
 
+t('功能區塊漸進解鎖：條件達成才出現且不會消失；舊存檔 quiet 不彈提示；下一步提示涵蓋進階／心得／裝備', () => {
+  const s = createState();
+  Prog.tick(s); for (const k of ['insight', 'achv', 'chron', 'sort']) assert.equal(Prog.hasFeature(s, k), false, k + ' 一開始不顯示');
+  s.res.shard = 1; s.disciples = Array.from({ length: 6 }, (_, i) => ({ uid: i + 1, defId: 'afu', lv: 1, at: null }));
+  Prog.tick(s); assert.ok(Prog.hasFeature(s, 'insight') && Prog.hasFeature(s, 'sort'));
+  s.res.shard = 0; Prog.tick(s); assert.ok(Prog.hasFeature(s, 'insight'), '解鎖後不會因碎片用完而消失');
+  Chr.note(s, '📜', 'a'); Prog.tick(s); assert.equal(Prog.hasFeature(s, 'chron'), false); Chr.note(s, '📜', 'b'); Prog.tick(s); assert.ok(Prog.hasFeature(s, 'chron'));
+  // 舊存檔：quiet 時直接解鎖（不 toast）
+  const old = createState(); old.realmIdx = 5; Prog.tick(old, true); assert.ok(Prog.hasFeature(old, 'achv') && Prog.hasFeature(old, 'insight'));
+  // 下一步提示
+  const h = createState(); h.buildings.alchemy.lv = 1; h.res.stone = 0; h.realmIdx = 2; h.unlocked.expedition = false;
+  const d = D.addDisciple(h, 'afu').disciple; D.assign(h, d.uid, 'temple'); St.read(h, d.uid); h.res.token = 0;
+  d.lv = 10; assert.match(Prog.nextStep(h).text, /故事/);                          // 故事優先
+  h.stories = { afu: 99 }; assert.match(Prog.nextStep(h).text, /進階/);              // 讀完後提示進階
+  D.setBranch(h, d.uid, 'focus'); h.artifacts = ['yinqi']; h.equipped = []; h.unlocked.expedition = false;
+  assert.match(Prog.nextStep(h).text, /裝備欄/);                                   // 有法寶沒裝備
+  h.equipped = ['yinqi']; h.unlocked.f_insight = true; h.res.shard = 10; h.disciples.push({ uid: 99, defId: 'qinwu', lv: 1, at: 'arena' }); h.buildings.arena.lv = 1;
+  assert.match(Prog.nextStep(h).text, /專長心得/);                                 // 劍修派駐中、碎片夠
+});
+
 console.log(`\n${n} 項測試通過`);

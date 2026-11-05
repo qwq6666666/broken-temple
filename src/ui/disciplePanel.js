@@ -13,6 +13,7 @@ import { insightLv, insightCost, canLearn, insightActive } from '../core/insight
 import { BONDS } from '../data/bonds.js';
 import { bondStatus } from '../core/bonds.js';
 import { fmt } from '../core/format.js';
+import { hasFeature } from '../core/progress.js';
 import { BRANCHES, BRANCH_LEVEL } from '../data/branches.js';
 import { esc, costChips } from './dom.js';
 
@@ -36,14 +37,16 @@ export function disciplePanel(s, ui) {
     && (flt === 'all' || (flt === 'idle' && !d.at) || (flt === 'lvl' && canLevel(s, d)) || (flt === 'story' && nextChapter(s, d)))
   ).sort(sorters[sort]);
   const chip = (act, key, cur, [k, label]) => `<button class="fchip ${cur === k ? 'on' : ''}" data-act="${act}" data-v="${k}">${label}</button>`;
-  const tools = `<div class="dtools">
-      <button class="btn primary" data-act="autoAssign" title="把未派駐的弟子依專長、五行與緣分放進空位（已派駐的不動）">⚡ 補滿空位</button>
+  const sortBar = hasFeature(s, 'sort') ? `
       <div class="fgroup"><small class="dim">排序</small>${SORTS.map(x => chip('dSort', 'sort', sort, x)).join('')}</div>
       <div class="fgroup"><small class="dim">篩選</small>${FILTERS.map(x => chip('dFilter', 'flt', flt, x)).join('')}
-        <select class="assign" data-change="dElem"><option value="">五行：全部</option>${ELEMS.map(e => `<option value="${e}" ${elem === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+        <select class="assign" data-change="dElem"><option value="">五行：全部</option>${ELEMS.map(e => `<option value="${e}" ${elem === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>` : '';
+  const tools = `<div class="dtools">
+      ${s.disciples.length >= 2 ? `<button class="btn primary" data-act="autoAssign" title="把未派駐的弟子依專長、五行與緣分放進空位（已派駐的不動）">⚡ 補滿空位</button>` : ''}
+      ${sortBar}
     </div>`;
   const cards = shown.map(d => card(s, ui, d, away)).join('') || '<p class="hint">沒有符合條件的弟子。</p>';
-  return `${summaryBar(s, ui)}${insightBox(s, ui)}${slotsView(s, ui, away)}${tools}<div class="dgrid">${cards}</div>`;
+  return `${summaryBar(s, ui)}${hasFeature(s, 'insight') ? insightBox(s, ui) : ''}${slotsView(s, ui, away)}${tools}<div class="dgrid">${cards}</div>`;
 }
 
 // 頁首摘要：緣分啟用數與碎片，點開看緣分清單

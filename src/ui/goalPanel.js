@@ -8,6 +8,7 @@ import { progressOf, isReady, rewardText as cRewardText } from '../core/commissi
 import { COMMISSION_BY_KIND, COMMISSION_RULES } from '../data/commissions.js';
 import { fmt } from '../core/format.js';
 import { esc, crow } from './dom.js';
+import { hasFeature } from '../core/progress.js';
 import { ACHIEVEMENTS, ACHIEVEMENTS_BY_ID } from '../data/achievements.js';
 import { isDone as isAchDone, progress as achProgress } from '../core/achievements.js';
 import { stamp } from '../core/chronicle.js';
@@ -81,7 +82,7 @@ export function goalPanel(s, ui) {
   const arts = ARTIFACTS.map(a => s.artifacts.includes(a.id)
     ? `<span class="art" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`
     : `<span class="art off">❔ 未獲得<small>長老被爆時掉落</small></span>`).join('');
-  return `${commissionBox(s)}${equipBox(s, ui)}${achievementBox(s, ui)}${chronicleBox(s, ui)}
+  return `${commissionBox(s)}${equipBox(s, ui)}${hasFeature(s, 'achv') ? achievementBox(s, ui) : ''}${hasFeature(s, 'chron') ? chronicleBox(s, ui) : ''}
     <h3 class="sub">🎯 宗門大事 ${done}/${GOALS.length}</h3>${rows}
     <h3>弟子圖鑑 ${owned.size}/${DISCIPLES.length}</h3><div class="dexgrid">${dex}</div>
     <h3>功法法寶圖鑑 ${s.artifacts.length}/${ARTIFACTS.length}</h3><div class="arts">${arts}</div>`;

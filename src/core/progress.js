@@ -14,6 +14,10 @@ import { nextChapter } from './stories.js';
 import { canChoose as canSpec } from './spec.js';
 import { SPECS } from '../data/specs.js';
 import { readyCount } from './commissions.js';
+import { canBranch } from './disciples.js';
+import { INSIGHTS } from '../data/insights.js';
+import { canLearn, insightActive } from './insight.js';
+import { EQUIP_SLOTS } from '../data/artifacts.js';
 import { slotCount, freeDisciples } from './expeditions.js';
 
 // 各分頁的解鎖條件（建築、境界一開始就有）
@@ -29,6 +33,15 @@ export const TAB_RULES = {
 };
 export const isUnlocked = (s, tab) => !TAB_RULES[tab] || !!s.unlocked[tab];
 
+// 分頁內的功能區塊：依進度才出現（解鎖後不會再消失）。旗標存在 s.unlocked['f_' + key]
+export const FEATURE_RULES = {
+  insight: { name: '專長心得', when: s => s.res.shard > 0 || s.realmIdx >= 4 || Object.values(s.insight || {}).some(n => n > 0) },
+  achv:    { name: '成就與稱號', when: s => s.realmIdx >= 3 || s.achv.done.length > 0 || s.goalsDone.length >= 2 },
+  chron:   { name: '宗門年表', when: s => s.chronicle.length >= 2 },
+  sort:    { name: '弟子排序與篩選', when: s => s.disciples.length >= 6 },
+};
+export const hasFeature = (s, key) => !!s.unlocked['f_' + key];
+
 // 每 tick 檢查；舊存檔載入後第一次會一次解鎖所有已達成的條件（不吵：只有真的新解鎖才提示）
 export function tick(s, quiet = false) {
   tickBuildings(s, quiet);
@@ -36,6 +49,11 @@ export function tick(s, quiet = false) {
     if (s.unlocked[tab] || !r.when(s)) continue;
     s.unlocked[tab] = true;
     if (!quiet) { toast(`🔓 新分頁解鎖：${r.name}`, 'good'); cue('goal'); }
+  }
+  for (const [key, r] of Object.entries(FEATURE_RULES)) {
+    if (s.unlocked['f_' + key] || !r.when(s)) continue;
+    s.unlocked['f_' + key] = true;
+    if (!quiet) { toast(`🔓 新功能解鎖：${r.name}`, 'good'); cue('goal'); }
   }
 }
 
@@ -74,6 +92,9 @@ export function nextStep(s) {
     return { text: `建築被境界限制，累積 ${Math.ceil(breakCost(s).stone)} 靈石突破至 ${nx.name}。` };
   if (s.grudges.length >= 1 && s.disguise.value < 20) return { text: '蓄力中：人越多、越久，引爆獎勵越高。先升建築、抽弟子。' };
   if (readyCount(s)) return { text: '有委託可領取，到「大事」領獎勵。', tab: 'goals' };
+  if (s.disciples.some(canBranch)) return { text: '有弟子 Lv10 了，可以二選一進階。', tab: 'disciples' };
+  if (hasFeature(s, 'insight') && INSIGHTS.some(i => canLearn(s, i.spec) && insightActive(s, i.spec))) return { text: '有專長心得可以領悟（用碎片，該專長弟子要派駐中）。', tab: 'disciples' };
+  if (s.artifacts.length && s.equipped.length < Math.min(EQUIP_SLOTS, s.artifacts.length)) return { text: '裝備欄還有空位：裝上法寶可獲得共鳴加成。', tab: 'goals' };
   const g = GOALS.find(x => !isDone(s, x.id));
   return g ? { text: `宗門大事：${g.name} — ${g.desc}`, tab: 'goals' } : null;
 }
