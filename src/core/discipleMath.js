@@ -2,6 +2,7 @@
 import { CONFIG } from '../config.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { relation } from '../data/elements.js';
 import { RARITIES } from '../data/gachaRates.js';
 
 export const defOf = d => DISCIPLES_BY_ID[d.defId];
@@ -21,10 +22,20 @@ export const expStat = d => stat(d) * (branchOf(d) === 'might' ? 1.3 : 1);
 export const isSpecialtyMatch = (d, bid) => defOf(d).specialty === BUILDINGS_BY_ID[bid].specialty;
 export const isElementMatch = (d, bid) => defOf(d).element === BUILDINGS_BY_ID[bid].element;
 
-// 派駐在建築 bid 時，對該建築倍率的貢獻（專長匹配 ×2、五行相合 ×1.25）
-export function contribution(d, bid) {
+// 五行加成：建築與同棟其他弟子對 d 的相生（+）、相剋（−）。「相同」另有 elementMult，不在此計。
+export function elementEffect(d, bid, mates = []) {
+  const E = CONFIG.element; if (!E.enabled) return 0;
+  const me = defOf(d).element;
+  let v = 0;
+  const add = from => { const r = relation(from, me); if (r === 'sheng') v += E.shengBonus; else if (r === 'ke') v += E.keBonus; };
+  add(BUILDINGS_BY_ID[bid].element);
+  for (const m of mates) add(defOf(m).element);
+  return v;
+}
+// 派駐在建築 bid 時，對該建築倍率的貢獻（專長匹配 ×2、五行相同 ×1.25、五行相生相剋 ±、進階分支）。mates = 同棟其他弟子
+export function contribution(d, bid, mates = []) {
   let m = stat(d) * CONFIG.disciple.assignFactor;
   if (isSpecialtyMatch(d, bid)) m *= CONFIG.disciple.specialtyMult * (branchOf(d) === 'focus' ? 1.25 : 1);
   if (isElementMatch(d, bid)) m *= CONFIG.disciple.elementMult;
-  return m;
+  return m * Math.max(0.5, 1 + elementEffect(d, bid, mates));
 }

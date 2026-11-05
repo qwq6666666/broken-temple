@@ -27,7 +27,8 @@ export function traitSum(s, key) {
 // 建築倍率 = 1 + 駐守弟子貢獻總和
 export function buildingMult(s, id) {
   let m = 1;
-  for (const d of s.disciples) if (d.at === id) m += contribution(d, id);
+  const at = s.disciples.filter(d => d.at === id);
+  for (const d of at) m += contribution(d, id, at.filter(x => x !== d));
   return m;
 }
 

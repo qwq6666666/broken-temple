@@ -630,3 +630,5 @@ h3.sub:first-child { margin-top: 0; }
 
 .chip-btn.match { border-color: var(--jade); } .chip-btn.match small { color: var(--jade); }
 .red { color: var(--red); }
+
+.slot i { font-style: normal; font-size: .75em; } .slot i.up { color: var(--jade); } .slot i.down { color: var(--red); } .slot small { margin-left: 4px; }

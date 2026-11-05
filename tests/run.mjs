@@ -31,6 +31,8 @@ import * as Eq from '../src/core/equip.js';
 import * as NemM from '../src/core/nemesis.js';
 import * as Wk from '../src/core/weekly.js';
 import { COMMISSION_RULES } from '../src/data/commissions.js';
+import { relation, SHENG, KE, ELEMENTS } from '../src/data/elements.js';
+import { elementEffect, contribution } from '../src/core/discipleMath.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID } from '../src/data/expeditions.js';
@@ -1185,6 +1187,51 @@ t('秘境隊伍限制與推薦：限制逐條檢查、不符不能出發、推�
   }
   // 沒有合法隊伍 → null
   const s3 = createState(); s3.realmIdx = 13; D.addDisciple(s3, 'afu'); assert.equal(Ex.bestTeam(s3, 'abyss'), null);
+});
+
+t('五行：相生環與相剋環各自閉合、關係判定正確', () => {
+  assert.equal(ELEMENTS.length, 5);
+  for (const e of ELEMENTS) { assert.ok(SHENG[e] && KE[e]); assert.equal(relation(e, SHENG[e]), 'sheng'); assert.equal(relation(e, KE[e]), 'ke'); assert.equal(relation(e, e), 'same'); }
+  let e = '木'; for (let i = 0; i < 5; i++) e = SHENG[e]; assert.equal(e, '木');      // 生環長度 5
+  e = '木'; for (let i = 0; i < 5; i++) e = KE[e]; assert.equal(e, '木');            // 剋環長度 5
+  assert.ok(new Set(ELEMENTS.map(x => SHENG[x])).size === 5 && new Set(ELEMENTS.map(x => KE[x])).size === 5);
+});
+
+t('五行派駐：建築與同棟隊友相生 +10%、相剋 −5%，可關閉；補滿空位會把相生隊友放一起', () => {
+  const s = createState(); s.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy', 'arena']) s.buildings[id].lv = 4;
+  const get = id => { const d = D.addDisciple(s, id).disciple; d.lv = 5; return d; };
+  // alchemy 屬火：火生土 → 土系弟子在煉丹房 +10%；火剋金 → 金系 −5%
+  const earth = get('afu'), metal = get('qinwu');                           // afu 土、qinwu 金
+  assert.ok(Math.abs(elementEffect(earth, 'alchemy') - 0.10) < 1e-9, '煉丹房（火）生土');
+  assert.ok(Math.abs(elementEffect(metal, 'alchemy') + 0.05) < 1e-9, '煉丹房（火）剋金');
+  assert.ok(Math.abs(elementEffect(metal, 'arena')) < 1e-9, '演武場（金）與金相同：只有 elementMult，不計相生相剋');
+  // 同棟隊友：木生火。破廟屬土，土與火無生剋，所以火系弟子單獨在破廟為 0，與木系隊友同棟為 +10%
+  const fire = D.addDisciple(s, 'huolie').disciple, wood = get('liu2');   // huolie 火、liu2 木
+  assert.equal(elementEffect(fire, 'temple', []), 0);
+  assert.ok(Math.abs(elementEffect(fire, 'temple', [wood]) - 0.10) < 1e-9);
+  assert.ok(contribution(fire, 'temple', [wood]) > contribution(fire, 'temple', []));
+  // 木剋土：土系隊友在場，木系弟子貢獻不受影響，但土系弟子（被木剋）−5%
+  assert.ok(Math.abs(elementEffect(earth, 'temple', [wood]) + 0.05) < 1e-9);
+  CONFIG.element.enabled = false; assert.equal(elementEffect(earth, 'alchemy'), 0); CONFIG.element.enabled = true;
+  // 補滿空位：火系弟子與木系弟子同時待派，各 2 個位置的建築只剩一棟 → 兩人應被放在同一棟以取得相生
+  const s2 = createState(); s2.realmIdx = 6; s2.buildings.temple.lv = 0; s2.buildings.library.lv = 4;   // 只剩藏經閣（水、2 個駐守位）有位置
+  const f2 = D.addDisciple(s2, 'huolie').disciple, w2 = D.addDisciple(s2, 'liu2').disciple; f2.lv = w2.lv = 5;
+  autoAssign(s2); assert.equal(f2.at, 'library'); assert.equal(w2.at, 'library');
+});
+
+t('補滿空位的結果接近暴力窮舉最佳解（含五行相生相剋）', () => {
+  const bids = ['temple', 'field', 'alchemy', 'arena'];
+  const sc = s => bids.reduce((a, id) => a + eco.buildingMult(s, id) - 1, 0);
+  for (const names of [['afu', 'huolie', 'liu2', 'qinwu'], ['shenyao', 'tieniu', 'zhaoling', 'xiaocui'], ['huolie', 'liu2', 'afu', 'moqi']]) {
+    const s = createState(); s.realmIdx = 6; for (const id of bids) s.buildings[id].lv = 4;
+    const ds = names.map((id, i) => { const d = D.addDisciple(s, id).disciple; d.lv = 4 + i * 2; return d; });
+    autoAssign(s); const got = sc(s);
+    let best = 0; const cnt = {};
+    const rec = i => { if (i === ds.length) { best = Math.max(best, sc(s)); return; }
+      for (const b of [null, ...bids]) { if (b && (cnt[b] || 0) >= 2) continue; ds[i].at = b; if (b) cnt[b] = (cnt[b] || 0) + 1; rec(i + 1); if (b) cnt[b]--; } ds[i].at = null; };
+    ds.forEach(d => { d.at = null; }); rec(0);
+    assert.ok(got >= best * 0.97, `${names} 補位 ${got.toFixed(3)} 應 ≥ 最佳 ${best.toFixed(3)} 的 97%`);
+  }
 });
 
 console.log(`\n${n} 項測試通過`);

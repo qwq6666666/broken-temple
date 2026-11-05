@@ -5,7 +5,7 @@ import { RARITIES, RARITY_ORDER } from '../data/gachaRates.js';
 import { levelCapOf, levelCost, canLevel, assignedTo, starCost, canStar, canBranch } from '../core/disciples.js';
 import { traitText } from '../data/traits.js';
 import { slots } from '../core/buildings.js';
-import { stat, isSpecialtyMatch, isElementMatch, starOf, contribution } from '../core/discipleMath.js';
+import { stat, isSpecialtyMatch, isElementMatch, starOf, contribution, elementEffect } from '../core/discipleMath.js';
 import { traitValueS } from '../core/economy.js';
 import { nextChapter, chaptersRead, chapterCount, lockedHint } from '../core/stories.js';
 import { BONDS } from '../data/bonds.js';
@@ -59,12 +59,13 @@ function slotsView(s, ui, away) {
     const cells = Array.from({ length: n }, (_, i) => {
       const d = list[i];
       if (!d) return `<button class="slot empty ${ui.pickB === b.id ? 'on' : ''}" data-act="slotPick" data-b="${b.id}">＋ 空位</button>`;
-      const df = DISCIPLES_BY_ID[d.defId];
-      return `<button class="slot ${isSpecialtyMatch(d, b.id) ? 'match' : ''}" data-act="unassign" data-uid="${d.uid}" title="點一下取消派駐">${df.emoji} ${esc(df.name)}${isSpecialtyMatch(d, b.id) ? ' <b>×2</b>' : ''}</button>`;
+      const df = DISCIPLES_BY_ID[d.defId], ef = elementEffect(d, b.id, list.filter(x => x !== d));
+      const efTxt = ef > 1e-9 ? ` <i class="up">生${Math.round(ef * 100)}%</i>` : ef < -1e-9 ? ` <i class="down">剋${Math.round(ef * 100)}%</i>` : '';
+      return `<button class="slot ${isSpecialtyMatch(d, b.id) ? 'match' : ''}" data-act="unassign" data-uid="${d.uid}" title="點一下取消派駐（五行：${esc(df.element)}）">${df.emoji} ${esc(df.name)}<small class="dim">${esc(df.element)}</small>${isSpecialtyMatch(d, b.id) ? ' <b>×2</b>' : ''}${efTxt}</button>`;
     }).join('');
     let picker = '';
     if (ui.pickB === b.id) {
-      const cand = s.disciples.filter(d => d.at !== b.id && !away.has(d.uid)).sort((x, y) => contribution(y, b.id) - contribution(x, b.id));
+      const cand = s.disciples.filter(d => d.at !== b.id && !away.has(d.uid)).sort((x, y) => contribution(y, b.id, list) - contribution(x, b.id, list));
       picker = `<div class="picker">${cand.map(d => {
         const df = DISCIPLES_BY_ID[d.defId], tag = [isSpecialtyMatch(d, b.id) ? '專長×2' : '', isElementMatch(d, b.id) ? '五行' : ''].filter(Boolean).join('・');
         return `<button class="pchip" style="--rc:${RARITIES[df.rarity].color}" data-act="slotAssign" data-uid="${d.uid}" data-b="${b.id}">${df.emoji} ${esc(df.name)} <small>Lv${d.lv}${tag ? '・' + tag : ''}${d.at ? '・自' + esc(BUILDINGS_BY_ID[d.at].name) : ''}</small></button>`;

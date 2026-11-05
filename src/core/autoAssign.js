@@ -28,10 +28,43 @@ export function autoAssign(s) {
     const opts = bids.filter(id => cap[id] >= 2).map(id => [id, contribution(a, id) + contribution(c, id)]).sort((x, y) => y[1] - x[1]);
     if (opts.length && opts[0][1] >= 0.7 * (best(a) + best(c))) { put(a, opts[0][0]); put(c, opts[0][0]); }
   }
-  // 2) 其餘：所有（弟子, 建築）組合依貢獻值排序，能放就放
-  const pairs = [];
-  for (const d of pool) if (!placed.has(d.uid)) for (const id of bids) pairs.push([contribution(d, id), d, id]);
-  pairs.sort((x, y) => y[0] - x[0]);
-  for (const [, d, id] of pairs) if (!placed.has(d.uid) && cap[id] > 0) put(d, id);
+  // 2) 其餘：反覆挑「邊際貢獻最大」的（弟子, 建築）放入。邊際貢獻 = 自己的貢獻（含與同棟隊友的五行相生相剋）
+  //    ＋ 他加入後對既有隊友貢獻的變化。
+  const mates = id => s.disciples.filter(x => x.at === id);
+  const gain = (d, id) => {
+    const ms = mates(id);
+    let v = contribution(d, id, ms);
+    for (const m of ms) v += contribution(m, id, [...ms.filter(x => x !== m), d]) - contribution(m, id, ms.filter(x => x !== m));
+    return v;
+  };
+  for (;;) {
+    let top = null;
+    for (const d of pool) if (!placed.has(d.uid)) for (const id of bids) if (cap[id] > 0) { const g = gain(d, id); if (!top || g > top[0] + 1e-12) top = [g, d, id]; }
+    if (!top) break;
+    put(top[1], top[2]);
+  }
+  // 3) 區域搜尋：兩人互換、或移到空位，只要整體貢獻變高就接受（最多 30 輪），補貪婪的盲點
+  const mine = pool.filter(d => placed.has(d.uid));
+  const bscore = id => { const ms = mates(id); return ms.reduce((a, m) => a + contribution(m, id, ms.filter(x => x !== m)), 0); };
+  const both = (a, b) => (a === b ? bscore(a) : bscore(a) + bscore(b));
+  for (let pass = 0; pass < 30; pass++) {
+    let improved = false;
+    for (const d of mine) {
+      for (const id of bids) {
+        if (d.at === id) continue;
+        const from = d.at;
+        if (cap[id] > 0) {                                       // 移到空位
+          const before = both(from, id); d.at = id; const after = both(from, id);
+          if (after > before + 1e-9) { cap[id]--; cap[from]++; improved = true; } else d.at = from;
+        }
+        for (const e of mine) {                                  // 與另一位互換
+          if (e === d || e.at !== id || d.at !== from) continue;
+          const before = both(from, id); d.at = id; e.at = from; const after = both(from, id);
+          if (after > before + 1e-9) improved = true; else { d.at = from; e.at = id; }
+        }
+      }
+    }
+    if (!improved) break;
+  }
   return { placed: placed.size, total: pool.length };
 }

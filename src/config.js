@@ -18,6 +18,15 @@ export const CONFIG = {
     levelCapRealmFactor: 0.7,  // 建築等級上限 = min(10, 1 + floor(境界序號 × 0.7))，境界不夠就升不上去
   },
 
+  // 五行：同棟相生／相剋對貢獻的加減，以及仇人的五行克制（已派駐弟子 vs 仇人）
+  element: {
+    enabled: true,
+    shengBonus: 0.10,        // 建築或同棟弟子「生」你 → 你的貢獻 +10%
+    keBonus: -0.05,          // 建築或同棟弟子「剋」你 → 你的貢獻 -5%
+    enemyBeat: 0.03,         // 每位已派駐、五行剋制該仇人的弟子：戰力比 +3%
+    enemyBeaten: 0.02,       // 每位已派駐、被該仇人剋制的弟子：戰力比 -2%
+    enemyMin: 0.85, enemyMax: 1.20,
+  },
   disciple: {
     baseLevelCap: 10,          // 弟子等級上限基礎值
     capPerArenaLevel: 2,       // 演武場每級 +2 等級上限
