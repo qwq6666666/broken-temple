@@ -97,7 +97,7 @@ export function createRenderer(s, ui) {
     const prefs = getPrefs();
     const open = grp.members.filter(m => isUnlocked(s, m));
     const tipId = prefs.tips ? open.find(m => !prefs.tipsSeen[m] && TAB_TIPS[m]) : null;
-    const tip = tipId ? `<div class="tip"><span>💡 ${TAB_TIPS[tipId]}</span><button class="btn mini" data-act="dismissTip" data-tab="${tipId}">知道了</button></div>` : '';
+    const tip = tipId ? `<div class="tip ${ui.tipOpen ? 'open' : ''}"><button class="tiphead" data-act="toggleTip" aria-expanded="${!!ui.tipOpen}">💡 本頁說明 <span>${ui.tipOpen ? '▴' : '▾'}</span></button>${ui.tipOpen ? `<span class="tiptext">${TAB_TIPS[tipId]}</span>` : ''}<button class="btn mini" data-act="dismissTip" data-tab="${tipId}">知道了</button></div>` : '';
     const body = open.map(m => (open.length > 1 ? `<h3 class="sub">${SUB_TITLE[m] || ''}</h3>` : '') + PANELS[m](s, ui)).join('');
     setHTML(panelEl, tip + body);
   }

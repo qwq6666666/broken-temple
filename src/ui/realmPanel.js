@@ -1,26 +1,42 @@
 // 境界面板：目前境界與倍率、下一境界成本、突破按鈕。
-import { REALMS } from '../data/realms.js';
+import { REALMS, TIER_NAMES } from '../data/realms.js';
+import { CONFIG } from '../config.js';
 import { nextRealm, breakCost, canBreak } from '../core/realm.js';
 import { fmt } from '../core/format.js';
 import { canRebirth, daoGain } from '../core/dao.js';
 import { mutatorOf } from '../core/mutators.js';
 import { esc, costChips } from './dom.js';
 
+const capAt = i => Math.min(CONFIG.building.maxLevel, 1 + Math.floor(i * CONFIG.building.levelCapRealmFactor));
+
+// 分段大階：每個大境界一列，段內以小點表示層數（已過＝實心、目前＝金色、未到＝空心）
+function stages(s) {
+  return TIER_NAMES.slice(1).map((name, k) => {
+    const tier = k + 1, rs = REALMS.filter(r => r.tier === tier);
+    const state = rs.every(r => r.idx < s.realmIdx) ? 'done' : rs.some(r => r.idx === s.realmIdx) ? 'cur' : '';
+    const dots = rs.length > 1 ? rs.map(r => `<i class="${r.idx < s.realmIdx ? 'on' : r.idx === s.realmIdx ? 'now' : ''}" title="${esc(r.name)}　產出 ×${fmt(r.mult)}"></i>`).join('') : '';
+    return `<div class="stage ${state}" title="產出 ×${fmt(rs[0].mult)} 起"><b>${esc(name)}</b>${dots ? `<span class="dots">${dots}</span>` : ''}</div>`;
+  }).join('');
+}
+
 export function realmPanel(s) {
   const cur = REALMS[s.realmIdx], nx = nextRealm(s);
-  const ladder = REALMS.map(r => `<span class="step ${r.idx < s.realmIdx ? 'done' : r.idx === s.realmIdx ? 'cur' : ''}" title="產出 ×${fmt(r.mult)}">${esc(r.name)}</span>`).join('');
-  return `<div class="card realm">
+  const cost = nx ? breakCost(s) : null, ok = nx && canBreak(s);
+  const capNow = capAt(s.realmIdx), capNext = nx ? capAt(nx.idx) : capNow;
+  const showPower = s.grudges.length > 0 || !!s.unlocked.avenge;       // 戰力只有打臉預估用得到
+  const diff = nx ? `<div class="diff"><span>產出 <b>×${fmt(cur.mult)}</b> → <b class="gold">×${fmt(nx.mult)}</b></span>
+      ${capNext > capNow ? `<span>建築上限 <b>Lv${capNow}</b> → <b class="gold">Lv${capNext}</b></span>` : ''}</div>` : '';
+  return `<div class="card realm big-realm">
     <div class="big">🧘</div>
     <div class="body">
-      <div class="row"><b style="font-size:1.3em">${esc(cur.name)}</b> <span class="tag gold">產出 ×${fmt(cur.mult)}</span> <span class="tag">戰力 ×${fmt(cur.power)}</span></div>
-      ${nx ? `<small>下一境界：<b>${esc(nx.name)}</b>（產出 ×${fmt(nx.mult)}）</small>`
-           : `<small>已臻化神。可以轉生，換取道心與永久加成了。</small>`}
+      <div class="row"><b style="font-size:1.3em">${esc(cur.name)}</b> <span class="tag gold">產出 ×${fmt(cur.mult)}</span>${showPower ? ` <span class="tag">戰力 ×${fmt(cur.power)}</span>` : ''}</div>
+      ${nx ? `<small>下一境界：<b>${esc(nx.name)}</b></small>${diff}` : `<small>已臻化神。可以轉生，換取道心與永久加成了。</small>`}
     </div>
-    ${nx ? `<div class="act"><div class="costs">${costChips(s, breakCost(s))}</div>
-      <button class="btn ${canBreak(s) ? 'primary' : ''}" data-act="breakthrough" ${canBreak(s) ? '' : 'disabled'}>突破</button></div>` : ''}
+    ${nx ? `<div class="act breakact"><div class="costs lg">${costChips(s, cost)}</div>
+      <button class="btn bigbtn ${ok ? 'primary' : ''}" data-act="breakthrough" ${ok ? '' : 'disabled'}>突破</button></div>` : ''}
   </div>
-  ${nx && nx.shardCost ? '<p class="hint">🧩 築基以上需要「碎片」（現有 ${fmt(s.res.shard)}）。</p>' : ''}
-  <div class="ladder">${ladder}</div>
+  ${nx && nx.shardCost ? `<p class="hint">🧩 築基以上需要「碎片」（現有 ${fmt(s.res.shard)}）。</p>` : ''}
+  <div class="stages">${stages(s)}</div>
   ${mutatorBox(s)}${rebirthBox(s)}`;
 }
 

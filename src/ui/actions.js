@@ -132,6 +132,7 @@ export function bindActions(s, ui, rerender) {
     abandonCommission: el => { Cm.abandon(s, +el.dataset.i); },
     menuToggle: () => setMenu(document.getElementById('menuMore')?.hidden),
     help: () => showHelp(false),
+    toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },
     replayIntro: () => { closeOverlay(); showHelp(true); },
