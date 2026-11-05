@@ -7,9 +7,9 @@ import { fmt } from '../core/format.js';
 import { traitText } from '../data/traits.js';
 import { esc, costChips } from './dom.js';
 
-export function gachaCard(r) {
+export function gachaCard(r, i = 0, flip = false) {
   const c = RARITIES[r.rarity].color;
-  return `<div class="gcard" style="--rc:${c}">
+  return `<div class="gcard ${flip ? 'flip' : ''} ${r.rarity === 'SSR' || r.rarity === 'UR' ? 'glowy' : ''}" style="--rc:${c};--i:${i}">
     <div class="gr">${r.rarity}</div><div class="ge">${r.def.emoji}</div>
     <b>${esc(r.def.name)}</b><small>${esc(r.def.specialty)}・${esc(r.def.element)}</small><small class="trait on">✦ ${esc(traitText(r.def.trait.key, r.def.trait.value))}</small>
     <small class="dim">${r.isNew ? '新弟子！' : `重複 → 🧩${r.shards}`}${r.pity ? '・保底' : ''}</small></div>`;
@@ -19,7 +19,7 @@ export function gachaPanel(s, ui) {
   const t = s.res.token, g = s.gacha;
   const total = RARITY_ORDER.reduce((a, k) => a + RARITIES[k].weight, 0);
   const rates = RARITY_ORDER.map(k => `<span style="color:${RARITIES[k].color}">${k} ${(RARITIES[k].weight / total * 100).toFixed(0)}%</span>`).join('　');
-  const results = ui.lastPull ? ui.lastPull.map(gachaCard).join('') : '<p class="hint">還沒抽過。老祖說：「招賢令，是用來換人的，不是拿來看的。」</p>';
+  const results = ui.lastPull ? ui.lastPull.map((r, i) => gachaCard(r, i, Date.now() < (ui.pullAnimUntil || 0))).join('') : '<p class="hint">還沒抽過。老祖說：「招賢令，是用來換人的，不是拿來看的。」</p>';
   return `<div class="card gacha">
     <div class="body">
       <div class="row"><b>🎫 招賢令：${fmt(t)}</b></div>

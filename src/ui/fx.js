@@ -40,3 +40,35 @@ export function countUp(el, to, fmtFn, ms = 900) {
   };
   requestAnimationFrame(step);
 }
+
+// 殘影退場：在元素被移除前複製一份固定在原位，播放退場動畫（cls）後移除。
+// 用於訪客卡／事件卡：點選後狀態會立刻改變畫面，這樣仍能看到「離場」的動作。
+export function ghostOut(selector, cls, ms = 650) {
+  const el = document.querySelector(selector);
+  if (!el || !motionOK()) return null;
+  const r = el.getBoundingClientRect(), g = el.cloneNode(true);
+  g.classList.add('ghost', cls);
+  Object.assign(g.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', margin: '0', zIndex: '88', pointerEvents: 'none' });
+  g.querySelectorAll('[data-act]').forEach(b => b.removeAttribute('data-act'));
+  document.body.appendChild(g); setTimeout(() => g.remove(), ms);
+  return r;
+}
+// 按鈕水波紋
+export function ripple(btn, clientX, clientY) {
+  if (!motionOK() || btn.disabled) return;
+  const r = btn.getBoundingClientRect(), s = document.createElement('span');
+  s.className = 'ripple'; s.style.left = (clientX - r.left) + 'px'; s.style.top = (clientY - r.top) + 'px';
+  btn.appendChild(s); setTimeout(() => s.remove(), 600);
+}
+// 臨時加 class 播一次動畫
+export function pulse(el, cls, ms = 600) {
+  if (!el || !motionOK()) return;
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), ms);
+}
+// 浮動文字（相對 parent，座標為 parent 內）
+export function floatText(parent, text, x, y, cls = '') {
+  if (!parent || !motionOK()) return;
+  const f = document.createElement('span'); f.className = 'float ' + cls; f.textContent = text;
+  f.style.left = x + 'px'; f.style.top = y + 'px'; parent.appendChild(f); setTimeout(() => f.remove(), 950);
+}

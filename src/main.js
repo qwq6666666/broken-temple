@@ -7,6 +7,8 @@ import { showWelcome, showHelp } from './ui/overlay.js';
 import { guard } from './ui/saveMenu.js';
 import { toast, bus } from './core/events.js';
 import { sfx } from './ui/audio.js';
+import { pulse, shake } from './ui/fx.js';
+import { burstAt, centerOf } from './ui/particles.js';
 import { startLoop } from './core/loop.js';
 import * as economy from './core/economy.js';
 import * as conceal from './core/conceal.js';
@@ -32,7 +34,13 @@ if (loaded && loaded.state) {
 progress.tick(state, true);     // 舊存檔：已達成的條件直接解鎖，不彈提示
 const ui = { tab: 'buildings', lastPull: null, quote: '', quoteAt: 0, busy: false };
 
-bus.on('cue', ({ name, data }) => sfx(name, data || {}));   // core 的提示音
+bus.on('cue', ({ name, data }) => {
+  sfx(name, data || {});                                            // core 的提示音
+  if (name === 'buildingUp') {                                      // 升級：建築彈跳 + 金色迸發
+    const t = document.querySelector(`.tile[data-id=${data.id}]`);
+    if (t) { t._pop = true; pulse(t, 'popup', 700); setTimeout(() => { t._pop = false; }, 700); const c = centerOf(t); burstAt(c.x, c.y, { n: data.stage ? 30 : 16, speed: data.stage ? 220 : 140 }); }
+  } else if (name === 'nemesis') { shake(document.getElementById('scene')); }       // 宿敵現身：全景震動
+});
 initToasts(document.getElementById('toasts'));
 const render = createRenderer(state, ui);
 bindActions(state, ui, render);

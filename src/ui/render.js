@@ -16,6 +16,8 @@ import { nemesisPanel } from './nemesisPanel.js';
 import { daoPanel } from './daoPanel.js';
 import { isUnlocked, nextStep } from '../core/progress.js';
 import { getPrefs } from './prefs.js';
+import { initParticles, setAmbientIntensity } from './particles.js';
+import { pulse, floatText } from './fx.js';
 import { GOALS } from '../data/goals.js';
 
 const TABS = [
@@ -26,8 +28,13 @@ const TABS = [
 export function createRenderer(s, ui) {
   const sceneEl = $('#scene'), concealEl = $('#conceal');
   const sceneRefs = mountScene(sceneEl);
+  initParticles(sceneEl);
   const concealRefs = mountConceal(concealEl);
   const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar'), hintEl = $('#hint');
+  // 資源列骨架
+  resEl.innerHTML = [['qi', '✨ 靈氣'], ['stone', '💎 靈石'], ['token', '🎫 招賢令'], ['shard', '🧩 碎片'], ['dao', '☯️ 道心'], ['realm', '境界']]
+    .map(([k, l]) => `<div class="res ${k === 'realm' ? 'realm' : ''}" data-k="${k}"><span>${l}</span><b></b><small></small></div>`).join('');
+  const resRefs = Object.fromEntries([...resEl.children].map(e => [e.dataset.k, { root: e, b: e.querySelector('b'), sm: e.querySelector('small'), prev: null }]));
   ui.quote = pickLine(LINES.idle);
   bus.on('quote', t => { ui.quote = t; ui.quoteAt = Date.now(); });
 
@@ -35,20 +42,27 @@ export function createRenderer(s, ui) {
     // 老祖閒聊：久未發言就換一句
     if (Date.now() - (ui.quoteAt || 0) > 25000) { ui.quote = pickLine(LINES.idle); ui.quoteAt = Date.now(); }
 
-    // 資源列
+    // 資源列：節點只建一次，只更新文字；數值突然增減時閃一下並飄出變化量
     const r = realmOf(s);
-    const show = {
-      token: s.unlocked.gacha || s.res.token > 0,
-      shard: s.res.shard > 0 || s.disciples.length > 0,
-      dao: s.unlocked.dao || s.res.daoHeart > 0,
+    const rows = {
+      qi:    { show: true, v: s.res.qi, sub: '+' + fmtRate(qiPerSec(s)), rate: qiPerSec(s) },
+      stone: { show: true, v: s.res.stone, sub: stonePerSec(s) > 0 ? '+' + fmtRate(stonePerSec(s)) : '建煉丹房產出', rate: stonePerSec(s) },
+      token: { show: s.unlocked.gacha || s.res.token > 0, v: s.res.token, sub: '', rate: 0 },
+      shard: { show: s.res.shard > 0 || s.disciples.length > 0, v: s.res.shard, sub: '', rate: 0 },
+      dao:   { show: s.unlocked.dao || s.res.daoHeart > 0, v: s.res.daoHeart, sub: s.reincarnation.count ? '轉生 ' + s.reincarnation.count + ' 次' : '化神後可轉生', rate: 0 },
     };
-    setHTML(resEl, `
-      <div class="res"><span>✨ 靈氣</span><b>${fmt(s.res.qi)}</b><small>+${fmtRate(qiPerSec(s))}</small></div>
-      <div class="res"><span>💎 靈石</span><b>${fmt(s.res.stone)}</b><small>${stonePerSec(s) > 0 ? '+' + fmtRate(stonePerSec(s)) : '建煉丹房產出'}</small></div>
-      ${show.token ? `<div class="res"><span>🎫 招賢令</span><b>${fmt(s.res.token)}</b></div>` : ''}
-      ${show.shard ? `<div class="res"><span>🧩 碎片</span><b>${fmt(s.res.shard)}</b></div>` : ''}
-      ${show.dao ? `<div class="res"><span>☯️ 道心</span><b>${fmt(s.res.daoHeart)}</b><small>${s.reincarnation.count ? '轉生 ' + s.reincarnation.count + ' 次' : '化神後可轉生'}</small></div>` : ''}
-      <div class="res realm"><span>境界</span><b>${r.name}</b><small>產出 ×${fmt(r.mult)}</small></div>`);
+    for (const [k, row] of Object.entries(rows)) {
+      const el = resRefs[k]; el.root.style.display = row.show ? '' : 'none';
+      setText(el.b, fmt(row.v)); setText(el.sm, row.sub);
+      const d = row.v - el.prev;
+      if (el.prev !== null && row.show) {
+        if (d > Math.max(1, row.rate * 0.6)) { pulse(el.root, 'bump'); floatText(el.root, '+' + fmt(d), 18, 0, 'rgain'); }
+        else if (-d > Math.max(1, row.rate * 0.6)) pulse(el.root, 'drop');
+      }
+      el.prev = row.v;
+    }
+    setText(resRefs.realm.b, r.name); setText(resRefs.realm.sm, `產出 ×${fmt(r.mult)}`);
+    setAmbientIntensity(qiPerSec(s));
 
     // 下一步提示（可關閉；在「說明」裡重新開啟）
     const hint = getPrefs().hints ? nextStep(s) : null;

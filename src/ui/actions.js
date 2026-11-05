@@ -16,6 +16,9 @@ import { RARITY_ORDER } from '../data/gachaRates.js';
 import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp } from './overlay.js';
 import { sfx, unlock, applyVolume } from './audio.js';
 import { getPrefs, setPref } from './prefs.js';
+import { ghostOut, ripple, pulse } from './fx.js';
+import { burstAt, converge, centerOf } from './particles.js';
+import { playPull } from './pullFx.js';
 import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from './saveMenu.js';
 
 export function bindActions(s, ui, rerender) {
@@ -29,6 +32,8 @@ export function bindActions(s, ui, rerender) {
       const gain = meditate(s);
       if (!gain) return;
       sfx('click');
+      const tile = document.querySelector('.tile[data-id=temple]');           // 靈氣匯聚到破廟
+      if (tile) { const c = centerOf(tile); converge(ev.clientX, ev.clientY, c.x, c.y, { n: 14 }); setTimeout(() => burstAt(c.x, c.y, { n: 8, speed: 70, color: 'rgba(143,207,168,1)', life: 0.5 }), 520); }
       const sc = document.getElementById('scene'), r = sc.getBoundingClientRect();
       const f = document.createElement('span'); f.className = 'float'; f.textContent = '+' + fmt(gain);
       f.style.left = (ev.clientX - r.left) + 'px'; f.style.top = (ev.clientY - r.top - 10) + 'px';
@@ -44,9 +49,16 @@ export function bindActions(s, ui, rerender) {
       catch (e) { console.error(e); closeOverlay(); }      // 演出出錯也不能卡住遊戲（突破本身已結算）
       finally { ui.busy = false; }
     },
-    pull: el => {
+    pull: async el => {
+      if (ui.busy) return;
       const r = G.pull(s, +el.dataset.n);
-      if (r) { ui.lastPull = r; sfx('pull', { r: Math.max(...r.map(x => RARITY_ORDER.indexOf(x.rarity))) }); }
+      if (!r) return;
+      ui.busy = true; ui.lastPull = null; rerender();
+      try { await playPull(r); } catch (e) { console.error(e); }
+      finally {
+        ui.lastPull = r; ui.pullAnimUntil = Date.now() + 2400 + r.length * 120;       // 結果卡翻牌動畫的時間窗
+        ui.busy = false; rerender();
+      }
     },
     buyToken: el => { if (G.buyTokens(s, +el.dataset.n)) sfx('coin'); },
     levelUp: el => { if (D.levelUp(s, +el.dataset.uid)) sfx('upgrade'); },
@@ -59,9 +71,16 @@ export function bindActions(s, ui, rerender) {
     },
     daoExchange: el => { if (Dao.exchange(s, el.dataset.id)) sfx('coin'); },
     daoBuy: el => { if (Dao.buy(s, el.dataset.id)) sfx('upgrade'); },
-    incident: el => { if (I.resolve(s, +el.dataset.i)) sfx('coin'); },
-    endure: () => { if (E.endure(s)) sfx('endure'); },
+    incident: el => {
+      const rect = ghostOut('.incident-card', 'exit-event');
+      const sum = I.resolve(s, +el.dataset.i);
+      if (sum) { sfx('coin'); if (rect) burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2, { n: 18, speed: 150, color: /-|暫停/.test(sum) ? 'rgba(209,88,76,1)' : 'rgba(217,182,74,1)' }); }
+    },
+    endure: () => { ghostOut('.visitor-card', 'exit-endure'); if (E.endure(s)) sfx('endure'); },
     show: () => {
+      const cur = s.visitor.current, win = cur && E.assess(s, cur).showKind === 'beat';
+      const rect = ghostOut('.visitor-card', win ? 'exit-beat' : 'exit-show');
+      if (rect && win) burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2, { n: 24, speed: 200, color: 'rgba(143,207,168,1)' });
       const r = E.showOff(s);
       if (r) { toast(r.line, r.outcome === 'beat' ? 'good' : 'info'); sfx(r.outcome === 'beat' ? 'crush' : 'show'); }
     },
@@ -102,6 +121,7 @@ export function bindActions(s, ui, rerender) {
     toggleLoss: el => { s.settings.loss = el.checked; },
   };
   document.addEventListener('pointerdown', unlock, { once: false });
+  document.addEventListener('pointerdown', e => { const b = e.target.closest?.('.btn'); if (b) ripple(b, e.clientX, e.clientY); });
   updateMenu();
   document.addEventListener('click', ev => {
     const el = ev.target.closest('[data-act]');
@@ -121,4 +141,5 @@ export function updateMenu() {
   const a = document.querySelector('[data-act=toggleSound]'), m = document.querySelector('[data-act=toggleMotion]');
   if (a) a.textContent = p.muted ? '🔇 音效關' : '🔊 音效開';
   if (m) m.textContent = p.reduceMotion ? '🎞 動態：少' : '🎞 動態：開';
+  document.body.classList.toggle('reduce-motion', !!p.reduceMotion);    // CSS 動畫一併停用
 }

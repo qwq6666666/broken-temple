@@ -4,7 +4,7 @@ import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
 import { LINES, pickLine } from '../data/lines.js';
 import { canAfford, pay } from './resources.js';
-import { quote } from './events.js';
+import { quote, cue } from './events.js';
 
 export const def = id => BUILDINGS_BY_ID[id];
 // 建築等級上限：受境界限制（避免一下滿級），最高 10
@@ -44,6 +44,7 @@ export function upgrade(s, id) {
   s.buildings[id].lv++;
   const after = stageIndex(id, s.buildings[id].lv);
   quote(pickLine(after > before ? LINES.stageUp : LINES.upgrade));
+  cue('buildingUp', { id, stage: after > before });          // 供 ui 播放升級動畫
   return true;
 }
 

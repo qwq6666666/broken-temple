@@ -16,40 +16,51 @@ import { esc, setHTML, setText } from './dom.js';
 
 export function mountScene(root) {
   root.innerHTML = `
+    <div class="daynight"></div><div class="vignette"></div>
     <div class="sky"><span class="moon">🌕</span><span class="cloud c1">☁️</span><span class="cloud c2">☁️</span></div>
     <div class="ridge"></div>
-    <div class="ancestor"><div class="avatar">👴</div><div class="bubble" data-r="bubble"></div></div>
-    <div class="tiles" data-r="tiles"></div>
+    <div class="ancestor"><div class="avatar" data-r="avatar">👴</div><div class="bubble" data-r="bubble"></div></div>
+    <div class="tiles" data-r="tiles">${BUILDINGS.map(d => `<div class="tile" data-id="${d.id}">
+      <div class="emoji"></div><div class="tname"><span class="tn">${esc(d.name)}</span> <b class="tl"></b></div>
+      <div class="tstage"></div><div class="crew"></div></div>`).join('')}</div>
     <div class="visitor-slot" data-r="visitor"></div>
     <div class="incident-slot" data-r="incident"></div>
     <div class="meditate-slot"><button class="btn meditate" data-act="meditate"><span class="cd" data-r="cd"></span><span class="mlabel" data-r="mlabel"></span></button></div>`;
   const refs = Object.fromEntries([...root.querySelectorAll('[data-r]')].map(e => [e.dataset.r, e]));
   refs.mbtn = root.querySelector('.meditate');   // 按鈕只建一次，之後只改屬性，避免連點時被重建
+  // 建築格只建一次，之後只更新文字與 class，CSS 動畫才不會每秒重播
+  refs.tileEls = Object.fromEntries([...root.querySelectorAll('.tile')].map(e => [e.dataset.id, {
+    el: e, emoji: e.querySelector('.emoji'), lv: e.querySelector('.tl'), stage: e.querySelector('.tstage'), crew: e.querySelector('.crew') }]));
   return refs;
 }
 
+const setClass = (el, c) => { if (el._c !== c) { el.className = c; el._c = c; } };
+
 export function updateScene(root, refs, s, ui) {
-  // 破廟外觀決定整體氛圍（背景光暈）
+  // 破廟外觀決定整體氛圍；宿敵來訪時加上紅色暈影
   const ti = stageIndex('temple', s.buildings.temple.lv);
-  root.className = `scene stage-${ti}`;
-  setHTML(refs.bubble, esc(ui.quote));
+  setClass(root, `scene stage-${ti}${s.visitor.current?.nemesisId ? ' nemesis-alert' : ''}`);
+  if (refs.bubble._q !== ui.quote) {                      // 老祖換台詞：氣泡彈一下
+    refs.bubble._q = ui.quote; setHTML(refs.bubble, esc(ui.quote));
+    refs.bubble.classList.remove('pop'); void refs.bubble.offsetWidth; refs.bubble.classList.add('pop');
+  }
 
-  setHTML(refs.tiles, BUILDINGS.map(d => {
-    const b = s.buildings[d.id], st = stageOf(d.id, b.lv);
-    const built = b.lv > 0;
-    const paused = built && s.t < b.pausedUntil;
-    const crew = s.disciples.filter(x => x.at === d.id).map(x => DISCIPLES_BY_ID[x.defId].emoji).join('');
-    return `<div class="tile ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${b.lv >= CONFIG.building.maxLevel ? 'maxed' : ''} st-${stageIndex(d.id, b.lv)}"
-                 title="${esc(d.name)}：${esc(st.label)}">
-      <div class="emoji">${st.emoji}</div>
-      <div class="tname">${esc(d.name)} <b>Lv${b.lv}</b></div>
-      <div class="tstage">${paused ? '⏸ ' + fmtTime(b.pausedUntil - s.t) : esc(st.label)}</div>
-      <div class="crew">${crew}</div>
-    </div>`;
-  }).join(''));
+  for (const d of BUILDINGS) {
+    const b = s.buildings[d.id], st = stageOf(d.id, b.lv), t = refs.tileEls[d.id];
+    const built = b.lv > 0, paused = built && s.t < b.pausedUntil;
+    setClass(t.el, `tile ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${b.lv >= CONFIG.building.maxLevel ? 'maxed' : ''} st-${stageIndex(d.id, b.lv)}${t.el._pop ? ' popup' : ''}`);
+    setText(t.emoji, st.emoji); setText(t.lv, 'Lv' + b.lv);
+    setText(t.stage, paused ? '⏸ ' + fmtTime(b.pausedUntil - s.t) : st.label);
+    t.el.title = `${d.name}：${st.label}`;
+    setHTML(t.crew, s.disciples.filter(x => x.at === d.id).map(x => `<span>${DISCIPLES_BY_ID[x.defId].emoji}</span>`).join(''));
+  }
 
-  setHTML(refs.visitor, visitorCard(s));
-  setHTML(refs.incident, incidentCard(s));
+  // 訪客／事件卡：只有「剛出現」的那一小段時間才播進場動畫，避免內容更新時重播
+  const v = s.visitor.current, inc = s.incident.current;
+  if ((v?.id ?? null) !== ui._vid) { ui._vid = v?.id ?? null; ui._venter = Date.now() + 900; }
+  if ((inc?.expiresAt ?? null) !== ui._iid) { ui._iid = inc?.expiresAt ?? null; ui._ienter = Date.now() + 900; }
+  setHTML(refs.visitor, visitorCard(s, Date.now() < ui._venter));
+  setHTML(refs.incident, incidentCard(s, Date.now() < ui._ienter));
   // 打坐按鈕：冷卻中灰化並顯示進度
   const left = cooldownLeft(s), ready = left <= 0;
   refs.mbtn.disabled = !ready;
@@ -59,7 +70,7 @@ export function updateScene(root, refs, s, ui) {
 
 const VERDICT_TXT = { crush: ['v-crush', '你能碾壓他'], narrow: ['v-narrow', '你勉強勝他'], fail: ['v-fail', '你打不過他'] };
 
-function visitorCard(s) {
+function visitorCard(s, entering = false) {
   const v = s.visitor.current;
   if (!v) return '';
   const t = VISITOR_TYPES[v.type], a = assess(s, v), [vc, vt] = a.escape ? ['v-narrow', '勉強勝，但他會脫身'] : VERDICT_TXT[a.verdict];
@@ -74,7 +85,7 @@ function visitorCard(s) {
     nemesis: `<b class="red">⚠ 宿敵不能當場打倒</b>：損失 ×${a.showMult}，對方入簿（留到引爆再算帳，要碾壓才算擊敗）`,
     offend: `<b class="red">⚠ 長老得罪不起</b>：損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,
   }[a.showKind];
-  return `<div class="visitor-card ${nem ? 'nemesis' : ''}">
+  return `<div class="visitor-card ${nem ? 'nemesis' : ''} ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${nem ? nem.emoji : t.emoji}</span>
       <div><b>${esc(v.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
       <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small></div></div>
@@ -86,9 +97,9 @@ function visitorCard(s) {
 }
 
 // 隨機事件卡：不顯示倒數數字（避免每秒重繪害按鈕點不到），逾時視為「無視」
-function incidentCard(s) {
+function incidentCard(s, entering = false) {
   const d = incidentDef(s); if (!d) return '';
-  return `<div class="incident-card">
+  return `<div class="incident-card ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${d.emoji}</span><div><b>${esc(d.title)}</b> <span class="tag">突發事件</span> <small class="dim">（限時，逾時視為無視）</small></div></div>
     <p class="taunt">${esc(d.text)}</p>
     <div class="vbtns" style="grid-template-columns:repeat(${d.choices.length},1fr)">

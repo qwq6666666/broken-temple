@@ -18,6 +18,8 @@ import * as Inc from '../src/core/incidents.js';
 import * as Nem from '../src/core/nemesis.js';
 import * as Dao from '../src/core/dao.js';
 import * as Prog from '../src/core/progress.js';
+import { stepParticle, moteCount } from '../src/ui/particles.js';
+import { topRarity, playPull } from '../src/ui/pullFx.js';
 import { bus } from '../src/core/events.js';
 import { NEMESES, NEMESES_BY_ID } from '../src/data/nemeses.js';
 import { ARTIFACTS_BY_ID } from '../src/data/artifacts.js';
@@ -685,6 +687,30 @@ t('下一步提示：依進度給出對應建議', () => {
   s.visitor.current = null; s.disguise.value = 20; s.grudges = [visitor('former', 1)];
   assert.match(Prog.nextStep(s).text, /不裝了/);
   s.realmIdx = 13; s.disguise.value = 0; s.grudges = []; assert.equal(Prog.nextStep(s).tab, 'realm');   // 化神 → 轉生
+});
+
+// ── 動畫（純邏輯部分）──
+t('粒子推進：壽命、重力、匯聚到目標', () => {
+  const p = { x: 0, y: 0, vx: 10, vy: 0, g: 100, life: 1, max: 1 };
+  assert.equal(stepParticle(p, 0.5), true); assert.equal(p.x, 5); assert.ok(p.y === 0 && p.vy === 50);   // 先位移、再受重力
+  assert.equal(stepParticle(p, 0.6), false);                                                              // 壽命耗盡
+  const c = { x: 0, y: 0, sx: 0, sy: 0, tx: 100, ty: 50, life: 1, max: 1 };
+  stepParticle(c, 0.5); assert.ok(c.x > 0 && c.x < 100);
+  stepParticle(c, 0.49); assert.ok(c.x > 90 && Math.abs(c.y - c.x / 2) < 1e-9);                          // 接近目標，且沿直線
+});
+
+t('環境光點數量隨產出緩增，且有上下限（手機較少）', () => {
+  assert.equal(moteCount(0), 8); assert.ok(moteCount(1e3) > moteCount(10));
+  assert.equal(moteCount(1e50), 30); assert.equal(moteCount(1e50, true), 14);
+});
+
+t('抽卡演出：最高稀有度判斷', () => {
+  assert.equal(topRarity([{ rarity: 'N' }, { rarity: 'SR' }, { rarity: 'R' }]), 'SR');
+  assert.equal(topRarity([{ rarity: 'N' }, { rarity: 'UR' }, { rarity: 'SSR' }]), 'UR');
+});
+
+t('沒有瀏覽器環境時，特效函式不丟錯（直接略過）', async () => {
+  await playPull([{ rarity: 'UR' }]);                       // Node 沒有 document：motionOK 仍為真，但應被保護
 });
 
 console.log(`\n${n} 項測試通過`);
