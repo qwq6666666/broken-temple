@@ -35,6 +35,7 @@ export function createState() {
     unlocked: {},                           // 已解鎖的分頁（新手引導）
     seenIntro: false,                       // 是否看過開場說明
     nemeses: {},                            // 宿敵進度 {id: {met, defeated}}
+    chronicle: [],                          // 宗門年表（跨轉生保留）
     commissions: { list: [], nextAt: 0, done: 0 },   // 宗門委託（跨轉生保留）
     goalsDone: [],                          // 已完成的宗門大事
     burstActive: false,

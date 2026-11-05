@@ -610,3 +610,5 @@ h3.sub:first-child { margin-top: 0; }
   .scene .land { max-height: 34vh; }
 }
 @media (min-width: 861px) { #tabs { gap: 3px; } .tab { padding: 7px 9px; font-size: .94em; } }
+
+.chrow { display: flex; gap: 10px; font-size: .88em; line-height: 1.5; } .chrow small { flex: none; min-width: 7.5em; }

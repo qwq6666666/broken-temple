@@ -3,6 +3,7 @@ import { REALMS } from '../data/realms.js';
 import { LINES, pickLine } from '../data/lines.js';
 import { canAfford, pay } from './resources.js';
 import { quote } from './events.js';
+import { note } from './chronicle.js';
 
 export const nextRealm = s => REALMS[s.realmIdx + 1] || null;
 export function breakCost(s) {
@@ -23,5 +24,6 @@ export function breakthrough(s) {
   const to = REALMS[s.realmIdx];
   const line = to.tier > from.tier ? pickLine(LINES.breakTier[to.tier]) : pickLine(LINES.breakLayer);
   quote(line);
+  if (to.tier > from.tier) note(s, '🧘', `突破至${to.name}`);
   return { from, to, line };
 }

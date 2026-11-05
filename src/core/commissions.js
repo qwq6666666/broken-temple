@@ -3,6 +3,7 @@ import { COMMISSIONS, COMMISSION_BY_KIND, COMMISSION_RULES as R } from '../data/
 import { pick, weighted } from './rng.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { toast, cue } from './events.js';
+import { note } from './chronicle.js';
 
 export const progressOf = (s, c) => {
   const d = COMMISSION_BY_KIND[c.kind];
@@ -51,6 +52,7 @@ export function claim(s, i) {
   if (C.done % R.milestoneEvery === 0) {
     bonus = R.milestoneReward;
     for (const k of Object.keys(bonus)) s.res[k] += bonus[k];
+    note(s, '📋', `累計完成 ${C.done} 張委託`);
     toast(`📋 累計完成 ${C.done} 張委託，額外獎勵 ${rewardText(bonus)}`, 'good');
   }
   cue('goal');

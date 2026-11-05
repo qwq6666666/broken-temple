@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { DAO_SHOP, DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { createState } from './state.js';
 import { canAfford, pay } from './resources.js';
+import { note } from './chronicle.js';
 import { toast, quote, cue } from './events.js';
 import { specSum } from './spec.js';
 import { factionPerm } from './factions.js';
@@ -39,12 +40,13 @@ export function daoGain(s) {
 export function rebirth(s, mutatorId = null) {
   if (!canRebirth(s)) return null;
   const gain = daoGain(s);
+  const wasRun = { ...s.run }, wasNo = s.reincarnation.count + 1;
   const fresh = createState();
   const keep = {
     // 重置等級與派駐，但保留弟子本身與星級
     disciples: s.disciples.map(d => ({ ...d, lv: 1, at: null })),
     nextUid: s.nextUid, nextGid: s.nextGid, recruits: s.recruits,
-    artifacts: s.artifacts, goalsDone: s.goalsDone, commissions: s.commissions, nemeses: s.nemeses,
+    artifacts: s.artifacts, goalsDone: s.goalsDone, commissions: s.commissions, chronicle: s.chronicle, nemeses: s.nemeses,
     gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro, stories: s.stories, factions: s.factions,
     reincarnation: { count: s.reincarnation.count + 1, shop: s.reincarnation.shop },
   };
@@ -56,6 +58,7 @@ export function rebirth(s, mutatorId = null) {
   s.res.stone += perm(s, 'startStone'); s.res.token += perm(s, 'startToken');
   s.visitor.nextAt = s.t + CONFIG.visitor.firstSec * 1000;
   s.incident.nextAt = s.t + 300000;
+  note(s, '☯️', `第${wasNo}世結束：引爆 ${wasRun.bursts} 次、最大連鎖 ${wasRun.maxChain}、擊敗宿敵 ${wasRun.nemeses}、完成大事 ${wasRun.goals}，獲得道心 ${gain}`);
   toast(`☯️ 轉生成功！獲得道心 ${gain}`, 'good'); cue('goal');
   quote('輪迴一遭，這座破廟又換了新顏。……別急，這一次，你知道路了。');
   return gain;

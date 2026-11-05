@@ -7,7 +7,8 @@ import { isDone, progress } from '../core/goals.js';
 import { progressOf, isReady, rewardText as cRewardText } from '../core/commissions.js';
 import { COMMISSION_BY_KIND, COMMISSION_RULES } from '../data/commissions.js';
 import { fmt } from '../core/format.js';
-import { esc } from './dom.js';
+import { esc, crow } from './dom.js';
+import { stamp } from '../core/chronicle.js';
 
 const permText = p => Object.entries(p || {}).map(([k, v]) => ({ qiMult: '靈氣', stoneMult: '靈石', powerMult: '戰力', burstReward: '爆擊獎勵' }[k] + ` +${Math.round(v * 100)}%`)).join('、');
 const rewardText = r => [r.token && `🎫${r.token}`, r.stone && `💎${r.stone}`, r.perm && `永久：${permText(r.perm)}`].filter(Boolean).join('　');
@@ -29,7 +30,14 @@ function commissionBox(s) {
   return `<h3 class="sub">📋 宗門委託</h3><p class="hint">已完成 ${C.done} 張，再 ${toNext} 張有額外獎勵（🎫${COMMISSION_RULES.milestoneReward.token}）</p>${rows}${wait}<h3 class="sub">🎯 宗門大事</h3>`;
 }
 
-export function goalPanel(s) {
+function chronicleBox(s, ui) {
+  const list = [...(s.chronicle || [])].reverse();
+  if (!list.length) return '';
+  const rows = list.slice(0, 40).map(e => `<div class="chrow"><small class="dim">${esc(stamp(e))}</small><span>${e.icon} ${esc(e.text)}</span></div>`).join('');
+  return `<h3 class="sub">📜 宗門年表</h3>${crow(ui, { key: 'chron', icon: '📜', title: '<b>宗門年表</b>', sub: `${esc(list[0].icon)} ${esc(list[0].text)}`, detail: rows })}`;
+}
+
+export function goalPanel(s, ui) {
   const done = s.goalsDone.length;
   const rows = GOALS.map(g => {
     const ok = isDone(s, g.id), cur = progress(s, g), pct = Math.floor(cur / g.target * 100);
@@ -47,6 +55,7 @@ export function goalPanel(s) {
     ? `<span class="art" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`
     : `<span class="art off">❔ 未獲得<small>長老被爆時掉落</small></span>`).join('');
   return `${commissionBox(s)}<p class="hint">宗門大事 ${done}/${GOALS.length}</p>${rows}
+    ${chronicleBox(s, ui)}
     <h3>弟子圖鑑 ${owned.size}/${DISCIPLES.length}</h3><div class="dexgrid">${dex}</div>
     <h3>功法法寶圖鑑 ${s.artifacts.length}/${ARTIFACTS.length}</h3><div class="arts">${arts}</div>`;
 }

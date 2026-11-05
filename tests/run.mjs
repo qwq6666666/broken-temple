@@ -24,6 +24,7 @@ import * as Fac from '../src/core/factions.js';
 import { TAB_TIPS, HELP } from '../src/data/help.js';
 import { sanitize } from '../src/core/save.js';
 import { autoAssign } from '../src/core/autoAssign.js';
+import * as Chr from '../src/core/chronicle.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1057,6 +1058,15 @@ t('補滿空位：只填空位、不動已派駐、專長與緣分優先、不�
   const s3 = createState(); s3.realmIdx = 6; s3.buildings.temple.lv = 4;
   const e = D.addDisciple(s3, 'afu').disciple; s3.expeditions.push({ uids: [e.uid] });
   autoAssign(s3); assert.equal(e.at, null);
+});
+
+t('宗門年表：突破大境界與轉生會記錄、上限 120 筆、跨轉生保留', () => {
+  const s = createState(); s.res.stone = 1e12; s.res.shard = 1e6;
+  while (s.realmIdx < 13) R.breakthrough(s);
+  assert.ok(s.chronicle.some(e => e.text.includes('突破至築基')) && s.chronicle.some(e => e.text.includes('突破至化神')));
+  Dao.rebirth(s); assert.ok(s.chronicle.some(e => e.text.includes('第1世結束')));
+  for (let i = 0; i < 200; i++) Chr.note(s, '📜', 'x' + i);
+  assert.equal(s.chronicle.length, 120);
 });
 
 console.log(`\n${n} 項測試通過`);

@@ -9,6 +9,7 @@ import { lvlLabel } from '../data/realms.js';
 import { pick, randInt, chance, weighted } from './rng.js';
 import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf } from './conceal.js';
+import { note } from './chronicle.js';
 import { quote } from './events.js';
 import { isNemesis, nemOf, nemState, lineFor } from './nemesis.js';
 import { addRep, rewardMult, tierOfSect } from './factions.js';
@@ -120,6 +121,7 @@ export function burst(s) {
       total.token += rw.token; total.stone += rw.stone; r.nemesisReward = rw;
       const art = ARTIFACTS_BY_ID[rw.artifact];
       if (art && !s.artifacts.includes(art.id)) { s.artifacts.push(art.id); artifacts.push(art); }
+      note(s, '⚔️', `擊敗宿敵「${n.name}」`);
       nemState(s, n.id).defeated = true; s.stats.nemesisDefeated = (s.stats.nemesisDefeated || 0) + 1; s.run.nemeses++;
       nemesesDefeated.push({ n, art, finale: !!n.finale });
     }
@@ -142,6 +144,9 @@ export function burst(s) {
   const beaten = new Set(entries.filter(e => e.verdict !== 'fail').map(e => e.g.id));
   s.grudges = s.grudges.filter(g => !beaten.has(g.id));
   s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0;
+  const prevMax = s.stats.maxChain || 0;
+  if (s.stats.bursts === 0) note(s, '💥', `首次引爆，連鎖 ${chain} 人`);
+  else if (chain >= 3 && chain > prevMax) note(s, '💥', `單次引爆連鎖 ${chain} 人（新紀錄）`);
   s.stats.bursts++; s.stats.maxChain = Math.max(s.stats.maxChain || 0, chain);
   s.run.bursts++; s.run.maxChain = Math.max(s.run.maxChain, chain);
   const outro = pickLine(LINES.burstOutro[[10, 5, 3, 1, 0].find(n => chain >= n) ?? 0]);
