@@ -29,6 +29,7 @@ import * as Ach from '../src/core/achievements.js';
 import * as Off from '../src/core/offlineEvent.js';
 import * as Eq from '../src/core/equip.js';
 import * as NemM from '../src/core/nemesis.js';
+import * as Wk from '../src/core/weekly.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1140,6 +1141,23 @@ t('宿敵覺醒：未達轉生次數與境界不會出現、達成後出現且�
   const r = X.burst(s); assert.ok(r);
   const aw = r.nemesesDefeated.find(d => d.awaken); assert.ok(aw, '應擊敗覺醒者'); assert.equal(aw.dao, 3);
   assert.equal(s.res.daoHeart, 3); assert.equal(s.nemeses.qian.awakeLv, 1); assert.equal(s.stats.nemesisDefeated, 6); assert.equal(s.artifacts.length, 0);
+});
+
+t('每週挑戰：週一對齊、詞條輪替、符合才加道心且每週一次、換週後可再領', () => {
+  const MON = Date.UTC(2026, 10, 2, 0, 0, 0);                                   // 2026-11-02 是週一
+  assert.equal(Wk.weekIndex(MON), Wk.weekIndex(MON + 6.9 * 86400000));          // 同一週
+  assert.equal(Wk.weekIndex(MON + 7 * 86400000), Wk.weekIndex(MON) + 1);        // 下週一換週
+  assert.notEqual(Wk.weeklyMutator(MON).id, Wk.weeklyMutator(MON + 7 * 86400000).id);
+  const mk = mut => { const s = createState(); s.realmIdx = 13; s.res.stone = 1e12; s.mutator = mut; return s; };
+  const wid = Wk.weeklyMutator(MON).id;
+  const a = mk(null); const g0 = Dao.daoGain(a); assert.equal(Dao.rebirth(a, null, MON), g0);              // 沒用本週詞條：無加成
+  const b = mk(wid); const gb = Dao.daoGain(b), bonus = Wk.weeklyBonusFor(gb);
+  assert.equal(Dao.rebirth(b, wid, MON), gb + bonus); assert.equal(b.res.daoHeart, gb + bonus);
+  assert.ok(b.chronicle.some(e => e.text.includes('每週挑戰')));
+  b.realmIdx = 13; b.res.stone = 1e12; const gb2 = Dao.daoGain(b);                                       // 同一週再轉生：已領過
+  assert.equal(Wk.weeklyEligible(b, MON + 86400000), false); assert.equal(Dao.rebirth(b, wid, MON + 86400000), gb2);
+  b.realmIdx = 13; b.res.stone = 1e12; assert.equal(Wk.weeklyEligible(b, MON + 7 * 86400000), false);   // 下週詞條不同，本輪用的不是它
+  assert.equal(sanitize(JSON.parse(JSON.stringify(createState()))).weekly.claimed, -1);
 });
 
 console.log(`\n${n} 項測試通過`);

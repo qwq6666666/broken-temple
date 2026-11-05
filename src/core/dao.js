@@ -4,6 +4,7 @@ import { DAO_SHOP, DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { createState } from './state.js';
 import { canAfford, pay } from './resources.js';
 import { note } from './chronicle.js';
+import { weeklyEligible, weeklyBonusFor, weekIndex } from './weekly.js';
 import { toast, quote, cue } from './events.js';
 import { specSum } from './spec.js';
 import { factionPerm } from './factions.js';
@@ -37,16 +38,18 @@ export function daoGain(s) {
 }
 
 // 轉生：重置本輪，保留收藏類進度。回傳獲得的道心；不符條件回傳 null
-export function rebirth(s, mutatorId = null) {
+export function rebirth(s, mutatorId = null, now = Date.now()) {
   if (!canRebirth(s)) return null;
-  const gain = daoGain(s);
+  const baseGain = daoGain(s);
+  const bonus = weeklyEligible(s, now) ? weeklyBonusFor(baseGain) : 0;       // 每週挑戰：用本週詞條完成這一輪
+  const gain = baseGain + bonus;
   const wasRun = { ...s.run }, wasNo = s.reincarnation.count + 1;
   const fresh = createState();
   const keep = {
     // 重置等級與派駐，但保留弟子本身與星級
     disciples: s.disciples.map(d => ({ ...d, lv: 1, at: null, branch: null })),
     nextUid: s.nextUid, nextGid: s.nextGid, recruits: s.recruits,
-    artifacts: s.artifacts, goalsDone: s.goalsDone, commissions: s.commissions, chronicle: s.chronicle, achv: s.achv, equipped: s.equipped, nemeses: s.nemeses,
+    artifacts: s.artifacts, goalsDone: s.goalsDone, commissions: s.commissions, chronicle: s.chronicle, achv: s.achv, equipped: s.equipped, weekly: s.weekly, nemeses: s.nemeses,
     gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro, stories: s.stories, factions: s.factions,
     reincarnation: { count: s.reincarnation.count + 1, shop: s.reincarnation.shop },
   };
@@ -55,11 +58,12 @@ export function rebirth(s, mutatorId = null) {
   Object.assign(s, fresh, keep);
   s.t = t; s.mutator = MUTATORS_BY_ID[mutatorId] ? mutatorId : null;      // 下一輪的輪迴詞條
   s.res.shard = shard; s.res.daoHeart = dao;
+  if (bonus) s.weekly = { claimed: weekIndex(now) };
   s.res.stone += perm(s, 'startStone'); s.res.token += perm(s, 'startToken');
   s.visitor.nextAt = s.t + CONFIG.visitor.firstSec * 1000;
   s.incident.nextAt = s.t + 300000;
-  note(s, '☯️', `第${wasNo}世結束：引爆 ${wasRun.bursts} 次、最大連鎖 ${wasRun.maxChain}、擊敗宿敵 ${wasRun.nemeses}、完成大事 ${wasRun.goals}，獲得道心 ${gain}`);
-  toast(`☯️ 轉生成功！獲得道心 ${gain}`, 'good'); cue('goal');
+  note(s, '☯️', `第${wasNo}世結束：引爆 ${wasRun.bursts} 次、最大連鎖 ${wasRun.maxChain}、擊敗宿敵 ${wasRun.nemeses}、完成大事 ${wasRun.goals}，獲得道心 ${gain}${bonus ? `（含每週挑戰 +${bonus}）` : ''}`);
+  toast(`☯️ 轉生成功！獲得道心 ${gain}${bonus ? `（含每週挑戰 +${bonus}）` : ''}`, 'good'); cue('goal');
   quote('輪迴一遭，這座破廟又換了新顏。……別急，這一次，你知道路了。');
   return gain;
 }

@@ -625,3 +625,5 @@ h3.sub:first-child { margin-top: 0; }
 .pchip.eq { border-color: var(--gold); background: var(--panel2); }
 
 .branchrow { display: flex; gap: 6px; flex-wrap: wrap; } .branchrow .btn { flex: 1 1 140px; display: flex; flex-direction: column; align-items: flex-start; text-align: left; } .branchrow .btn small { font-size: .72em; color: var(--dim); white-space: normal; }
+
+.weekly { border: 1px dashed var(--line); border-radius: 10px; padding: 6px 10px; margin: 6px 0; font-size: .9em; line-height: 1.6; } .weekly.ok { border-color: var(--gold); background: rgba(217,182,74,.08); }

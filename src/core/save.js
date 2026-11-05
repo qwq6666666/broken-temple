@@ -62,6 +62,7 @@ export function sanitize(s) {
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
+  s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   const av = isPlain(s.achv) ? s.achv : {};
   s.achv = { done: [...new Set((Array.isArray(av.done) ? av.done : []).filter(id => ACHIEVEMENTS_BY_ID[id]))], title: ACHIEVEMENTS_BY_ID[av.title] ? av.title : null };
   const cm = isPlain(s.commissions) ? s.commissions : {};

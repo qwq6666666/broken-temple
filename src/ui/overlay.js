@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { VISITOR_TYPES } from '../data/visitors.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { fmt, fmtTime } from '../core/format.js';
+import { weeklyMutator, weeklyEligible, weeklyBonusFor, weekIndex, weekDaysLeft } from '../core/weekly.js';
 import { OFFLINE_EVENTS_BY_ID } from '../data/offlineEvents.js';
 import { esc, sleep } from './dom.js';
 import { sfx } from './audio.js';
@@ -208,13 +209,17 @@ export function showBurstPreview(pv) {
 
 // ── 轉生確認 ──
 export function showRebirthConfirm(s) {
+  const wm = weeklyMutator(), ok = weeklyEligible(s), claimed = s.weekly.claimed === weekIndex();
+  const banner = `<div class="weekly ${ok ? 'ok' : ''}">🗓 <b>本週挑戰：${esc(wm.name)}</b>（剩 ${weekDaysLeft()} 天）<br><small>${ok ? `本輪使用的就是「${esc(wm.name)}」，這次轉生額外 <b class="gold">+${weeklyBonusFor(daoGain(s))} 道心</b>！`
+    : claimed ? '本週挑戰已完成，下週換新詞條。' : `用「${esc(wm.name)}」詞條完成一輪並在本週內轉生，首次額外獲得道心。下一輪可在下方選用。`}</small></div>`;
   return showModal(`<h3>☯️ 轉生</h3>
-    <p>本次可獲得 <b class="gold">道心 ${fmt(daoGain(s))}</b>。</p>
+    ${banner}
+    <p>本次可獲得 <b class="gold">道心 ${fmt(daoGain(s) + (ok ? weeklyBonusFor(daoGain(s)) : 0))}</b>。</p>
     <p><b>會重置：</b>靈氣、靈石、招賢令、境界、建築、弟子等級與派駐、復仇簿、偽裝與蓄力。</p>
     <p><b>會保留：</b>弟子收藏與星級、碎片、功法法寶、宗門大事、宿敵進度、抽卡保底、道心與商店加成、設定。</p>
     <p class="hint">轉生後境界回到凡人，但道心加成與轉生次數加成會讓你重新修煉得更快。</p>
     <p><b class="gold">輪迴詞條（可選）</b>：下一輪的挑戰，有代價也有報酬，結算時給額外道心。</p>
-    <select id="mutsel" class="assign" style="width:100%"><option value="">— 不選擇 —</option>${MUTATORS.map(m => `<option value="${m.id}">${esc(m.name)}：${esc(m.desc)}</option>`).join('')}</select>
+    <select id="mutsel" class="assign" style="width:100%"><option value="">— 不選擇 —</option>${MUTATORS.map(m => `<option value="${m.id}">${m.id === wm.id ? '🗓 本週挑戰・' : ''}${esc(m.name)}：${esc(m.desc)}</option>`).join('')}</select>
     <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmRebirth">確定轉生</button></div>`);
 }
 
