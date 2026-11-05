@@ -7,7 +7,7 @@ import { stageOf, stageIndex } from '../core/buildings.js';
 import { clickPower } from '../core/economy.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt, fmtTime } from '../core/format.js';
-import { cooldownLeft } from '../core/meditate.js';
+import { cooldownLeft, cooldownMs } from '../core/meditate.js';
 import { assess } from '../core/endure.js';
 import { nemOf } from '../core/nemesis.js';
 import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
@@ -53,7 +53,7 @@ export function updateScene(root, refs, s, ui) {
   // 打坐按鈕：冷卻中灰化並顯示進度
   const left = cooldownLeft(s), ready = left <= 0;
   refs.mbtn.disabled = !ready;
-  refs.cd.style.width = (ready ? 0 : left / CONFIG.click.cooldownMs * 100).toFixed(1) + '%';
+  refs.cd.style.width = (ready ? 0 : left / cooldownMs(s) * 100).toFixed(1) + '%';
   setText(refs.mlabel, ready ? `🧘 引氣打坐 +${fmt(clickPower(s))} 靈氣` : `🧘 調息中… ${(left / 1000).toFixed(1)}s`);
 }
 

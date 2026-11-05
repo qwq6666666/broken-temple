@@ -3,7 +3,7 @@
 import { CONFIG } from '../config.js';
 import { createState } from './state.js';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 const isPlain = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(base, saved) {
@@ -15,7 +15,8 @@ function merge(base, saved) {
 
 // 舊版存檔升級（之後改資料結構時在這裡加）
 function migrate(data) {
-  // if (data.version < 2) { ... }
+  // v1 → v2：新增 reincarnation / run 欄位，由 merge() 以預設值補齊，資料本身不需轉換
+  data.version = SAVE_VERSION;
   return data;
 }
 

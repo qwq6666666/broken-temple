@@ -16,6 +16,7 @@ import * as M from '../src/core/meditate.js';
 import * as Goals from '../src/core/goals.js';
 import * as Inc from '../src/core/incidents.js';
 import * as Nem from '../src/core/nemesis.js';
+import * as Dao from '../src/core/dao.js';
 import { NEMESES, NEMESES_BY_ID } from '../src/data/nemeses.js';
 import { ARTIFACTS_BY_ID } from '../src/data/artifacts.js';
 import { GOALS_BY_ID } from '../src/data/goals.js';
@@ -532,6 +533,77 @@ t('宿敵存檔往返、完成全部後觸發大事', () => {
   const st = fakeStorage(); S.save(s, st); const r = S.load(st);
   assert.equal(Nem.isDefeated(r.state, 'xuan'), true);
   Goals.tick(r.state); assert.ok(r.state.goalsDone.includes('nemAll'));
+});
+
+// ── R9 轉生與道心 ──
+const maxedRun = () => { const s = createState(); s.realmIdx = 13; s.run = { bursts: 12, maxChain: 5, nemeses: 2, goals: 4 }; return s; };
+
+t('轉生：只有化神能轉；道心依本輪表現計算', () => {
+  const s = createState(); assert.equal(Dao.canRebirth(s), false); assert.equal(Dao.rebirth(s), null);
+  const m = maxedRun();
+  assert.equal(Dao.daoGain(m), 10 + 12 + 5 * 2 + 2 * 5 + 4 * 2);
+  m.run.bursts = 999; assert.equal(Dao.daoGain(m), 10 + 40 + 10 + 10 + 8);    // 引爆有上限
+});
+
+t('轉生：重置本輪，保留收藏類進度，道心入帳', () => {
+  const s = maxedRun(); s.t = 5000;
+  s.res.qi = 1e9; s.res.stone = 1e5; s.res.shard = 77; s.buildings.field.lv = 5;
+  const d = D.addDisciple(s, 'xuantian').disciple; d.lv = 9; d.star = 2; D.assign(s, d.uid, 'temple');
+  s.artifacts.push('yinqi'); s.goalsDone.push('burst1'); s.nemeses.qian = { met: 2, defeated: true };
+  s.gacha.sinceSR = 33; s.grudges = [visitor('former', 1)]; s.disguise.value = 15; s.stats.bursts = 40;
+  const gain = Dao.rebirth(s);
+  assert.equal(gain, Dao.daoGain({ ...maxedRun() }));
+  // 重置
+  assert.equal(s.realmIdx, 0); assert.equal(s.buildings.field.lv, 0); assert.equal(s.buildings.temple.lv, CONFIG.start.templeLevel);
+  assert.equal(s.res.qi, CONFIG.start.qi); assert.equal(s.grudges.length, 0); assert.equal(s.disguise.value, 0);
+  assert.deepEqual(s.run, { bursts: 0, maxChain: 0, nemeses: 0, goals: 0 });
+  // 保留
+  assert.equal(s.res.daoHeart, gain); assert.equal(s.res.shard, 77); assert.equal(s.reincarnation.count, 1);
+  assert.equal(s.disciples.length, 1); assert.equal(s.disciples[0].lv, 1); assert.equal(s.disciples[0].at, null); assert.equal(s.disciples[0].star, 2);
+  assert.deepEqual(s.artifacts, ['yinqi']); assert.deepEqual(s.goalsDone, ['burst1']); assert.equal(s.nemeses.qian.defeated, true);
+  assert.equal(s.gacha.sinceSR, 33); assert.equal(s.stats.bursts, 40); assert.equal(s.t, 5000);
+  assert.ok(s.visitor.nextAt > s.t);
+});
+
+t('道心商店：成本遞增、等級上限、加成生效', () => {
+  const s = createState(); s.res.daoHeart = 1000;
+  const c0 = Dao.shopCost(s, 'qi').daoHeart;
+  const q0 = eco.qiPerSec(s);
+  assert.equal(Dao.buy(s, 'qi'), true); assert.equal(Dao.shopLevel(s, 'qi'), 1);
+  assert.ok(Dao.shopCost(s, 'qi').daoHeart > c0 || c0 === 1);
+  assert.ok(Math.abs(eco.qiPerSec(s) / q0 - 1.10 / 1.0) < 1e-9);               // 聚靈體質 +10%
+  s.reincarnation.shop.stone = 20; assert.equal(Dao.canBuy(s, 'stone'), false);   // 已滿級
+  const poor = createState(); assert.equal(Dao.buy(poor, 'qi'), false);
+});
+
+t('道心：轉生次數自動加成、打坐冷卻、招賢令、離線上限與效率、開局資源', () => {
+  const s = createState(); s.reincarnation.count = 3;
+  assert.ok(Math.abs(Dao.perm(s, 'qiMult') - 0.3) < 1e-9);
+  s.reincarnation.shop.cd = 4; assert.equal(M.cooldownMs(s), CONFIG.click.cooldownMs - 2000);
+  s.reincarnation.shop.cd = 6; s.reincarnation.shop.cd = 99; assert.ok(M.cooldownMs(s) >= 2000);
+  const a = createState(), b = createState(); b.reincarnation.shop.token = 5;
+  eco.tick(a, 90000); eco.tick(b, 90000); assert.ok(b.res.token > a.res.token);
+  const o1 = createState(), o2 = createState(); o2.reincarnation.shop = { offcap: 2, offeff: 4 };
+  assert.equal(applyOffline(o2, 100 * 3600000).usedMs, CONFIG.offline.capMs + 2 * 3600000);
+  assert.ok(applyOffline(o2, 3600000).efficiency > applyOffline(o1, 3600000).efficiency);
+  const r = maxedRun(); r.reincarnation.shop = { startS: 2, startT: 3 }; Dao.rebirth(r);
+  assert.equal(r.res.stone, CONFIG.start.stone + 30); assert.equal(r.res.token, CONFIG.start.token + 3);
+});
+
+t('存檔 v1 → v2：舊檔可讀並補上轉生欄位', () => {
+  const old = { version: 1, savedAt: Date.now(), state: { res: { qi: 9 }, buildings: { temple: { lv: 3, pausedUntil: 0 } } } };
+  const { state } = S.parse(JSON.stringify(old));
+  assert.equal(state.res.qi, 9); assert.equal(state.reincarnation.count, 0); assert.deepEqual(state.run, { bursts: 0, maxChain: 0, nemeses: 0, goals: 0 });
+  const st = fakeStorage(); const m = maxedRun(); Dao.rebirth(m); S.save(m, st);
+  assert.equal(S.load(st).state.reincarnation.count, 1);
+  assert.throws(() => S.parse(JSON.stringify({ version: 99, state: { res: {}, buildings: {} } })));
+});
+
+t('本輪統計會累計：引爆、連鎖、宿敵、大事', () => {
+  const s = createState(); s.realmIdx = 8; s.disguise.value = 99;
+  s.grudges = [visitor('former', 0, { id: 1 }), visitor('former', 0, { id: 2, name: 'B' })];
+  X.burst(s); assert.equal(s.run.bursts, 1); assert.equal(s.run.maxChain, 2);
+  s.stats.bursts = 1; Goals.tick(s); assert.ok(s.run.goals >= 1);
 });
 
 console.log(`\n${n} 項測試通過`);

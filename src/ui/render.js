@@ -13,11 +13,12 @@ import { disciplePanel } from './disciplePanel.js';
 import { avengePanel } from './avengePanel.js';
 import { goalPanel } from './goalPanel.js';
 import { nemesisPanel } from './nemesisPanel.js';
+import { daoPanel } from './daoPanel.js';
 import { GOALS } from '../data/goals.js';
 
 const TABS = [
   ['buildings', '🏯 建築'], ['realm', '🧘 境界'], ['gacha', '🎫 招賢'],
-  ['disciples', '👥 弟子'], ['avenge', '📖 復仇簿'], ['nemesis', '⚔️ 宿敵錄'], ['goals', '🎯 大事'],
+  ['disciples', '👥 弟子'], ['avenge', '📖 復仇簿'], ['nemesis', '⚔️ 宿敵錄'], ['dao', '☯️ 道心'], ['goals', '🎯 大事'],
 ];
 
 export function createRenderer(s, ui) {
@@ -39,7 +40,7 @@ export function createRenderer(s, ui) {
       <div class="res"><span>💎 靈石</span><b>${fmt(s.res.stone)}</b><small>+${fmtRate(stonePerSec(s))}</small></div>
       <div class="res"><span>🎫 招賢令</span><b>${fmt(s.res.token)}</b></div>
       <div class="res"><span>🧩 碎片</span><b>${fmt(s.res.shard)}</b></div>
-      <div class="res dim" title="轉生系統：之後版本開放"><span>☯️ 道心</span><b>—</b><small>預留</small></div>
+      <div class="res ${s.res.daoHeart || s.reincarnation.count ? '' : 'dim'}" title="轉生獲得，可在「道心」分頁購買永久加成"><span>☯️ 道心</span><b>${fmt(s.res.daoHeart)}</b><small>${s.reincarnation.count ? '轉生 ' + s.reincarnation.count + ' 次' : '化神後可轉生'}</small></div>
       <div class="res realm"><span>境界</span><b>${r.name}</b><small>產出 ×${fmt(r.mult)}</small></div>`);
 
     updateScene(sceneEl, sceneRefs, s, ui);
@@ -52,7 +53,7 @@ export function createRenderer(s, ui) {
       return `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}">${label}${badge}${alert}</button>`;
     }).join(''));
 
-    const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel }[ui.tab];
+    const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel }[ui.tab];
     setHTML(panelEl, body(s, ui));
   }
   return render;

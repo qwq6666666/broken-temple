@@ -12,7 +12,7 @@ export const goalPerm = (s, key) =>
 export function tick(s) {
   for (const g of GOALS) {
     if (isDone(s, g.id) || g.cur(s) < g.target) continue;
-    s.goalsDone.push(g.id);
+    s.goalsDone.push(g.id); s.run.goals++;
     for (const k of ['stone', 'token', 'qi']) if (g.reward[k]) s.res[k] += g.reward[k];
     toast(`🎯 宗門大事達成：${g.name}`, 'good'); cue('goal');
   }

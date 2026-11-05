@@ -96,6 +96,8 @@ export const CONFIG = {
     minMs: 60 * 1000,          // 離開不到 1 分鐘不結算
     stepMs: 60 * 1000,         // 結算步長
   },
+  // 轉生：化神後可轉生，依本輪表現換取道心。道心 = base + 引爆(上限) + 連鎖×2 + 擊敗宿敵×5 + 完成大事×2
+  reincarnation: { minRealm: 13, daoBase: 10, burstCap: 40, perBurst: 1, perChain: 2, perNemesis: 5, perGoal: 2, autoBonusPerCount: 0.10 },
   nemesis: { chance: 0.5 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵
   save: { key: 'broken-temple-save', autosaveMs: 10000 },
 

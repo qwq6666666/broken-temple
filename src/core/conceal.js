@@ -2,6 +2,7 @@
 import { CONFIG } from '../config.js';
 import { REALMS, lvlLabel, tierOfLvl, powerOfLvl, TIER_NAMES } from '../data/realms.js';
 import { combatPower, traitSum } from './economy.js';
+import { perm as daoPerm } from './dao.js';
 
 // 蓄力倍率：每 10 分鐘 +5%，上限 ×3（連續計算）
 export const chargeMult = s =>
@@ -13,7 +14,7 @@ export const disguiseFull = s => s.disguise.value >= CONFIG.conceal.max;
 // 每 tick：偽裝值緩增、蓄力計時、仇人成長
 export function tick(s, dt) {
   const d = s.disguise;
-  d.value = Math.min(CONFIG.conceal.max, d.value + dt * (1 + traitSum(s, 'disguiseRate')) / (CONFIG.conceal.timeGainSec * 1000));
+  d.value = Math.min(CONFIG.conceal.max, d.value + dt * (1 + traitSum(s, 'disguiseRate') + daoPerm(s, 'disguiseRate')) / (CONFIG.conceal.timeGainSec * 1000));
   d.chargeMs += dt;
   const grow = CONFIG.enemy.growthPerMin * dt / 60000;
   for (const g of s.grudges) g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + grow);

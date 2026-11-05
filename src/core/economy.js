@@ -4,13 +4,14 @@ import { BUILDINGS } from '../data/buildings.js';
 import { REALMS } from '../data/realms.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { goalPerm } from './goals.js';
+import { perm as daoPerm } from './dao.js';
 import { contribution, stat, traitOf, traitValue } from './discipleMath.js';
 
 export const realmOf = s => REALMS[s.realmIdx];
 
 // 永久加成（功法／法寶／宗門大事）總和
 export const artifactSum = (s, key) =>
-  s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0), 0) + goalPerm(s, key);
+  s.artifacts.reduce((a, id) => a + (ARTIFACTS_BY_ID[id].effect[key] || 0), 0) + goalPerm(s, key) + daoPerm(s, key);
 
 // 特性加總：只計算「已派駐」的弟子
 export function traitSum(s, key) {
@@ -72,7 +73,7 @@ export function tick(s, dt) {
   s.res.qi += qiPerSec(s) * sec;
   s.res.stone += stonePerSec(s) * sec;
   s.tokenAcc += dt;
-  const step = CONFIG.gacha.tokenTrickleSec * 1000;
+  const step = CONFIG.gacha.tokenTrickleSec * 1000 / (1 + daoPerm(s, 'tokenRate'));   // 道心：招賢名聲
   if (s.tokenAcc >= step) {
     const n = Math.floor(s.tokenAcc / step);
     s.res.token += n; s.tokenAcc -= n * step;

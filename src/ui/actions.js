@@ -8,11 +8,12 @@ import * as D from '../core/disciples.js';
 import * as E from '../core/endure.js';
 import * as X from '../core/burst.js';
 import * as I from '../core/incidents.js';
+import * as Dao from '../core/dao.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITY_ORDER } from '../data/gachaRates.js';
-import { playBreakthrough, playBurst, closeOverlay, showBurstPreview } from './overlay.js';
+import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm } from './overlay.js';
 import { sfx, unlock, applyVolume } from './audio.js';
 import { getPrefs, setPref } from './prefs.js';
 import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from './saveMenu.js';
@@ -45,6 +46,13 @@ export function bindActions(s, ui, rerender) {
     buyToken: el => { if (G.buyTokens(s, +el.dataset.n)) sfx('coin'); },
     levelUp: el => { if (D.levelUp(s, +el.dataset.uid)) sfx('upgrade'); },
     starUp: el => { if (D.starUp(s, +el.dataset.uid)) { toast('升星成功！', 'good'); sfx('goal'); } },
+    rebirth: () => { if (!ui.busy && Dao.canRebirth(s)) showRebirthConfirm(s); },
+    confirmRebirth: () => {
+      closeOverlay();
+      const gain = Dao.rebirth(s);
+      if (gain != null) { sfx('fanfare'); ui.tab = 'dao'; ui.lastPull = null; }
+    },
+    daoBuy: el => { if (Dao.buy(s, el.dataset.id)) sfx('upgrade'); },
     incident: el => { if (I.resolve(s, +el.dataset.i)) sfx('coin'); },
     endure: () => { if (E.endure(s)) sfx('endure'); },
     show: () => {

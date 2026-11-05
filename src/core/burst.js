@@ -107,7 +107,7 @@ export function burst(s) {
       total.token += rw.token; total.stone += rw.stone; r.nemesisReward = rw;
       const art = ARTIFACTS_BY_ID[rw.artifact];
       if (art && !s.artifacts.includes(art.id)) { s.artifacts.push(art.id); artifacts.push(art); }
-      nemState(s, n.id).defeated = true; s.stats.nemesisDefeated = (s.stats.nemesisDefeated || 0) + 1;
+      nemState(s, n.id).defeated = true; s.stats.nemesisDefeated = (s.stats.nemesisDefeated || 0) + 1; s.run.nemeses++;
       nemesesDefeated.push({ n, art, finale: !!n.finale });
     }
   }
@@ -130,6 +130,7 @@ export function burst(s) {
   s.grudges = s.grudges.filter(g => !beaten.has(g.id));
   s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0;
   s.stats.bursts++; s.stats.maxChain = Math.max(s.stats.maxChain || 0, chain);
+  s.run.bursts++; s.run.maxChain = Math.max(s.run.maxChain, chain);
   const outro = pickLine(LINES.burstOutro[[10, 5, 3, 1, 0].find(n => chain >= n) ?? 0]);
   s.burstActive = true;                     // 演出期間封鎖訪客；ui 結束後呼叫 endBurst
   return {

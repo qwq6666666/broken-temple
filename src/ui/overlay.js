@@ -5,6 +5,7 @@ import { RARITIES } from '../data/gachaRates.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { esc, sleep } from './dom.js';
 import { sfx } from './audio.js';
+import { daoGain } from '../core/dao.js';
 import { shake, flash, particles, banner, countUp } from './fx.js';
 
 const root = () => document.getElementById('overlay');
@@ -147,7 +148,7 @@ export function showWelcome(r) {
   const grown = r.grown.length ? `<p class="hint">仇人們沒閒著：${r.grown.slice(0, 5).map(g => `${esc(g.name)}→${esc(g.to)}`).join('、')}${r.grown.length > 5 ? '…' : ''}</p>` : '';
   o.innerHTML = `<div class="ov settle"><div class="panel">
     <h2>🏯 歡迎回來，宗主</h2>
-    <p class="hint">離開 ${away}${r.capped ? `（離線收益最多計 ${CONFIG.offline.capMs / 3600000} 小時）` : ''}，宗門以 ${Math.round(r.efficiency * 100)}% 效率運轉。</p>
+    <p class="hint">離開 ${away}${r.capped ? `（離線收益最多計 ${r.capMs / 3600000} 小時）` : ''}，宗門以 ${Math.round(r.efficiency * 100)}% 效率運轉。</p>
     <div class="sgrid">
       <div><span>✨ 靈氣</span><b>+${fmt(r.gains.qi)}</b></div>
       <div><span>💎 靈石</span><b>+${fmt(r.gains.stone)}</b></div>
@@ -181,4 +182,14 @@ export function showBurstPreview(pv) {
     <div class="pvlist">${rows}</div>
     ${pv.backfires ? '<p class="warnline">⚠ 有長老實力遠勝於你，引爆會遭到反噬（損失靈石、建築暫停）。可以再蓄力、突破後再爆。</p>' : ''}
     <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmBurst">不裝了！</button></div>`);
+}
+
+// ── 轉生確認 ──
+export function showRebirthConfirm(s) {
+  return showModal(`<h3>☯️ 轉生</h3>
+    <p>本次可獲得 <b class="gold">道心 ${fmt(daoGain(s))}</b>。</p>
+    <p><b>會重置：</b>靈氣、靈石、招賢令、境界、建築、弟子等級與派駐、復仇簿、偽裝與蓄力。</p>
+    <p><b>會保留：</b>弟子收藏與星級、碎片、功法法寶、宗門大事、宿敵進度、抽卡保底、道心與商店加成、設定。</p>
+    <p class="hint">轉生後境界回到凡人，但道心加成與轉生次數加成會讓你重新修煉得更快。</p>
+    <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmRebirth">確定轉生</button></div>`);
 }

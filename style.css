@@ -234,3 +234,6 @@ button.meditate .mlabel { position: relative; }
 .enemy.nemesis .eemoji { font-size: 44px; }
 .card.nem.locked { opacity: .45; } .card.nem.done { border-color: var(--jade); }
 .nemstory { background: rgba(217,182,74,.08); border-left: 3px solid var(--gold); padding: 6px 10px; margin: 6px 0; border-radius: 4px; }
+
+/* 轉生 */
+.card.rebirth { border-color: var(--gold); box-shadow: 0 0 18px rgba(217,182,74,.3); margin-top: 12px; }
