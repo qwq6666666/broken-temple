@@ -6,3 +6,5 @@ export const bus = {
 };
 export const toast = (text, kind = 'info') => bus.emit('toast', { text, kind });
 export const quote = text => bus.emit('quote', text);
+// 提示音／演出提示：core 只發 cue，ui 決定要不要播（core 不碰音效與 DOM）
+export const cue = (name, data) => bus.emit('cue', { name, data });

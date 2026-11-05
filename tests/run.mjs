@@ -14,6 +14,8 @@ import * as C from '../src/core/conceal.js';
 import * as X from '../src/core/burst.js';
 import * as M from '../src/core/meditate.js';
 import * as Goals from '../src/core/goals.js';
+import { sfx, unlock, applyVolume, SFX_NAMES } from '../src/ui/audio.js';
+import { getPrefs, setPref } from '../src/ui/prefs.js';
 import { stat, traitValue } from '../src/core/discipleMath.js';
 import * as S from '../src/core/save.js';
 import { applyOffline } from '../src/core/offline.js';
@@ -373,6 +375,30 @@ t('引爆會記錄最大連鎖數', () => {
   const s = createState(); s.realmIdx = 8; s.disguise.value = 99;
   s.grudges = [1, 2, 3].map(i => visitor('former', 0, { id: i, name: 'N' + i }));
   X.burst(s); assert.equal(s.stats.maxChain, 3);
+});
+
+t('音效：沒有 Web Audio 或靜音時所有呼叫都安靜略過', () => {
+  const names = SFX_NAMES;
+  assert.ok(names.length >= 12);
+  for (const nm of names) sfx(nm, { n: 3, r: 4 });        // Node 沒有 AudioContext：不得丟錯
+  setPref('muted', true); sfx('crush'); setPref('muted', false);
+  unlock(); applyVolume();
+});
+
+t('偏好設定可讀寫（不進遊戲存檔）', () => {
+  setPref('reduceMotion', true); assert.equal(getPrefs().reduceMotion, true);
+  setPref('reduceMotion', false); assert.equal(getPrefs().reduceMotion, false);
+});
+
+t('仇人記住當初的嘲諷，引爆時可兩段式重播', () => {
+  const s = withVisitor(createState(), visitor('former', 1, { taunt: '你算什麼東西' }));
+  E.endure(s); assert.equal(s.grudges[0].taunt, '你算什麼東西');
+  s.realmIdx = 8; s.disguise.value = 99;
+  const r = X.burst(s); assert.equal(r.entries[0].taunt, '你算什麼東西');
+  // 舊存檔沒有 taunt：以性格台詞補上
+  const s2 = createState(); s2.realmIdx = 8; s2.disguise.value = 99;
+  s2.grudges = [visitor('former', 0, { id: 7 })];
+  delete s2.grudges[0].taunt; assert.ok(X.burst(s2).entries[0].taunt);
 });
 
 console.log(`\n${n} 項測試通過`);

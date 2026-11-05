@@ -8,7 +8,7 @@ import { rareChance, stonePerSec, qiPerSec, traitSum } from './economy.js';
 import { ratioOf, verdictOf } from './conceal.js';
 import { DISCIPLES } from '../data/disciples.js';
 import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
-import { quote, toast } from './events.js';
+import { quote, toast, cue } from './events.js';
 
 const scheduleNext = s => {
   s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000;
@@ -37,6 +37,7 @@ export function tick(s) {
   if (s.t < s.visitor.nextAt) return;
   if (s.grudges.length >= CONFIG.visitor.maxGrudges) { scheduleNext(s); return; }
   s.visitor.current = makeVisitor(s);
+  cue('visitor');
 }
 
 // 憋屈值：連續忍氣吞聲越多次，下一次的損失越重（亮一手／引爆後歸零）
@@ -78,7 +79,7 @@ export { applyLoss };
 function toBook(s, v) {
   s.visitor.current = null;
   s.grudges.push({ id: v.id, name: v.name, type: v.type, sect: v.sect, role: v.role,
-                   personality: v.personality, lvl: v.lvl, alert: v.alert });
+                   personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt });
   scheduleNext(s);
 }
 

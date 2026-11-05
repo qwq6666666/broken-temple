@@ -4,6 +4,8 @@ import { VISITOR_TYPES } from '../data/visitors.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { esc, sleep } from './dom.js';
+import { sfx } from './audio.js';
+import { shake, flash, particles, banner, countUp } from './fx.js';
 
 const root = () => document.getElementById('overlay');
 
@@ -23,8 +25,9 @@ export async function playBreakthrough(res) {
   o.innerHTML = `<div class="ov break"><div class="swirl">🌀</div>
     <h2 data-r="t">閉關突破中……</h2><p class="lineq" data-r="q"></p></div>`;
   o.classList.add('on');
-  const t = o.querySelector('[data-r=t]'), q = o.querySelector('[data-r=q]');
+  const t = o.querySelector('[data-r=t]'), q = o.querySelector('[data-r=q]'), ov = o.firstElementChild;
   await sleep(CONFIG.realm.breakMs * 0.6);
+  sfx('breakthrough'); flash(ov, '#ffe9a8'); particles(ov, ['✨', '🌟', '💫'], 18);
   t.innerHTML = `✨ 突破成功：<b>${esc(res.from.name)} → ${esc(res.to.name)}</b>`;
   o.querySelector('.swirl').textContent = '🌟';
   await typeInto(q, `老祖：「${res.line}」`, { v: false });
@@ -33,17 +36,22 @@ export async function playBreakthrough(res) {
 }
 
 // ── 爆發 ──
+const CHAIN_BANNER = { 3: '三連！', 5: '五連爆！', 10: '十連爆！！' };
+
 export async function playBurst(result) {
   const o = root();
   const skip = { v: false };
   o.innerHTML = `<div class="ov burst-scene">
     <button class="skipbtn">⏭ 跳過</button>
+    <div class="chainbig" data-r="chain"></div>
     <div class="narr" data-r="narr"></div>
     <div class="stage" data-r="stage"></div></div>`;
   o.classList.add('on');
+  const scene = o.firstElementChild;
   o.querySelector('.skipbtn').onclick = () => { skip.v = true; };
-  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]');
+  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]');
 
+  sfx('burstIntro');
   await typeInto(narr, `老祖：「${result.intro}」`, skip);
   await wait(600, skip);
 
@@ -54,15 +62,26 @@ export async function playBurst(result) {
     card.className = `enemy ${e.verdict}`;
     card.innerHTML = `<div class="ehead"><span class="eemoji">${t.emoji}</span>
       <div><b>${esc(e.g.name)}</b> <span class="tag">${esc(t.label)}</span><br><small>${esc(e.g.sect)}・${esc(e.g.label)}</small></div></div>
-      <p class="eline"></p><div class="everdict"></div>`;
+      <p class="etaunt"></p><p class="eline"></p><div class="everdict"></div>`;
     stage.appendChild(card);
     stage.scrollTop = stage.scrollHeight;
+    // 兩段式：先重播他當初的嘲諷，停頓，再接逆轉台詞
+    await typeInto(card.querySelector('.etaunt'), `「${e.taunt}」`, skip, 16);
+    await wait(450, skip);
+    card.querySelector('.etaunt').classList.add('old');
     await typeInto(card.querySelector('.eline'), `「${e.line}」`, skip, 22);
     const vd = card.querySelector('.everdict');
-    if (e.verdict === 'fail') vd.innerHTML = '😏 打不過……暫且留在名單';
+    if (e.verdict === 'fail') { vd.innerHTML = '😏 打不過……暫且留在名單'; if (!skip.v) sfx('fail'); }
     else {
       n++;
       vd.innerHTML = (e.verdict === 'crush' ? '🙇 碾壓！跪地求饒' : '😤 險勝') + `　<span class="chainno">連鎖 ${n}</span>`;
+      chainEl.textContent = `連鎖 ×${n}`; chainEl.classList.remove('pulse'); void chainEl.offsetWidth; chainEl.classList.add('pulse');
+      chainEl.style.setProperty('--s', Math.min(2.2, 1 + n * 0.12));
+      if (!skip.v) {
+        sfx(e.verdict === 'crush' ? 'crush' : 'narrow'); sfx('chain', { n });
+        if (e.verdict === 'crush') { shake(scene); flash(scene); particles(scene, ['🙇', '💢', '✨'], 10); }
+        if (CHAIN_BANNER[n]) banner(scene, CHAIN_BANNER[n], 'chainbanner');
+      }
     }
     card.classList.add('shown');
     await typeInto(narr, `老祖：「${e.narr}」`, skip, 18);
@@ -73,16 +92,18 @@ export async function playBurst(result) {
   return showSettlement(result);
 }
 
+const RARE = new Set(['SSR', 'UR']);
+
 function showSettlement(r) {
   const o = root();
   const crush = r.entries.filter(e => e.verdict === 'crush').length;
   const narrow = r.entries.filter(e => e.verdict === 'narrow').length;
   const fail = r.entries.length - crush - narrow;
   const sur = r.surrendered.length
-    ? r.surrendered.map(x => `<span class="art" style="color:${RARITIES[x.def.rarity].color}">${x.def.emoji} ${esc(x.def.name)} <small>${x.def.rarity}・原屬 ${esc(x.from)}</small></span>`).join('')
+    ? r.surrendered.map(x => `<span class="art ${RARE.has(x.def.rarity) ? 'rare' : ''}" style="color:${RARITIES[x.def.rarity].color}">${x.def.emoji} ${esc(x.def.name)} <small>${x.def.rarity}・原屬 ${esc(x.from)}</small></span>`).join('')
     : '<span class="dim">無</span>';
   const arts = r.artifacts.length
-    ? r.artifacts.map(a => `<span class="art">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`).join('') : '<span class="dim">無</span>';
+    ? r.artifacts.map(a => `<span class="art rare">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`).join('') : '<span class="dim">無</span>';
   o.innerHTML = `<div class="ov settle"><div class="panel">
     <h2>💥 破廟一怒・結算</h2>
     <div class="sgrid">
@@ -93,9 +114,9 @@ function showSettlement(r) {
     </div>
     <h3>總獎勵</h3>
     <div class="sgrid">
-      <div><span>✨ 靈氣</span><b>+${fmt(r.total.qi)}</b></div>
-      <div><span>💎 靈石</span><b>+${fmt(r.total.stone)}</b></div>
-      <div><span>🎫 招賢令</span><b>+${fmt(r.total.token)}</b></div>
+      <div><span>✨ 靈氣</span><b data-count="${r.total.qi}">0</b></div>
+      <div><span>💎 靈石</span><b data-count="${r.total.stone}">0</b></div>
+      <div><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b></div>
     </div>
     <h3>降服弟子（到「復仇簿」招募）</h3><div class="arts">${sur}</div>
     <h3>功法／法寶</h3><div class="arts">${arts}</div>
@@ -103,6 +124,8 @@ function showSettlement(r) {
     <p class="lineq">老祖：「${esc(r.outro)}」</p>
     <button class="btn primary big" data-act="closeSettle">收工</button>
   </div></div>`;
+  sfx(r.backfire ? 'backfire' : 'fanfare');
+  o.querySelectorAll('[data-count]').forEach(el => countUp(el, +el.dataset.count, v => '+' + fmt(v)));
   return new Promise(res => { o._done = res; });
 }
 

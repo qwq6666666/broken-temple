@@ -5,7 +5,8 @@ import { load, save } from './core/save.js';
 import { applyOffline } from './core/offline.js';
 import { showWelcome } from './ui/overlay.js';
 import { guard } from './ui/saveMenu.js';
-import { toast } from './core/events.js';
+import { toast, bus } from './core/events.js';
+import { sfx } from './ui/audio.js';
 import { startLoop } from './core/loop.js';
 import * as economy from './core/economy.js';
 import * as conceal from './core/conceal.js';
@@ -28,6 +29,7 @@ if (loaded && loaded.state) {
 } else state = createState();
 const ui = { tab: 'buildings', lastPull: null, quote: '', quoteAt: 0, busy: false };
 
+bus.on('cue', ({ name, data }) => sfx(name, data || {}));   // core 的提示音
 initToasts(document.getElementById('toasts'));
 const render = createRenderer(state, ui);
 bindActions(state, ui, render);

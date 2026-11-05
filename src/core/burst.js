@@ -62,7 +62,7 @@ export function burst(s) {
     const verdict = verdictOf(ratio);
     const p = PERSONALITIES[g.personality];
     const line = pick(verdict === 'crush' ? p.kneel : verdict === 'narrow' ? p.narrow : p.fail);
-    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, line, reward: null, narr: pickLine(LINES.burstNarr[verdict]) };
+    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, line, taunt: g.taunt || pick(p.taunt), reward: null, narr: pickLine(LINES.burstNarr[verdict]) };
   });
   // 2) 連鎖：被擊敗（碾壓＋險勝）的人數
   const chain = entries.filter(e => e.verdict !== 'fail').length;
