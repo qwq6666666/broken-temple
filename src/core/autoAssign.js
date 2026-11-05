@@ -1,9 +1,13 @@
 // 補滿空位：只把「未派駐」的弟子放進空著的駐守位，已派駐的一律不動（保留玩家手動排的結果）。
 // 順序：先替已派駐的緣分搭檔補位、再湊兩位都未派駐的搭檔，最後依「貢獻值」（含專長 ×2、五行 ×1.25）由高到低貪婪放入。
+import { CONFIG } from '../config.js';
 import { BONDS } from '../data/bonds.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { slots } from './buildings.js';
 import { contribution } from './discipleMath.js';
+
+// 建築價值：權重表 × 等級（等級高的建築，同樣的倍率加成換到更多產出）
+const worth = (s, id) => (CONFIG.assignValue[id] ?? 1) * Math.max(1, s.buildings[id].lv);
 
 export function autoAssign(s) {
   const away = new Set(s.expeditions.flatMap(x => x.uids));
@@ -12,20 +16,20 @@ export function autoAssign(s) {
   const cap = Object.fromEntries(bids.map(id => [id, slots(s, id) - s.disciples.filter(d => d.at === id).length]));
   const placed = new Set();
   const put = (d, id) => { d.at = id; cap[id]--; placed.add(d.uid); };
-  const best = d => Math.max(0, ...bids.map(id => contribution(d, id)));
+  const best = d => Math.max(0, ...bids.map(id => contribution(d, id) * worth(s, id)));
 
   // 1a) 緣分：搭檔已派駐在某棟、這棟還有空位，就補另一位進去（不吃虧太多才補）
   for (const b of BONDS) {
     for (const [mine, other] of [[b.a, b.b], [b.b, b.a]]) {
       const d = pool.find(x => x.defId === mine && !placed.has(x.uid)), partner = s.disciples.find(x => x.defId === other && x.at);
-      if (d && partner && cap[partner.at] > 0 && contribution(d, partner.at) >= 0.7 * best(d)) put(d, partner.at);
+      if (d && partner && cap[partner.at] > 0 && contribution(d, partner.at) * worth(s, partner.at) >= 0.7 * best(d)) put(d, partner.at);
     }
   }
   // 1b) 緣分：兩人都未派駐時，找一棟空位 ≥ 2 的建築；只在不吃虧太多（≥ 各自最佳的 70%）時才湊
   for (const b of BONDS) {
     const a = pool.find(d => d.defId === b.a), c = pool.find(d => d.defId === b.b);
     if (!a || !c || placed.has(a.uid) || placed.has(c.uid)) continue;
-    const opts = bids.filter(id => cap[id] >= 2).map(id => [id, contribution(a, id) + contribution(c, id)]).sort((x, y) => y[1] - x[1]);
+    const opts = bids.filter(id => cap[id] >= 2).map(id => [id, (contribution(a, id) + contribution(c, id)) * worth(s, id)]).sort((x, y) => y[1] - x[1]);
     if (opts.length && opts[0][1] >= 0.7 * (best(a) + best(c))) { put(a, opts[0][0]); put(c, opts[0][0]); }
   }
   // 2) 其餘：反覆挑「邊際貢獻最大」的（弟子, 建築）放入。邊際貢獻 = 自己的貢獻（含與同棟隊友的五行相生相剋）
@@ -35,7 +39,7 @@ export function autoAssign(s) {
     const ms = mates(id);
     let v = contribution(d, id, ms);
     for (const m of ms) v += contribution(m, id, [...ms.filter(x => x !== m), d]) - contribution(m, id, ms.filter(x => x !== m));
-    return v;
+    return v * worth(s, id);
   };
   for (;;) {
     let top = null;
@@ -45,7 +49,7 @@ export function autoAssign(s) {
   }
   // 3) 區域搜尋：兩人互換、或移到空位，只要整體貢獻變高就接受（最多 30 輪），補貪婪的盲點
   const mine = pool.filter(d => placed.has(d.uid));
-  const bscore = id => { const ms = mates(id); return ms.reduce((a, m) => a + contribution(m, id, ms.filter(x => x !== m)), 0); };
+  const bscore = id => { const ms = mates(id); return worth(s, id) * ms.reduce((a, m) => a + contribution(m, id, ms.filter(x => x !== m)), 0); };
   const both = (a, b) => (a === b ? bscore(a) : bscore(a) + bscore(b));
   for (let pass = 0; pass < 30; pass++) {
     let improved = false;

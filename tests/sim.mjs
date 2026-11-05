@@ -35,6 +35,7 @@ if (process.env.SHENG) CONFIG.element.shengBonus = Number(process.env.SHENG);   
 if (process.env.KE) CONFIG.element.keBonus = Number(process.env.KE);
 if (process.env.ENEMY_BEAT) CONFIG.element.enemyBeat = Number(process.env.ENEMY_BEAT);
 if (process.env.ENEMY_BEATEN) CONFIG.element.enemyBeaten = Number(process.env.ENEMY_BEATEN);
+if (process.env.BV) Object.assign(CONFIG.assignValue, JSON.parse(process.env.BV));   // 覆寫建築價值權重，如 BV='{"library":0.2}'
 const REBIRTH = process.argv.includes('rebirth');   // 化神後自動轉生並購買道心商店，印出每一輪耗時
 
 // 固定亂數種子，讓每次結果可比較

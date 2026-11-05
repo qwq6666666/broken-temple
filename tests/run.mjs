@@ -1223,7 +1223,7 @@ t('五行派駐：建築與同棟隊友相生 +10%、相剋 −5%，可關閉；
 
 t('補滿空位的結果接近暴力窮舉最佳解（含五行相生相剋）', () => {
   const bids = ['temple', 'field', 'alchemy', 'arena'];
-  const sc = s => bids.reduce((a, id) => a + eco.buildingMult(s, id) - 1, 0);
+  const sc = s => bids.reduce((a, id) => a + (eco.buildingMult(s, id) - 1) * (CONFIG.assignValue[id] ?? 1) * Math.max(1, s.buildings[id].lv), 0);   // 與補滿空位相同的加權目標
   for (const names of [['afu', 'huolie', 'liu2', 'qinwu'], ['shenyao', 'tieniu', 'zhaoling', 'xiaocui'], ['huolie', 'liu2', 'afu', 'moqi']]) {
     const s = createState(); s.realmIdx = 6; for (const id of bids) s.buildings[id].lv = 4;
     const ds = names.map((id, i) => { const d = D.addDisciple(s, id).disciple; d.lv = 4 + i * 2; return d; });
@@ -1277,6 +1277,17 @@ t('專長心得：花碎片領悟、需該專長弟子派駐才生效、各效�
   s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.insight['劍修'], 3);
   const raw = JSON.parse(JSON.stringify(s)); raw.insight = { 劍修: 99, 丹修: -3, zzz: 1 }; const back = sanitize(raw).insight;
   assert.equal(back['劍修'], 3); assert.equal(back['丹修'], 0); assert.equal(back['zzz'], undefined);
+});
+
+t('補滿空位依建築價值加權：沒有專長的弟子優先去產出建築，而不是不產出的藏經閣', () => {
+  const s = createState(); s.realmIdx = 6; s.buildings.temple.lv = 0; s.buildings.library.lv = 4; s.buildings.field.lv = 4;   // 各 2 個位置
+  const a = D.addDisciple(s, 'liuzi').disciple, b = D.addDisciple(s, 'liu2').disciple;                                          // 兩位都不是靈田專屬以外的
+  a.lv = b.lv = 5; autoAssign(s);
+  assert.equal(a.at, 'field'); assert.equal(b.at, 'field');
+  CONFIG.assignValue.field = 0.01; CONFIG.assignValue.library = 5;                                                               // 把權重倒過來，結果應跟著翻轉
+  const s2 = createState(); s2.realmIdx = 6; s2.buildings.temple.lv = 0; s2.buildings.library.lv = 4; s2.buildings.field.lv = 4;
+  const c = D.addDisciple(s2, 'liuzi').disciple; c.lv = 5; autoAssign(s2); assert.equal(c.at, 'library');
+  CONFIG.assignValue.field = 3; CONFIG.assignValue.library = 0.3;
 });
 
 console.log(`\n${n} 項測試通過`);

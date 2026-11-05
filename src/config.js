@@ -18,6 +18,8 @@ export const CONFIG = {
     levelCapRealmFactor: 0.7,  // 建築等級上限 = min(10, 1 + floor(境界序號 × 0.7))，境界不夠就升不上去
   },
 
+  // 補滿空位的建築價值權重（× 建築等級）：把弟子放進「實際產出價值高」的建築。0 表示不考慮（如不產出的建築）
+  assignValue: { temple: 1, field: 3, alchemy: 4, library: 0.3, arena: 0.5, array: 0.3, tower: 0.5, hall: 0.3, beast: 0.3 },   // 靈氣／靈石建築偏重（模擬器量過：比等權快約 11%）
   // 五行：同棟相生／相剋對貢獻的加減，以及仇人的五行克制（已派駐弟子 vs 仇人）
   element: {
     enabled: true,
