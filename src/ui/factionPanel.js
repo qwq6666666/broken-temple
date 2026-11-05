@@ -18,6 +18,6 @@ export function factionPanel(s) {
         ${step(3, `永久加成：${specText(f.perk)}；求和賠禮 ×2`)}
       </div></div>`;
   }).join('');
-  const back = s.returners.length ? `<p class="hint">🔙 有 <b>${s.returners.length}</b> 位被你碾壓過的仇人，日後可能回頭（復仇或求和）。</p>` : '';
-  return `<p class="hint">打臉（碾壓 +2、險勝 +1、當場打臉 +1、收下求和 +3）累積各勢力的威望。威望越高，獎勵越多、對方越懼怕你。</p>${back}${rows}`;
+  const back = s.returners.length ? `<p class="hint">🔙 有 <b>${s.returners.length}</b> 位被你碾壓過的仇人，可能回頭。</p>` : '';
+  return `<p class="hint">碾壓 +2、險勝／當場打臉 +1、收下求和 +3。</p>${back}${rows}`;
 }

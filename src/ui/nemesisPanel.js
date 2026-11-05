@@ -19,5 +19,5 @@ export function nemesisPanel(s) {
         ${defeated ? `<p class="nemstory">${esc(n.story.defeat)}</p>` : ''}
         <small>獎勵：🎫${n.reward.token} 💎${n.reward.stone}　${art ? `${art.emoji}${esc(art.name)}（${esc(art.desc)}）` : ''}</small></div></div>`;
   }).join('');
-  return `<p class="hint">宿敵 ${done}/${NEMESES.length}。宿敵不能當場打倒，要留在復仇簿、引爆時<b>碾壓</b>才算擊敗；險勝會被他脫身。</p>${rows}`;
+  return `<p class="hint">宿敵 ${done}/${NEMESES.length}</p>${rows}`;
 }

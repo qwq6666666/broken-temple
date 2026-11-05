@@ -49,5 +49,5 @@ export function expeditionPanel(s, ui) {
       <div class="row">${team.length ? `<span>隊伍戰力 <b class="gold">${fmt(teamPower(s, picked, team))}</b> / 難度 ${e.difficulty}　成功率 <b class="gold">${Math.round(ch * 100)}%</b></span>` : '<small class="dim">請選擇隊員</small>'}
         <button class="btn ${can ? 'primary' : ''}" data-act="expGo" ${can ? '' : 'disabled'}>${used >= slots ? '探索位已滿' : '出發'}</button></div></div>`;
   }
-  return `<p class="hint">🧭 秘境探索位 ${used}/${slots}（境界提升可增加）。派遣中的弟子無法派駐建築；離線時探索也會完成。</p>${list}${teamBox}<h3>秘境</h3>${realms}`;
+  return `<p class="hint">🧭 秘境探索位 ${used}/${slots}。派遣中的弟子無法派駐。</p>${list}${teamBox}<h3>秘境</h3>${realms}`;
 }

@@ -27,7 +27,7 @@ export function goalPanel(s) {
   const arts = ARTIFACTS.map(a => s.artifacts.includes(a.id)
     ? `<span class="art" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`
     : `<span class="art off">❔ 未獲得<small>長老被爆時掉落</small></span>`).join('');
-  return `<p class="hint">宗門大事 ${done}/${GOALS.length}。完成可得招賢令、靈石與永久加成。</p>${rows}
+  return `<p class="hint">宗門大事 ${done}/${GOALS.length}</p>${rows}
     <h3>弟子圖鑑 ${owned.size}/${DISCIPLES.length}</h3><div class="dexgrid">${dex}</div>
     <h3>功法法寶圖鑑 ${s.artifacts.length}/${ARTIFACTS.length}</h3><div class="arts">${arts}</div>`;
 }

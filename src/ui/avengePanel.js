@@ -30,7 +30,7 @@ export function avengePanel(s) {
       </div>
       <div class="act"><span class="verdict ${v.c}">${v.t}</span></div>
     </div>`;
-  }).join('') || '<p class="hint">復仇簿是空的。等人來嘲諷你吧——然後，忍著。</p>';
+  }).join('') || '<p class="hint">復仇簿是空的。等人來嘲諷，然後忍著。</p>';
 
   const recruits = s.recruits.length ? `<h3>降服弟子（待招募）</h3>` + s.recruits.map(r => {
     const df = DISCIPLES_BY_ID[r.defId], can = canAfford(s, recruitCost());
@@ -48,5 +48,5 @@ export function avengePanel(s) {
     return `<span class="art" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`;
   }).join('') + '</div>' : '';
 
-  return `<p class="hint">復仇簿 ${s.grudges.length}/${CONFIG.visitor.maxGrudges}。偽裝值滿格後按「不裝了」，全員依序登場。</p>${rows}${recruits}${arts}`;
+  return `<p class="hint">復仇簿 ${s.grudges.length}/${CONFIG.visitor.maxGrudges}</p>${rows}${recruits}${arts}`;
 }

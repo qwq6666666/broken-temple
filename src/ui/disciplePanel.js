@@ -15,10 +15,10 @@ import { esc, costChips } from './dom.js';
 
 export function disciplePanel(s) {
   if (!s.disciples.length)
-    return '<p class="hint">還沒有弟子。到「招賢」用招賢令抽卡，或在「復仇簿」降服他宗弟子。</p>';
+    return '<p class="hint">還沒有弟子。到「招賢」用招賢令抽卡。</p>';
   const sorted = [...s.disciples].sort((a, b) =>
     RARITY_ORDER.indexOf(DISCIPLES_BY_ID[b.defId].rarity) - RARITY_ORDER.indexOf(DISCIPLES_BY_ID[a.defId].rarity) || b.lv - a.lv);
-  return `${bondsBox(s)}<p class="hint">🧩 碎片：${fmt(s.res.shard)}（升星與築基以上突破共用）　等級上限 = 10 + 演武場×2 + 星級×2　特性只在<b>派駐中</b>生效</p><div class="dgrid">` + sorted.map(d => {
+  return `${bondsBox(s)}<p class="hint">🧩 碎片：${fmt(s.res.shard)}　等級上限 = 10 + 演武場×2 + 星級×2</p><div class="dgrid">` + sorted.map(d => {
     const df = DISCIPLES_BY_ID[d.defId], r = RARITIES[df.rarity];
     const can = canLevel(s, d), atMax = d.lv >= levelCapOf(s, d), sc = starCost(d), star = starOf(d);
     const opts = BUILDINGS.filter(b => slots(s, b.id) > 0).map(b => {

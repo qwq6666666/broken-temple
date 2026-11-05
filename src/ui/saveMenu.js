@@ -13,7 +13,7 @@ export function saveNow(s) {
 }
 
 export function openExport(s) {
-  showModal(`<h3>匯出存檔</h3><p class="hint">複製下面整段文字，存到記事本；要還原時用「匯入」貼回來。</p>
+  showModal(`<h3>匯出存檔</h3><p class="hint">複製全部文字存起來，要還原時用「匯入」貼回。</p>
     <textarea id="savebox" readonly style="width:100%;height:160px;background:#0e1613;color:#efe6d0;border:1px solid #33423b;border-radius:8px;padding:8px">${serialize(s).replace(/</g, '&lt;')}</textarea>
     <button class="btn primary" data-act="copyExport">📋 複製</button>`);
 }

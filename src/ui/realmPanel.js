@@ -19,7 +19,7 @@ export function realmPanel(s) {
     ${nx ? `<div class="act"><div class="costs">${costChips(s, breakCost(s))}</div>
       <button class="btn ${canBreak(s) ? 'primary' : ''}" data-act="breakthrough" ${canBreak(s) ? '' : 'disabled'}>突破</button></div>` : ''}
   </div>
-  ${nx && nx.shardCost ? '<p class="hint">🧩 築基以上需要「碎片」（現有 ${fmt(s.res.shard)}），重複抽到的弟子會轉為碎片。</p>' : ''}
+  ${nx && nx.shardCost ? '<p class="hint">🧩 築基以上需要「碎片」（現有 ${fmt(s.res.shard)}）。</p>' : ''}
   <div class="ladder">${ladder}</div>
   ${mutatorBox(s)}${rebirthBox(s)}`;
 }

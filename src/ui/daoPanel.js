@@ -24,5 +24,5 @@ export function daoPanel(s) {
       <div class="big">${e.icon}</div><div class="body"><b>${esc(e.name)}</b><br><small>${esc(e.desc)}</small></div>
       <div class="act"><div class="costs">${costChips(s, { daoHeart: e.cost })}</div>
         <button class="btn ${canAfford(s, { daoHeart: e.cost }) ? 'primary' : ''}" data-act="daoExchange" data-id="${e.id}" ${canAfford(s, { daoHeart: e.cost }) ? '' : 'disabled'}>兌換</button></div></div>`).join('');
-  return `<p class="hint">☯️ 道心 ${fmt(s.res.daoHeart)}　已轉生 ${n} 次（轉生次數自動加成：靈氣、靈石 +${Math.round(autoBonus(n) * 100)}%；前 ${CONFIG.reincarnation.autoBonusSoftCap} 次每次 +${Math.round(CONFIG.reincarnation.autoBonusPerCount * 100)}%，之後每次 +${Math.round(CONFIG.reincarnation.autoBonusTail * 100)}%）。化神後在「境界」分頁轉生。</p>${rows}<h3>道心兌換（可重複）</h3>${ex}`;
+  return `<p class="hint">☯️ 道心 ${fmt(s.res.daoHeart)}　已轉生 ${n} 次（靈氣、靈石 +${Math.round(autoBonus(n) * 100)}%）</p>${rows}<h3>道心兌換</h3>${ex}`;
 }
