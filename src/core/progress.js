@@ -11,6 +11,7 @@ import { slots } from './buildings.js';
 import { isDone } from './goals.js';
 import { toast, cue } from './events.js';
 import { nextChapter } from './stories.js';
+import { BRANCHES } from '../data/branches.js';
 import { canChoose as canSpec } from './spec.js';
 import { SPECS } from '../data/specs.js';
 import { readyCount } from './commissions.js';
@@ -92,7 +93,10 @@ export function nextStep(s) {
     return { text: `建築被境界限制，累積 ${Math.ceil(breakCost(s).stone)} 靈石突破至 ${nx.name}。` };
   if (s.grudges.length >= 1 && s.disguise.value < 20) return { text: '蓄力中：人越多、越久，引爆獎勵越高。先升建築、抽弟子。' };
   if (readyCount(s)) return { text: '有委託可領取，到「大事」領獎勵。', tab: 'goals' };
-  if (s.disciples.some(canBranch)) return { text: '有弟子 Lv10 了，可以二選一進階。', tab: 'disciples' };
+  if (s.disciples.some(canBranch)) {
+    const can = Object.values(BRANCHES).some(b => canAfford(s, b.cost));
+    return can ? { text: '有弟子 Lv10 了，可以二選一進階。', tab: 'disciples' } : { text: '有弟子 Lv10 了，進階需要秘境材料（洞府殘玉或靈泉露），派隊伍去探索。', tab: 'expedition' };
+  }
   if (hasFeature(s, 'insight') && INSIGHTS.some(i => canLearn(s, i.spec) && insightActive(s, i.spec))) return { text: '有專長心得可以領悟（用碎片，該專長弟子要派駐中）。', tab: 'disciples' };
   if (s.artifacts.length && s.equipped.length < Math.min(EQUIP_SLOTS, s.artifacts.length)) return { text: '裝備欄還有空位：裝上法寶可獲得共鳴加成。', tab: 'goals' };
   const g = GOALS.find(x => !isDone(s, x.id));

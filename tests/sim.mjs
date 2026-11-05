@@ -1,5 +1,5 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
-// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [squad]
+// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [squad] [noexp]
 //   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission/insight = 開啟對應新功能的最佳化行為
 //   smart = 用「補滿空位」依專長五行派駐；環境變數 ELEMENT=0 關閉五行效果（比較基準）
 //   亂數種子可用環境變數 SEED=… 指定（比較設定時請多跑幾個種子取平均）
@@ -13,6 +13,9 @@ import * as R from '../src/core/realm.js';
 import * as G from '../src/core/gacha.js';
 import * as D from '../src/core/disciples.js';
 import * as X from '../src/core/burst.js';
+import * as Ex from '../src/core/expeditions.js';
+import { EXPEDITIONS } from '../src/data/expeditions.js';
+import { REALM_MATS } from '../src/data/materials.js';
 import * as Inc from '../src/core/incidents.js';
 import * as Dao from '../src/core/dao.js';
 import * as Nem from '../src/core/nemesis.js';
@@ -80,6 +83,24 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   }
   // smart：玩家用「補滿空位」依專長／五行補位（預設機器人只是依序塞進第一個空位）
   if (FLAG('smart') && step % 10 === 0) autoAssign(s);
+  Ex.tick(s);
+  // 秘境：機器人把空的探索位派去補「之後要用的材料」缺口（跨大境界突破、進階）；noexp 旗標可關閉（量測用）
+  if (!FLAG('noexp') && s.realmIdx >= 2 && step % 5 === 0) {
+    for (let i = s.expeditions.length - 1; i >= 0; i--) if (s.expeditions[i].status === 'done') { const x = s.expeditions[i]; Ex.claim(s, i); (s.simExpLog ||= []).push(`  ↳ ${(s.t/3600000).toFixed(2)}h ${x.id} ${x.success ? '成功' : '失敗'} +${x.result.mat}`); }
+    const want = {}, soon = {};                       // want：之後所有大境界的材料；soon：下一次突破就要用的
+    for (const [idx, c] of Object.entries(REALM_MATS)) if (Number(idx) > s.realmIdx) for (const [k, v] of Object.entries(c)) { want[k] = (want[k] || 0) + v; if (Number(idx) === s.realmIdx + 1 || Number(idx) === Math.max(10, s.realmIdx + 1)) soon[k] = (soon[k] || 0) + v; }
+    if (FLAG('branch')) { want.mat_cave = (want.mat_cave || 0) + 2; want.mat_spring = (want.mat_spring || 0) + 2; }
+    const running = id => s.expeditions.filter(x => x.id === id).length;
+    while (s.expeditions.length < Ex.slotCount(s)) {
+      const opts = EXPEDITIONS.filter(e => Ex.isUnlocked(s, e) && want['mat_' + e.id] - s.res['mat_' + e.id] - running(e.id) * 2 > 0)
+        .sort((a, b) => ((soon['mat_' + b.id] || 0) > s.res['mat_' + b.id]) - ((soon['mat_' + a.id] || 0) > s.res['mat_' + a.id]) || (want['mat_' + b.id] - s.res['mat_' + b.id]) - (want['mat_' + a.id] - s.res['mat_' + a.id]));
+      let started = false;
+      for (const e of opts) { const bt = Ex.bestTeam(s, e.id); if (bt && Ex.start(s, e.id, bt.uids)) { started = true; s.simExp = (s.simExp || 0) + 1; (s.simExpLog ||= []).push(`${(s.t/3600000).toFixed(2)}h ${e.id} ${Math.round(bt.chance*100)}%`); break; } }
+      if (!started) break;
+    }
+  }
+  // 功勳換招賢令
+  while (s.res.merit >= 6) G.exchangeMerit(s, 1);
   // 突破
   while (R.canBreak(s)) { R.breakthrough(s); if (!REBIRTH) once('境界 ' + REALMS[s.realmIdx].name, true); }
   // 建築：最便宜的先買
@@ -114,6 +135,7 @@ const f = sec => sec >= 3600 ? (sec / 3600).toFixed(2) + ' 小時' : (sec / 60).
 console.log(`模擬 ${HOURS} 小時（${PASSIVE ? '純掛機' : '含打坐'}）`);
 for (const [n, t] of log) console.log(String(f(t)).padStart(10), ' ', n);
 console.log('\n最終：境界', REALMS[s.realmIdx].name, '｜弟子', s.disciples.length, '｜引爆', s.simBursts || 0, '次，最大連鎖', s.simMaxChain || 0, '｜法寶', s.artifacts.length);
+if (process.env.DEBUG_EXP) console.log('材料', JSON.stringify(Object.fromEntries(Object.entries(s.res).filter(([k]) => k.startsWith('mat_') || k === 'merit'))), '探索中', JSON.stringify(s.expeditions.map(x => [x.id, x.status])), '派出次數', s.simExp, (s.simExpLog || []).join(' | '), '空閒弟子', s.disciples.filter(d => !Ex.away(s, d.uid)).length, 'cost', JSON.stringify(R.breakCost(s)));
 console.log('建築：', BUILDINGS.map(d => `${d.name}${s.buildings[d.id].lv}`).join(' '));
 const bc = R.breakCost(s);
 if (bc) console.log('下一境界成本', JSON.stringify(bc), '｜持有', JSON.stringify(Object.fromEntries(Object.entries(s.res).map(([k, v]) => [k, Math.round(v)]))), '｜每秒 靈氣', eco.qiPerSec(s).toFixed(1), '靈石', eco.stonePerSec(s).toFixed(3));

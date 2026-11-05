@@ -1,5 +1,6 @@
 // 宗門委託：同時最多 3 張，沒有期限也沒有懲罰；手動領取獎勵、可放棄，空位過一陣子自動補新題。
 import { COMMISSIONS, COMMISSION_BY_KIND, COMMISSION_RULES as R } from '../data/commissions.js';
+import { MERIT } from '../data/materials.js';
 import { pick, weighted } from './rng.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { toast, cue } from './events.js';
@@ -49,6 +50,7 @@ export function claim(s, i) {
   const C = s.commissions, c = C.list[i];
   if (!c || !isReady(s, c)) return null;
   for (const k of ['token', 'stone', 'qi', 'shard']) if (c.reward[k]) s.res[k] += c.reward[k];
+  s.res.merit += MERIT.commission;
   C.list.splice(i, 1); C.nextAt = s.t + R.refillMs; C.done++;
   let bonus = null;
   if (C.done % R.milestoneEvery === 0) {

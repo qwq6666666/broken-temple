@@ -16,6 +16,7 @@ import { fmt } from '../core/format.js';
 import { hasFeature } from '../core/progress.js';
 import { BRANCHES, BRANCH_LEVEL } from '../data/branches.js';
 import { esc, costChips, crow } from './dom.js';
+import { canAfford } from '../core/resources.js';
 
 const SORTS = [['rarity', '稀有度'], ['lv', '等級'], ['at', '派駐']];
 const FILTERS = [['all', '全部'], ['idle', '未派駐'], ['lvl', '可升級'], ['story', '可讀故事']];
@@ -115,7 +116,7 @@ function card(s, ui, d, away) {
       <small class="dim" title="${esc(df.quote)}">${esc(df.element)}・${esc(df.specialty)}・${esc(df.personality)}　屬性 ${fmt(stat(d))}</small>
       <small class="trait ${d.at ? 'on' : ''}">✦ ${esc(traitText(df.trait.key, traitValueS(s, d)))}${d.at ? '（生效中）' : '（派駐後生效）'}</small>
       ${storyRow(s, d)}
-      ${branchRow(d)}
+      ${branchRow(s, d)}
       <select class="assign" data-change="assign" data-uid="${d.uid}"><option value="">— 未派駐 —</option>${opts}</select>
       ${sc ? `<button class="btn ${canStar(s, d) ? 'primary' : ''}" data-act="starUp" data-uid="${d.uid}" ${canStar(s, d) ? '' : 'disabled'}>升星 ${costChips(s, sc)}</button>` : '<span class="tag gold">滿星</span>'}
     </div>`;
@@ -132,10 +133,10 @@ function card(s, ui, d, away) {
 }
 
 // 進階：Lv10 時二選一，選後顯示結果
-function branchRow(d) {
+function branchRow(s, d) {
   if (d.branch) { const b = BRANCHES[d.branch]; return `<small class="gold">${b.icon} 進階：${b.name}——${esc(b.desc)}</small>`; }
   if (d.lv < BRANCH_LEVEL) return `<small class="dim">升到 Lv${BRANCH_LEVEL} 可二選一進階</small>`;
-  return `<div class="branchrow">${Object.entries(BRANCHES).map(([k, b]) => `<button class="btn" data-act="branch" data-uid="${d.uid}" data-b="${k}" title="${esc(b.desc)}">${b.icon} ${b.name}<small>${esc(b.desc)}</small></button>`).join('')}</div>`;
+  return `<div class="branchrow">${Object.entries(BRANCHES).map(([k, b]) => `<button class="btn" data-act="branch" data-uid="${d.uid}" data-b="${k}" ${canAfford(s, b.cost) ? '' : 'disabled'} title="${esc(b.desc)}">${b.icon} ${b.name}<small>${esc(b.desc)}</small><small class="costs">${costChips(s, b.cost)}</small></button>`).join('')}</div>`;
 }
 
 // 故事：可讀時亮起；已讀可回憶；未達成顯示解鎖條件

@@ -61,7 +61,6 @@ export const CONFIG = {
     stoneBase: 4,              // 突破到第 i 境界的靈石成本 = stoneBase × stoneGrowth ^ (i-1)
     stoneGrowth: 2.5,          // 煉氣期（序號 ≤9）每階的成長
     stoneGrowthLate: 3.3,      // 築基以後（序號 ≥10）每階的成長，單獨抽出方便調後期
-    shardCosts: { 10: 15, 11: 40, 12: 100, 13: 250 },  // 築基以上另需碎片
     breakMs: 2400,             // 突破演出長度
   },
 

@@ -1,5 +1,6 @@
 // 單一狀態樹。此版不存檔，所以只有 createState。
 import { CONFIG } from '../config.js';
+import { MAT_KEYS } from '../data/materials.js';
 import { BUILDINGS } from '../data/buildings.js';
 
 export function createState() {
@@ -7,7 +8,7 @@ export function createState() {
   for (const d of BUILDINGS) buildings[d.id] = { lv: d.id === 'temple' ? CONFIG.start.templeLevel : 0, pausedUntil: 0 };
   return {
     t: 0,                                   // 遊戲時鐘 (ms，已含 timeScale)
-    res: { qi: CONFIG.start.qi, stone: CONFIG.start.stone, token: CONFIG.start.token, shard: 0, daoHeart: 0 }, // daoHeart 預留給轉生
+    res: { qi: CONFIG.start.qi, stone: CONFIG.start.stone, token: CONFIG.start.token, shard: 0, daoHeart: 0, merit: 0, ...Object.fromEntries(MAT_KEYS.map(k => [k, 0])) }, // daoHeart 預留給轉生
     realmIdx: 0,
     buildings,
     disciples: [],                          // {uid, defId, lv, at}
@@ -38,6 +39,7 @@ export function createState() {
     glory: { lv: 0 },                       // 宗門榮耀已達等級（只升不降，跨轉生保留）
     explore: {},                            // 秘境探索度 {秘境id: 成功次數}（跨轉生保留）
     exMile: {},                             // 已領取的發現事件 {秘境id: {1:'x',2:'a'|'b',3:'x'}}
+    tokBuy: { n: 0, resetAt: 0 },           // 靈石買招賢令的限購計數（遊戲時間）
     squad: [],                              // 出戰陣容（弟子 uid，最多 3 人，跨轉生保留）
     insight: {},                            // 專長心得層數 {專長: 0~3}（跨轉生保留）
     weekly: { claimed: -1 },                // 已領取每週挑戰獎勵的週序號（跨轉生保留）

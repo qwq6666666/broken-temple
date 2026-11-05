@@ -1,6 +1,7 @@
 // 境界資料：凡人 → 煉氣1~9層 → 築基 → 金丹 → 元嬰 → 化神。
 // 倍率/成本由 config 公式生成；想逐級手調，可直接覆寫下方 REALMS 的欄位。
 import { CONFIG } from '../config.js';
+import { REALM_MATS } from './materials.js';
 
 export const TIER_NAMES = ['凡人', '煉氣', '築基', '金丹', '元嬰', '化神'];
 
@@ -22,7 +23,7 @@ export const REALMS = raw.map((r, i) => ({
   mult: R.multBase ** i,                     // 產出倍率
   power: R.powerBase ** i,                   // 戰力
   stoneCost: stoneCostAt(i),                  // 突破到此境界的靈石
-  shardCost: R.shardCosts[i] || 0,           // 突破到此境界的碎片
+  matCost: REALM_MATS[i] || null,            // 突破到此境界所需的秘境材料（跨大境界）
 }));
 
 const SUB = ['初期', '中期', '後期'];

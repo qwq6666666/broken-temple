@@ -1,4 +1,6 @@
 // 秘境：選秘境 → 選隊員（最多 3 位）→ 出發；到期後領取。
+import { MATERIALS, REALM_MATS } from '../data/materials.js';
+import { BRANCHES } from '../data/branches.js';
 import { EXPLORATION, EX_KEYS } from '../data/exploration.js';
 import { exLevel, exXp, exNext, pendingEvents } from '../core/exploration.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R, reqLines } from '../data/expeditions.js';
@@ -10,7 +12,7 @@ import { slotCount, isUnlocked, freeDisciples, successChance, teamPower, reqChec
 import { fmt } from '../core/format.js';
 import { esc, crow } from './dom.js';
 
-const rewardText = rw => [rw.qiSec && '✨靈氣', rw.stoneSec && '💎靈石', rw.token && `🎫${rw.token}`, rw.shard && `🧩${rw.shard}`, rw.artifact && `法寶${Math.round(rw.artifact * 100)}%`, rw.recruit && `弟子${Math.round(rw.recruit * 100)}%`].filter(Boolean).join('　');
+const rewardText = (rw, id) => [`${MATERIALS[id].icon}${MATERIALS[id].name}`, rw.qiSec && '✨靈氣', rw.stoneSec && '💎靈石', rw.artifact && `法寶${Math.round(rw.artifact * 100)}%`, rw.recruit && `弟子${Math.round(rw.recruit * 100)}%`].filter(Boolean).join('　');
 const wantText = w => [w.specialty && `專長：${w.specialty}`, w.element && `五行：${w.element}`].filter(Boolean).join('、');
 
 const reqTags = (s, e, uids) => {
@@ -25,7 +27,7 @@ export function expeditionPanel(s, ui) {
   const idx = s.expeditions.map((x, i) => i), doneIdx = idx.filter(i => s.expeditions[i].status === 'done'), runIdx = idx.filter(i => s.expeditions[i].status !== 'done');
   const doneRows = doneIdx.map(i => {
     const x = s.expeditions[i], e = EXPEDITIONS_BY_ID[x.id], r = x.result;
-    const got = [r.qi && `✨${fmt(r.qi)}`, r.stone && `💎${fmt(r.stone)}`, r.token && `🎫${r.token}`, r.shard && `🧩${r.shard}`, r.artifactId && `${ARTIFACTS_BY_ID[r.artifactId].emoji}${esc(ARTIFACTS_BY_ID[r.artifactId].name)}`, r.recruit && '🙋 一位弟子'].filter(Boolean).join('　');
+    const got = [r.qi && `✨${fmt(r.qi)}`, r.stone && `💎${fmt(r.stone)}`, r.mat && `${MATERIALS[r.matId || x.id].icon}${r.mat}`, r.token && `🎫${r.token}`, r.shard && `🧩${r.shard}`, r.artifactId && `${ARTIFACTS_BY_ID[r.artifactId].emoji}${esc(ARTIFACTS_BY_ID[r.artifactId].name)}`, r.recruit && '🙋 一位弟子'].filter(Boolean).join('　');
     return crow(ui, { key: 'xd' + i, cls: `done ${x.success ? '' : 'failed'}`, icon: e.emoji, title: `<b>${esc(e.name)}</b>`,
       badges: ` <span class="tag ${x.success ? 'gold' : 'red'}">${x.success ? '探索成功' : '探索失敗'}</span> ${teamEmoji(x)}`, sub: got,
       act: `<button class="btn primary" data-act="expClaim" data-i="${i}">領取</button>` });
@@ -52,7 +54,7 @@ export function expeditionPanel(s, ui) {
     return crow(ui, { key: 'e' + e.id, cls: `${sel ? 'sel' : ''} ${open ? '' : 'locked'}`, icon: open ? e.emoji : '🔒',
       title: `<b>${esc(e.name)}</b> <small class="dim">${e.minutes} 分鐘・難度 ${e.difficulty}</small>${open ? exBadge(s, e.id) : ''}`, sub,
       act: open ? `<button class="btn ${sel ? 'primary' : ''}" data-act="expPick" data-id="${e.id}">${sel ? '選擇中' : '派遣'}</button>` : '',
-      detail: open ? `<small>${esc(e.desc)}</small><small class="dim">推薦 ${esc(wantText(e.want))}（相合者貢獻更高）</small><small>獎勵：${rewardText(e.reward)}</small>` : '' });
+      detail: open ? `<small>${esc(e.desc)}</small><small class="dim">推薦 ${esc(wantText(e.want))}（相合者貢獻更高）</small><small>獎勵：${rewardText(e.reward, e.id)}　<span class="dim">${esc(matUse(e.id))}</span></small>` : '' });
   }).join('');
 
   // 組隊：限制逐條打勾、推薦隊伍、候選依貢獻排序（相合者標色）
@@ -89,4 +91,12 @@ function pendingBox(ui, s) {
     return `<div class="exev"><div>${e.emoji} <b>${esc(e.name)}・${esc(t[0])}</b><br><small class="storytext">${esc(t[1])}</small></div><div class="row">${btns}</div></div>`;
   }).join('') + '</div>';
 }
-const rewardPreview = r => Object.entries(r).map(([k, v]) => ({ shard: `🧩${v}`, token: `🎫${v}`, qiSec: `✨${v}秒產出`, stoneSec: `💎${v}秒產出` }[k])).join(' ');
+const rewardPreview = r => Object.entries(r).map(([k, v]) => ({ merit: `🏅${v}`, shard: `🧩${v}`, token: `🎫${v}`, qiSec: `✨${v}秒產出`, stoneSec: `💎${v}秒產出` }[k])).join(' ');
+
+// 這個秘境的材料拿來做什麼
+function matUse(id) {
+  const k = 'mat_' + id, uses = [];
+  for (const [i, c] of Object.entries(REALM_MATS)) if (c[k]) uses.push(`突破到${REALMS[i].name}`);
+  for (const b of Object.values(BRANCHES)) if (b.cost[k]) uses.push(`弟子進階「${b.name}」`);
+  return uses.length ? `材料用途：${uses.join('、')}` : '';
+}

@@ -91,6 +91,7 @@ export function bindActions(s, ui, rerender) {
         ui.busy = false; rerender();
       }
     },
+    meritToken: el => { if (G.exchangeMerit(s, +el.dataset.n)) sfx('coin'); },
     buyToken: el => { if (G.buyTokens(s, +el.dataset.n)) sfx('coin'); },
     levelUp: el => { if (D.levelUp(s, +el.dataset.uid)) sfx('upgrade'); },
     starUp: el => { if (D.starUp(s, +el.dataset.uid)) { toast('升星成功！', 'good'); sfx('goal'); } },

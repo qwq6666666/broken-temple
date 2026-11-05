@@ -7,11 +7,23 @@ import { weighted, pick } from './rng.js';
 import { addDisciple } from './disciples.js';
 import { canAfford, pay } from './resources.js';
 import { quote } from './events.js';
+import { MERIT, TOKEN_SHOP } from '../data/materials.js';
 
-export const tokenPrice = n => ({ stone: CONFIG.gacha.tokenStoneCost * n });
+// 靈石買招賢令：每遊戲小時限購 N 張、越買越貴；功勳可穩定兌換。
+const shop = s => { const b = s.tokBuy || (s.tokBuy = { n: 0, resetAt: 0 }); if (s.t >= b.resetAt) { b.n = 0; b.resetAt = s.t + TOKEN_SHOP.windowMs; } return b; };
+export const tokenLeft = s => TOKEN_SHOP.limit - shop(s).n;
+export const tokenResetMs = s => Math.max(0, shop(s).resetAt - s.t);
+// 買第 k 張（0 起算）的靈石價
+const priceAt = k => Math.ceil(CONFIG.gacha.tokenStoneCost * (1 + TOKEN_SHOP.step * k));
+export const tokenPrice = (s, n = 1) => { const b = shop(s).n; let c = 0; for (let i = 0; i < n; i++) c += priceAt(b + i); return { stone: c }; };
 export function buyTokens(s, n) {
-  if (!canAfford(s, tokenPrice(n))) return false;
-  pay(s, tokenPrice(n)); s.res.token += n; return true;
+  if (n < 1 || n > tokenLeft(s) || !canAfford(s, tokenPrice(s, n))) return false;
+  pay(s, tokenPrice(s, n)); s.res.token += n; shop(s).n += n; return true;
+}
+export const meritPrice = n => ({ merit: MERIT.perToken * n });
+export function exchangeMerit(s, n = 1) {
+  if (n < 1 || !canAfford(s, meritPrice(n))) return false;
+  pay(s, meritPrice(n)); s.res.token += n; return true;
 }
 
 // 決定單抽稀有度（含保底）

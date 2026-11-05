@@ -5,7 +5,8 @@ import { nextRealm, breakCost, canBreak } from '../core/realm.js';
 import { fmt } from '../core/format.js';
 import { canRebirth, daoGain } from '../core/dao.js';
 import { mutatorOf } from '../core/mutators.js';
-import { esc, costChips } from './dom.js';
+import { esc, costChips, RES } from './dom.js';
+import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
 
 const capAt = i => Math.min(CONFIG.building.maxLevel, 1 + Math.floor(i * CONFIG.building.levelCapRealmFactor));
 
@@ -35,7 +36,7 @@ export function realmPanel(s) {
     ${nx ? `<div class="act breakact"><div class="costs lg">${costChips(s, cost)}</div>
       <button class="btn bigbtn ${ok ? 'primary' : ''}" data-act="breakthrough" ${ok ? '' : 'disabled'}>突破</button></div>` : ''}
   </div>
-  ${nx && nx.shardCost ? `<p class="hint">🧩 築基以上需要「碎片」（現有 ${fmt(s.res.shard)}）。</p>` : ''}
+  ${nx && nx.matCost ? `<p class="hint">🧭 跨大境界需要「秘境材料」：${Object.keys(nx.matCost).map(k => `${RES[k].icon}${RES[k].name}（${esc(EXPEDITIONS_BY_ID[k.slice(4)].name)}）`).join('、')}。派弟子去探索秘境取得。</p>` : ''}
   <div class="stages">${stages(s)}</div>
   ${mutatorBox(s)}${rebirthBox(s)}`;
 }

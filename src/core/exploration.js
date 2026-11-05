@@ -2,6 +2,7 @@
 import { EX_LEVELS, EX_REWARD_PER_LV, EX_PERM, EXPLORATION } from '../data/exploration.js';
 import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
 import { qiPerSec, stonePerSec } from './economy.js';
+import { matKey } from '../data/materials.js';
 import { note } from './chronicle.js';
 import { toast, cue } from './events.js';
 
@@ -28,7 +29,7 @@ export function resolve(s, id, lv, choice = 'x') {
   if (lv > exLevel(s, id) || milestones(s, id)[lv]) return null;
   if (lv === 2 && choice !== 'a' && choice !== 'b') return null;
   const e = EXPEDITIONS_BY_ID[id], got = {};
-  if (lv === 1) for (const [k, v] of Object.entries(D.reward1)) { s.res[k] += v; got[k] = v; }
+  if (lv === 1) { for (const [k, v] of Object.entries(D.reward1)) { s.res[k] += v; got[k] = v; } s.res[matKey(id)] += 3; got[matKey(id)] = 3; }
   if (lv === 2 && choice === 'a') {
     const r = D.reward2a;
     if (r.qiSec) { got.qi = qiPerSec(s) * r.qiSec; s.res.qi += got.qi; }

@@ -54,10 +54,10 @@ export function rebirth(s, mutatorId = null, now = Date.now()) {
     reincarnation: { count: s.reincarnation.count + 1, shop: s.reincarnation.shop },
   };
   const t = s.t;
-  const shard = s.res.shard, dao = s.res.daoHeart + gain;
+  const keepRes = Object.fromEntries(Object.keys(s.res).filter(k => k === 'shard' || k === 'merit' || k.startsWith('mat_')).map(k => [k, s.res[k]])), dao = s.res.daoHeart + gain;
   Object.assign(s, fresh, keep);
   s.t = t; s.mutator = MUTATORS_BY_ID[mutatorId] ? mutatorId : null;      // 下一輪的輪迴詞條
-  s.res.shard = shard; s.res.daoHeart = dao;
+  Object.assign(s.res, keepRes); s.res.daoHeart = dao;
   if (bonus) s.weekly = { claimed: weekIndex(now) };
   s.res.stone += perm(s, 'startStone'); s.res.token += perm(s, 'startToken');
   s.visitor.nextAt = s.t + CONFIG.visitor.firstSec * 1000;

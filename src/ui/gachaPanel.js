@@ -1,7 +1,8 @@
 // 招賢面板：單抽／十連、保底進度、用靈石買招賢令、最近一次結果。
 import { CONFIG } from '../config.js';
 import { RARITIES, RARITY_ORDER } from '../data/gachaRates.js';
-import { tokenPrice } from '../core/gacha.js';
+import { tokenPrice, tokenLeft, tokenResetMs, meritPrice } from '../core/gacha.js';
+import { MERIT, TOKEN_SHOP } from '../data/materials.js';
 import { canAfford } from '../core/resources.js';
 import { fmt } from '../core/format.js';
 import { traitText } from '../data/traits.js';
@@ -22,15 +23,21 @@ export function gachaPanel(s, ui) {
   const total = RARITY_ORDER.reduce((a, k) => a + RARITIES[k].weight, 0);
   const rates = RARITY_ORDER.map(k => `<span style="color:${RARITIES[k].color}">${k} ${(RARITIES[k].weight / total * 100).toFixed(0)}%</span>`).join('　');
   const results = ui.lastPull ? ui.lastPull.map((r, i) => gachaCard(r, i, Date.now() < (ui.pullAnimUntil || 0))).join('') : '<p class="hint">還沒抽過。老祖說：「招賢令，是用來換人的，不是拿來看的。」</p>';
-  const buy = `<div class="row"><small>用靈石買招賢令（另每 ${CONFIG.gacha.tokenTrickleSec} 秒自然 +1）</small></div>
+  const left = tokenLeft(s), mins = Math.ceil(tokenResetMs(s) / 60000), p1 = tokenPrice(s, 1), p3 = tokenPrice(s, Math.min(3, Math.max(1, left)));
+  const n3 = Math.min(3, Math.max(1, left)), ok1 = left >= 1 && canAfford(s, p1), ok3 = left >= n3 && canAfford(s, p3), mp = meritPrice(1);
+  const buy = `<div class="row"><small>招賢令來源：每 ${CONFIG.gacha.tokenTrickleSec} 秒自然 +1、委託、擊敗仇人、事件；也可用靈石或功勳換。</small></div>
     <div class="row buyrow">
-      <span class="costs">${costChips(s, tokenPrice(1))}</span><button class="btn ${canAfford(s, tokenPrice(1)) ? 'primary' : ''}" data-act="buyToken" data-n="1" ${canAfford(s, tokenPrice(1)) ? '' : 'disabled'}>買 1</button>
-      <span class="costs">${costChips(s, tokenPrice(10))}</span><button class="btn ${canAfford(s, tokenPrice(10)) ? 'primary' : ''}" data-act="buyToken" data-n="10" ${canAfford(s, tokenPrice(10)) ? '' : 'disabled'}>買 10</button>
+      <span class="dim">💎 靈石購買（本時段剩 ${left}/${TOKEN_SHOP.limit}，越買越貴${left < TOKEN_SHOP.limit ? `・${mins} 分後重置` : ''}）</span>
+      <span class="costs">${costChips(s, p1)}</span><button class="btn ${ok1 ? 'primary' : ''}" data-act="buyToken" data-n="1" ${ok1 ? '' : 'disabled'}>買 1</button>
+      ${n3 > 1 ? `<span class="costs">${costChips(s, p3)}</span><button class="btn ${ok3 ? 'primary' : ''}" data-act="buyToken" data-n="${n3}" ${ok3 ? '' : 'disabled'}>買 ${n3}</button>` : ''}
     </div>
+    <div class="row buyrow"><span class="dim">🏅 功勳兌換（委託、擊敗仇人、探索獲得）</span>
+      <span class="costs">${costChips(s, mp)}</span><button class="btn ${canAfford(s, mp) ? 'primary' : ''}" data-act="meritToken" data-n="1" ${canAfford(s, mp) ? '' : 'disabled'}>換 1</button>
+      <button class="btn" data-act="meritToken" data-n="${Math.max(1, Math.floor(s.res.merit / MERIT.perToken))}" ${s.res.merit >= MERIT.perToken ? '' : 'disabled'}>全換（${Math.floor(s.res.merit / MERIT.perToken)}）</button></div>
     <small class="dim">機率：${rates}（累計 ${g.total} 抽）</small>`;
   return `<div class="card gacha">
     <div class="body">
-      <div class="row"><b>🎫 招賢令：${fmt(t)}</b>${s.res.shard > 0 ? `　<span class="tag">🧩 碎片 ${fmt(s.res.shard)}</span>` : ''}</div>
+      <div class="row"><b>🎫 招賢令：${fmt(t)}</b>${s.res.shard > 0 ? `　<span class="tag">🧩 碎片 ${fmt(s.res.shard)}</span>` : ''}${s.res.merit > 0 ? `　<span class="tag">🏅 功勳 ${fmt(s.res.merit)}</span>` : ''}</div>
       <div class="pities">${pityBar('SR 保底', g.sinceSR, CONFIG.gacha.pitySR)}${pityBar('SSR 保底', g.sinceSSR, CONFIG.gacha.pitySSR)}</div>
     </div>
     <div class="act">

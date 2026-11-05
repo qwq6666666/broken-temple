@@ -69,6 +69,6 @@ export function starUp(s, uid) {
 export const canBranch = d => d.lv >= BRANCH_LEVEL && !d.branch;
 export function setBranch(s, uid, key) {
   const d = s.disciples.find(x => x.uid === uid);
-  if (!d || !BRANCHES[key] || !canBranch(d)) return false;
-  d.branch = key; return true;
+  if (!d || !BRANCHES[key] || !canBranch(d) || !canAfford(s, BRANCHES[key].cost)) return false;
+  pay(s, BRANCHES[key].cost); d.branch = key; return true;
 }

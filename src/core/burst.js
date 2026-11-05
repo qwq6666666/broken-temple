@@ -10,6 +10,7 @@ import { pick, randInt, chance, weighted } from './rng.js';
 import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf, elementOfGrudge, elementAdvantage } from './conceal.js';
 import { squadOf, squadVs, bestSquad, squadPool } from './squad.js';
+import { MERIT } from '../data/materials.js';
 import { powerOfLvl } from '../data/realms.js';
 import { combatPower } from './economy.js';
 import { note } from './chronicle.js';
@@ -141,6 +142,7 @@ export function burst(s) {
     }
   }
   s.res.qi += total.qi; s.res.stone += total.stone; s.res.token += total.token;
+  total.merit = entries.reduce((a, e) => a + (e.verdict === 'fail' ? 0 : MERIT.perDefeat * (e.nemesis ? MERIT.nemesis : 1)), 0); s.res.merit += total.merit;
   // 3.5) 反噬：戰力遠不如的長老會反擊（損失靈石、一棟建築暫停；最多一次暫停）
   let backfire = null;
   const risky = entries.filter(e => e.g.type === 'elder' && e.ratio < CONFIG.burst.backfireRatio);

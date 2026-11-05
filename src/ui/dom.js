@@ -15,9 +15,12 @@ export const RES = {
   token: { name: '招賢令', icon: '🎫' },
   shard: { name: '碎片', icon: '🧩' },
   daoHeart: { name: '道心', icon: '☯️' },
+  merit: { name: '功勳', icon: '🏅' },
+  ...Object.fromEntries(Object.entries(MATERIALS).map(([id, m]) => [matKey(id), m])),
 };
 
 import { fmt } from '../core/format.js';
+import { MATERIALS, matKey } from '../data/materials.js';
 // 成本標籤：不足的資源標紅
 export function costChips(s, cost) {
   return Object.entries(cost).map(([k, v]) =>

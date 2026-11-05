@@ -14,6 +14,7 @@ import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { GLORY_LEVELS } from '../data/glory.js';
+import { MAT_KEYS } from '../data/materials.js';
 import { EXPLORATION } from '../data/exploration.js';
 import { INSIGHTS, INSIGHT_MAX } from '../data/insights.js';
 import { ELEMENTS, elementFromName } from '../data/elements.js';
@@ -115,6 +116,8 @@ export function sanitize(s) {
   if (!isPlain(s.stories)) s.stories = {};
   for (const id of Object.keys(s.stories)) { const max = STORIES2[id] ? 2 : STORIES[id] ? 1 : 0; if (!max) delete s.stories[id]; else s.stories[id] = Math.max(0, Math.min(max, Math.floor(num(Number(s.stories[id]))))); }
   s.disguise.value = Math.max(0, Math.min(20, num(s.disguise.value)));
+  s.tokBuy = { n: Math.max(0, Math.floor(num(isPlain(s.tokBuy) ? Number(s.tokBuy.n) : 0))), resetAt: Math.max(0, num(isPlain(s.tokBuy) ? Number(s.tokBuy.resetAt) : 0)) };
+  for (const k of ['merit', ...MAT_KEYS]) if (s.res[k] === undefined) s.res[k] = 0;        // 舊存檔沒有功勳與秘境材料
   for (const k of Object.keys(s.res)) s.res[k] = Math.max(0, num(s.res[k]));
   return s;
 }

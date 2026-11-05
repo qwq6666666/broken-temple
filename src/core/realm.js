@@ -10,7 +10,7 @@ export function breakCost(s) {
   const n = nextRealm(s);
   if (!n) return null;
   const c = { stone: n.stoneCost };
-  if (n.shardCost) c.shard = n.shardCost;
+  if (n.matCost) Object.assign(c, n.matCost);
   return c;
 }
 export const canBreak = s => !!nextRealm(s) && canAfford(s, breakCost(s));

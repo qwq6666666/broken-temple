@@ -924,7 +924,7 @@ t('秘境：解鎖、組隊上限、隊員自動撤下建築、探索位數量',
   assert.equal(s.disciples[0].at, null); assert.equal(Ex.away(s, a), true);
   assert.equal(D.assign(s, a, 'arena'), false);                        // 探索中不可派駐
   const [b] = teamOf(s, ['afu']); assert.equal(Ex.start(s, 'cave', [b]), false);   // 探索位已滿
-  assert.equal(Ex.slotCount(s), 1); s.realmIdx = 9; assert.equal(Ex.slotCount(s), 2); s.realmIdx = 12; assert.equal(Ex.slotCount(s), 3);
+  assert.equal(Ex.slotCount(s), 1); s.realmIdx = 5; assert.equal(Ex.slotCount(s), 2); s.realmIdx = 9; assert.equal(Ex.slotCount(s), 3); s.realmIdx = 12; assert.equal(Ex.slotCount(s), 4);
   const many = teamOf(s, ['liuzi', 'liu2', 'chenlan', 'tieniu']); s.realmIdx = 12;
   assert.equal(Ex.start(s, 'cave', many), false);                      // 超過 3 人
 });
@@ -947,12 +947,12 @@ t('秘境：到期結算、領取獎勵、成功與失敗、隊員歸隊', () =>
   assert.equal(s.expeditions[0].status, 'done'); assert.equal(s.expeditions[0].success, true);
   const st = s.res.stone, sh = s.res.shard;
   const r = Ex.claim(s, 0); setRng(Math.random);
-  assert.equal(r.success, true); assert.ok(s.res.stone > st && s.res.shard >= sh + 3); assert.equal(s.expeditions.length, 0);
+  assert.equal(r.success, true); assert.ok(s.res.stone > st && s.res.mat_field >= 2); assert.equal(s.expeditions.length, 0);
   assert.equal(Ex.away(s, ids[0]), false); assert.ok(r.artifact);       // 隊員回來、法寶機率 1.0 時掉落
   setRng(() => 0.999);                                                  // 擲骰必失敗
   Ex.start(s, 'field', ids); s.t += 21 * 60000; Ex.tick(s);
   assert.equal(s.expeditions[0].success, false); const f = Ex.claim(s, 0); setRng(Math.random);
-  assert.equal(f.success, false); assert.equal(f.result.token, 0);
+  assert.equal(f.success, false); assert.equal(f.result.mat, 2);   // 失敗約六成
   assert.equal(Ex.claim(s, 5), null);
 });
 
@@ -1077,6 +1077,7 @@ t('補滿空位：只填空位、不動已派駐、專長與緣分優先、不�
 
 t('宗門年表：突破大境界與轉生會記錄、上限 120 筆、跨轉生保留', () => {
   const s = createState(); s.res.stone = 1e12; s.res.shard = 1e6;
+  for (const k of Object.keys(s.res)) if (k.startsWith('mat_')) s.res[k] = 1e6;
   while (s.realmIdx < 13) R.breakthrough(s);
   assert.ok(s.chronicle.some(e => e.text.includes('突破至築基')) && s.chronicle.some(e => e.text.includes('突破至化神')));
   Dao.rebirth(s); assert.ok(s.chronicle.some(e => e.text.includes('第1世結束')));
@@ -1123,12 +1124,12 @@ t('弟子進階：Lv10 才能選、只能選一次、專精／悍勇各有效果
   const s = createState(); s.realmIdx = 6; s.buildings.alchemy.lv = 1;
   const d = D.addDisciple(s, 'shenyao').disciple; D.assign(s, d.uid, 'alchemy');   // 丹修在煉丹房：專長相符
   assert.equal(D.setBranch(s, d.uid, 'focus'), false);                              // Lv1 不行
-  d.lv = 10; const c0 = eco.buildingMult(s, 'alchemy'), p0 = eco.combatPower(s);
+  d.lv = 10; assert.equal(D.setBranch(s, d.uid, 'focus'), false, '沒材料不能進階'); s.res.mat_cave = 2; s.res.mat_spring = 2; const c0 = eco.buildingMult(s, 'alchemy'), p0 = eco.combatPower(s);
   assert.ok(D.setBranch(s, d.uid, 'focus')); assert.equal(D.setBranch(s, d.uid, 'might'), false);
   assert.ok(eco.buildingMult(s, 'alchemy') > c0);                                   // 專精：貢獻上升
   assert.ok(Math.abs(eco.combatPower(s) - p0) < 1e-9);                               // 專精不影響戰力
   const s2 = createState(); s2.realmIdx = 6; const e = D.addDisciple(s2, 'shenyao').disciple; e.lv = 10;
-  const q0 = eco.combatPower(s2); D.setBranch(s2, e.uid, 'might'); assert.ok(eco.combatPower(s2) > q0);
+  const q0 = eco.combatPower(s2); s2.res.mat_spring = 2; D.setBranch(s2, e.uid, 'might'); assert.ok(eco.combatPower(s2) > q0);
   s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.disciples[0].branch, null);
   const raw = JSON.parse(JSON.stringify(s)); raw.disciples[0].branch = 'zzz'; assert.equal(sanitize(raw).disciples[0].branch, null);
 });
@@ -1309,7 +1310,7 @@ t('功能區塊漸進解鎖：條件達成才出現且不會消失；舊存檔 q
   const d = D.addDisciple(h, 'afu').disciple; D.assign(h, d.uid, 'temple'); St.read(h, d.uid); h.res.token = 0;
   d.lv = 10; assert.match(Prog.nextStep(h).text, /故事/);                          // 故事優先
   h.stories = { afu: 99 }; assert.match(Prog.nextStep(h).text, /進階/);              // 讀完後提示進階
-  D.setBranch(h, d.uid, 'focus'); h.artifacts = ['yinqi']; h.equipped = []; h.unlocked.expedition = false;
+  h.res.mat_cave = 2; D.setBranch(h, d.uid, 'focus'); h.artifacts = ['yinqi']; h.equipped = []; h.unlocked.expedition = false;
   assert.match(Prog.nextStep(h).text, /裝備欄/);                                   // 有法寶沒裝備
   h.equipped = ['yinqi']; h.unlocked.f_insight = true; h.res.shard = 10; h.disciples.push({ uid: 99, defId: 'qinwu', lv: 1, at: 'arena' }); h.buildings.arena.lv = 1;
   assert.match(Prog.nextStep(h).text, /專長心得/);                                 // 劍修派駐中、碎片夠
@@ -1398,7 +1399,7 @@ t('探索度：成功才累積、門檻解鎖發現、第 2 則二選一、永�
   assert.ok(Math.abs(Ep.exRewardMult(s, 'cave') - 1.1) < 1e-9);
   // 領取：不可重複、不能越級
   assert.equal(Ep.resolve(s, 'cave', 2, 'a'), null); const sh = s.res.shard;
-  assert.ok(Ep.resolve(s, 'cave', 1)); assert.ok(s.res.shard > sh); assert.equal(Ep.resolve(s, 'cave', 1), null);
+  assert.ok(Ep.resolve(s, 'cave', 1)); assert.ok(s.res.merit > 0 && s.res.mat_cave >= 3); assert.equal(Ep.resolve(s, 'cave', 1), null);
   // 第 2 則：要選 a 或 b；b 給永久加成，a 給立即資源
   for (let i = 0; i < 3; i++) Ep.addProgress(s, 'cave'); assert.equal(Ep.exLevel(s, 'cave'), 2);
   assert.equal(Ep.resolve(s, 'cave', 2), null); assert.equal(Ep.resolve(s, 'cave', 2, 'z'), null);
@@ -1413,6 +1414,37 @@ t('探索度：成功才累積、門檻解鎖發現、第 2 則二選一、永�
   const raw = JSON.parse(JSON.stringify(s)); raw.explore = { cave: -5, nope: 3 }; raw.exMile = { cave: { 1: 1, 2: 'q', 3: 0 } };
   const c = sanitize(raw); assert.equal(c.explore.cave, 0); assert.ok(!('nope' in c.explore)); assert.deepEqual(c.exMile.cave, { 1: 'x' });
   s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(Ep.exLevel(s, 'cave'), 3); assert.equal(s.exMile.cave[2], 'b');
+});
+
+t('秘境材料：跨大境界突破需要對應材料、探索產出材料與功勳、舊存檔補欄位與轉生保留', () => {
+  const s = createState(); s.res.stone = 1e12; s.realmIdx = 9;
+  assert.equal(R.breakCost(s).mat_field, 2); assert.equal(R.canBreak(s), false);                   // 築基：戰場殘鋒＋藥王花
+  s.res.mat_field = 2; assert.equal(R.canBreak(s), false); s.res.mat_valley = 2; assert.equal(R.canBreak(s), true);
+  assert.ok(R.breakthrough(s)); assert.equal(s.res.mat_field, 0); assert.equal(R.breakCost(s).mat_swamp, 3);   // 金丹：瘴靈草＋陣紋玉
+  s.realmIdx = 11; assert.deepEqual(Object.keys(R.breakCost(s)).sort(), ['mat_sky', 'stone']);          // 元嬰
+  s.realmIdx = 12; assert.ok(R.breakCost(s).mat_abyss > 0 && !('shard' in R.breakCost(s)));             // 化神
+  s.realmIdx = 5; assert.deepEqual(Object.keys(R.breakCost(s)), ['stone']);                              // 小境界只要靈石
+  // 秘境不再產招賢令與碎片
+  for (const e of EXPEDITIONS) assert.ok(!e.reward.token && !e.reward.shard, e.id);
+  // 轉生保留材料與功勳
+  const k = createState(); k.res.mat_abyss = 7; k.res.merit = 9; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.res.mat_abyss, 7); assert.equal(k.res.merit, 9);
+  // 舊存檔補欄位
+  const raw = JSON.parse(JSON.stringify(createState())); delete raw.res.merit; delete raw.res.mat_cave; delete raw.tokBuy;
+  const c = sanitize(raw); assert.equal(c.res.merit, 0); assert.equal(c.res.mat_cave, 0); assert.equal(c.tokBuy.n, 0);
+});
+
+t('招賢令：靈石限購遞增價、時段重置、功勳兌換、委託與引爆給功勳', () => {
+  const s = createState(); s.res.stone = 1e9;
+  assert.equal(G.tokenLeft(s), 6); const p1 = G.tokenPrice(s, 1).stone, p3 = G.tokenPrice(s, 3).stone;
+  assert.ok(p3 > p1 * 3, '越買越貴'); assert.equal(G.buyTokens(s, 4), true); assert.equal(G.tokenLeft(s), 2);
+  assert.equal(G.buyTokens(s, 3), false, '超過限購'); assert.equal(G.buyTokens(s, 2), true); assert.equal(G.tokenLeft(s), 0); assert.equal(G.buyTokens(s, 1), false);
+  assert.ok(G.tokenPrice(s, 1).stone > p1);
+  s.t += 3600000 + 1; assert.equal(G.tokenLeft(s), 6); assert.equal(G.tokenPrice(s, 1).stone, p1);        // 一小時後重置
+  // 功勳兌換
+  const t0 = s.res.token; s.res.merit = 13; assert.ok(G.exchangeMerit(s, 2)); assert.equal(s.res.token, t0 + 2); assert.equal(s.res.merit, 1); assert.equal(G.exchangeMerit(s, 1), false);
+  // 引爆與探索給功勳
+  const b = createState(); b.realmIdx = 6; b.disguise.value = CONFIG.conceal.max; b.grudges = [{ id: 1, name: '仇', type: 'rival', sect: '青雲宗', personality: '傲慢', lvl: 1, alert: false, element: '木' }];
+  X.burst(b); assert.ok(b.res.merit >= 1);
 });
 
 console.log(`\n${n} 項測試通過`);

@@ -2,12 +2,13 @@
 import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R } from '../data/expeditions.js';
 import { ARTIFACTS } from '../data/artifacts.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
-import { chance, pick } from './rng.js';
+import { chance, pick, randInt } from './rng.js';
 import { stat, isSpecialtyMatch, expStat } from './discipleMath.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { rollSurrender } from './endure.js';
 import { toast, cue } from './events.js';
 import { exRewardMult, addProgress } from './exploration.js';
+import { MAT_YIELD, matKey, MERIT } from '../data/materials.js';
 
 export const slotCount = s => R.slots.reduce((n, [realm, c]) => (s.realmIdx >= realm ? c : n), 1);
 export const isUnlocked = (s, e) => s.realmIdx >= e.unlockRealm;
@@ -43,14 +44,14 @@ export function start(s, expId, uids) {
 export function tick(s) {
   for (const x of s.expeditions) {
     if (x.status !== 'running' || s.t < x.endAt) continue;
-    const e = EXPEDITIONS_BY_ID[x.id], ok = chance(x.chance), k = ok ? 1 : R.failShare, rw = e.reward, xm = exRewardMult(s, x.id), out = { qi: 0, stone: 0, token: 0, shard: 0 };
+    const e = EXPEDITIONS_BY_ID[x.id], ok = chance(x.chance), k = ok ? 1 : R.failShare, rw = e.reward, xm = exRewardMult(s, x.id), out = { qi: 0, stone: 0, mat: 0, matId: x.id };
     if (rw.qiSec) out.qi = qiPerSec(s) * rw.qiSec * k * xm;
     if (rw.stoneSec) out.stone = Math.max(1, stonePerSec(s) * rw.stoneSec * k * xm);
     if (ok) {
-      out.token = Math.round((rw.token || 0) * xm); out.shard = Math.round((rw.shard || 0) * xm);
+      const [lo, hi] = MAT_YIELD[x.id] || [1, 1]; out.mat = Math.max(1, Math.round(randInt(lo, hi) * xm));
       if (rw.artifact && chance(rw.artifact)) { const left = ARTIFACTS.filter(a => !a.unique && !s.artifacts.includes(a.id)); if (left.length) out.artifactId = pick(left).id; }
       if (rw.recruit && chance(rw.recruit)) out.recruit = true;
-    } else out.shard = 1;                                   // 失敗也有一點收穫
+    } else out.mat = Math.max(1, Math.round(((MAT_YIELD[x.id] || [1, 1])[0] + (MAT_YIELD[x.id] || [1, 1])[1]) / 2 * 0.6));   // 失敗也有約六成材料
     x.status = 'done'; x.success = ok; x.result = out;
     toast(`${e.emoji}${e.name}：探索${ok ? '成功' : '失敗'}，可以領取了`, ok ? 'good' : 'warn'); cue(ok ? 'goal' : 'visitor');
   }
@@ -60,7 +61,9 @@ export function tick(s) {
 export function claim(s, i) {
   const x = s.expeditions[i]; if (!x || x.status !== 'done') return null;
   const r = x.result;
-  for (const k of ['qi', 'stone', 'token', 'shard']) s.res[k] += r[k] || 0;
+  for (const k of ['qi', 'stone', 'token', 'shard']) s.res[k] += r[k] || 0;    // token／shard 只會出現在舊存檔的未領取結果
+  if (r.mat) s.res[matKey(r.matId || x.id)] += r.mat;
+  if (x.success) s.res.merit += MERIT.expedition;
   let artifact = null, recruit = null;
   if (r.artifactId && !s.artifacts.includes(r.artifactId)) { s.artifacts.push(r.artifactId); artifact = r.artifactId; }
   if (r.recruit) { const def = rollSurrender(s); s.recruits.push({ uid: s.nextUid++, defId: def.id, from: '秘境' }); recruit = def; }
