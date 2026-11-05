@@ -21,6 +21,7 @@ import { getPrefs } from './prefs.js';
 import { initParticles, setAmbientIntensity } from './particles.js';
 import { pulse, floatText } from './fx.js';
 import { GOALS } from '../data/goals.js';
+import { TAB_TIPS } from '../data/help.js';
 
 const TABS = [
   ['buildings', '🏯 建築'], ['realm', '🧘 境界'], ['gacha', '🎫 招賢'],
@@ -83,7 +84,10 @@ export function createRenderer(s, ui) {
     }).join(''));
 
     const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel, factions: factionPanel, expedition: expeditionPanel }[ui.tab];
-    setHTML(panelEl, body(s, ui));
+    const prefs = getPrefs();
+    const tip = prefs.tips && !prefs.tipsSeen[ui.tab] && TAB_TIPS[ui.tab]
+      ? `<div class="tip"><span>💡 ${TAB_TIPS[ui.tab]}</span><button class="btn mini" data-act="dismissTip" data-tab="${ui.tab}">知道了</button></div>` : '';
+    setHTML(panelEl, tip + body(s, ui));
   }
   return render;
 }

@@ -21,6 +21,7 @@ import * as St from '../src/core/stories.js';
 import * as Bond from '../src/core/bonds.js';
 import * as Sp from '../src/core/spec.js';
 import * as Fac from '../src/core/factions.js';
+import { TAB_TIPS, HELP } from '../src/data/help.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
 import { MUTATORS } from '../src/data/mutators.js';
@@ -963,6 +964,24 @@ t('秘境與詞條資料完整', () => {
   EXPEDITIONS.forEach(e => { assert.ok(e.minutes > 0 && e.difficulty > 0 && Object.keys(e.reward).length); });
   assert.ok(EXPEDITIONS.every((e, i) => i === 0 || e.unlockRealm > EXPEDITIONS[i - 1].unlockRealm));
   MUTATORS.forEach(m => assert.ok(m.effects.dao > 0 && m.desc));
+});
+
+// ── 使用導引 ──
+t('分頁說明涵蓋所有分頁；說明文字涵蓋新系統', () => {
+  const tabs = ['buildings', 'realm', 'gacha', 'disciples', 'avenge', 'nemesis', 'factions', 'expedition', 'dao', 'goals'];
+  tabs.forEach(tb => assert.ok(TAB_TIPS[tb] && TAB_TIPS[tb].length > 20, tb));
+  const titles = HELP.map(x => x.t).join('|');
+  ['故事', '專精', '勢力', '秘境', '輪迴詞條', '宿敵'].forEach(k => assert.ok(titles.includes(k), '說明缺少 ' + k));
+});
+
+t('下一步提示：新系統（故事、專精、秘境）在適當時機提醒', () => {
+  const s = createState(); s.buildings.alchemy.lv = 1; s.res.stone = 0; s.realmIdx = 2; s.unlocked.expedition = true;
+  const d = D.addDisciple(s, 'afu').disciple; D.assign(s, d.uid, 'temple');
+  d.lv = 5; assert.match(Prog.nextStep(s).text, /故事/);
+  St.read(s, d.uid); s.res.token = 0;
+  s.buildings.field.lv = 5; assert.match(Prog.nextStep(s).text, /專精/);
+  Sp.choose(s, 'field', 'rice'); assert.match(Prog.nextStep(s).text, /秘境/);
+  s.visitor.current = visitor('former', 1); assert.match(Prog.nextStep(s).text, /來訪/);          // 訪客仍然優先
 });
 
 console.log(`\n${n} 項測試通過`);

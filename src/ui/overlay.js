@@ -207,7 +207,9 @@ export function showHelp(intro = false) {
   const list = intro ? INTRO : HELP;
   return showModal(`<h3>${intro ? '🏚️ 歡迎來到破廟宗主' : '❓ 玩法說明'}</h3>
     ${list.map(x => `<p><b class="gold">${esc(x.t)}</b><br>${esc(x.d)}</p>`).join('')}
-    ${intro ? '' : `<label class="loss"><input type="checkbox" data-change="toggleHints" ${getPrefs().hints ? 'checked' : ''}> 顯示畫面上方的「下一步」提示</label>`}`);
+    ${intro ? '' : `<div class="helpopts"><label class="loss"><input type="checkbox" data-change="toggleHints" ${getPrefs().hints ? 'checked' : ''}> 顯示畫面上方的「下一步」提示</label>
+      <label class="loss"><input type="checkbox" data-change="toggleTips" ${getPrefs().tips ? 'checked' : ''}> 第一次打開分頁時顯示說明</label>
+      <button class="btn mini" data-act="resetTips">重新顯示所有分頁說明</button> <button class="btn mini" data-act="replayIntro">重看開場介紹</button></div>`}`);
 }
 
 // ── 弟子故事 ──

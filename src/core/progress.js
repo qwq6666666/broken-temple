@@ -10,6 +10,10 @@ import { canRebirth } from './dao.js';
 import { slots } from './buildings.js';
 import { isDone } from './goals.js';
 import { toast, cue } from './events.js';
+import { nextChapter } from './stories.js';
+import { canChoose as canSpec } from './spec.js';
+import { SPECS } from '../data/specs.js';
+import { slotCount, freeDisciples } from './expeditions.js';
 
 // 各分頁的解鎖條件（建築、境界一開始就有）
 export const TAB_RULES = {
@@ -60,6 +64,9 @@ export function nextStep(s) {
   if (s.res.token >= 1 && s.disciples.length === 0) return { text: '用招賢令抽取弟子，再把弟子派駐到建築上加成產出。', tab: 'gacha' };
   if (s.disciples.length && !s.disciples.some(d => d.at) && Object.keys(s.buildings).some(id => slots(s, id) > 0))
     return { text: '弟子還沒派駐！到「弟子」把他們放進建築（專長與建築相符，加成 ×2）。', tab: 'disciples' };
+  if (s.disciples.some(d => nextChapter(s, d))) return { text: '有弟子的故事可以讀了！到「弟子」按「📖 讀故事」：有獎勵，特性還會永久 +10%。', tab: 'disciples' };
+  if (Object.keys(SPECS).some(id => canSpec(s, id))) return { text: '有建築可以選擇「專精」了！點畫面上的建築，二選一（本輪有效）。', tab: 'buildings' };
+  if (s.unlocked.expedition && s.expeditions.length < slotCount(s) && freeDisciples(s).length) return { text: '秘境探索位空著！派弟子去探索，離線也會完成。', tab: 'expedition' };
   const cap = Object.keys(s.buildings).find(id => s.buildings[id].lv > 0 && isCapped(s, id));
   const nx = nextRealm(s);
   if (nx && cap && !canBreak(s) && s.res.stone < breakCost(s).stone)

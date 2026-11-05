@@ -128,6 +128,9 @@ export function bindActions(s, ui, rerender) {
     readStory: el => { const r = St.read(s, +el.dataset.uid); if (r) { sfx('goal'); showStory(r); } },
     viewStory: el => { const df = DISCIPLES_BY_ID[el.dataset.def]; showStoryLog(df.name, df.emoji, St.reread(s, df.id)); },
     help: () => showHelp(false),
+    dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
+    resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },
+    replayIntro: () => { closeOverlay(); showHelp(true); },
     hideHints: () => { setPref('hints', false); toast('已隱藏提示，可在「❓ 說明」重新開啟', 'info'); },
     toggleSound: () => { setPref('muted', !getPrefs().muted); if (!getPrefs().muted) sfx('click'); updateMenu(); },
     toggleMotion: () => { setPref('reduceMotion', !getPrefs().reduceMotion); updateMenu(); },
@@ -138,6 +141,7 @@ export function bindActions(s, ui, rerender) {
       const ok = D.assign(s, +el.dataset.uid, el.value || null);
       if (!ok) toast('駐守位已滿', 'warn');
     },
+    toggleTips: el => { setPref('tips', el.checked); },
     toggleHints: el => { setPref('hints', el.checked); },
     toggleLoss: el => { s.settings.loss = el.checked; },
   };
