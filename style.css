@@ -612,3 +612,9 @@ h3.sub:first-child { margin-top: 0; }
 @media (min-width: 861px) { #tabs { gap: 3px; } .tab { padding: 7px 9px; font-size: .94em; } }
 
 .chrow { display: flex; gap: 10px; font-size: .88em; line-height: 1.5; } .chrow small { flex: none; min-width: 7.5em; }
+
+#topbar h1 small.ttl { color: var(--paper); letter-spacing: 1px; margin-left: 10px; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 4px; color: var(--paper); font: inherit; cursor: pointer; }
+.badge:disabled { opacity: .5; cursor: default; } .badge .bi { font-size: 22px; } .badge b { font-size: .85em; } .badge small { font-size: .7em; color: var(--dim); }
+.badge.on { border-color: var(--gold); } .badge.worn { background: var(--panel2); box-shadow: 0 0 8px rgba(217,182,74,.4); }

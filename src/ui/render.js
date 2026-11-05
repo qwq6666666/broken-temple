@@ -16,6 +16,7 @@ import { nemesisPanel } from './nemesisPanel.js';
 import { daoPanel } from './daoPanel.js';
 import { factionPanel } from './factionPanel.js';
 import { expeditionPanel } from './expeditionPanel.js';
+import { titleOf } from '../core/achievements.js';
 import { readyCount } from '../core/commissions.js';
 import { isUnlocked, nextStep } from '../core/progress.js';
 import { getPrefs } from './prefs.js';
@@ -51,12 +52,14 @@ export function createRenderer(s, ui) {
   ui.quote = pickLine(LINES.idle);
   bus.on('quote', t => { ui.quote = t; ui.quoteAt = Date.now(); });
 
+  const ttlEl = document.getElementById('ttl');
   function render() {
     // 老祖閒聊：久未發言就換一句
     if (Date.now() - (ui.quoteAt || 0) > 25000) { ui.quote = pickLine(LINES.idle); ui.quoteAt = Date.now(); }
 
     // 資源列：節點只建一次，只更新文字；數值突然增減時閃一下並飄出變化量
     const r = realmOf(s);
+    if (ttlEl) setText(ttlEl, titleOf(s) ? `「${titleOf(s)}」` : '');
     const rows = {
       qi:    { show: true, v: s.res.qi, sub: '+' + fmtRate(qiPerSec(s)), rate: qiPerSec(s) },
       stone: { show: true, v: s.res.stone, sub: stonePerSec(s) > 0 ? '+' + fmtRate(stonePerSec(s)) : '建煉丹房產出', rate: stonePerSec(s) },

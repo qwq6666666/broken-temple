@@ -25,6 +25,7 @@ import { TAB_TIPS, HELP } from '../src/data/help.js';
 import { sanitize } from '../src/core/save.js';
 import { autoAssign } from '../src/core/autoAssign.js';
 import * as Chr from '../src/core/chronicle.js';
+import * as Ach from '../src/core/achievements.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1067,6 +1068,20 @@ t('宗門年表：突破大境界與轉生會記錄、上限 120 筆、跨轉生
   Dao.rebirth(s); assert.ok(s.chronicle.some(e => e.text.includes('第1世結束')));
   for (let i = 0; i < 200; i++) Chr.note(s, '📜', 'x' + i);
   assert.equal(s.chronicle.length, 120);
+});
+
+t('成就：達成即解鎖並記年表、稱號可裝備與取消、轉生保留、壞存檔被清掉', () => {
+  const s = createState();
+  Ach.tick(s); assert.equal(s.achv.done.length, 0);
+  s.stats.endures = 100; Ach.tick(s);
+  assert.deepEqual(s.achv.done, ['endure100']); assert.ok(s.chronicle.some(e => e.text.includes('忍者神龜')));
+  assert.equal(Ach.equip(s, 'beat30'), false);                       // 未解鎖不能裝備
+  assert.ok(Ach.equip(s, 'endure100')); assert.equal(Ach.titleOf(s), '忍者神龜');
+  Ach.equip(s, null); assert.equal(Ach.titleOf(s), '');
+  Ach.equip(s, 'endure100'); s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s);
+  assert.equal(s.achv.title, 'endure100');
+  const raw = JSON.parse(JSON.stringify(s)); raw.achv = { done: ['endure100', 'zzz'], title: 'zzz' };
+  const back = sanitize(raw); assert.deepEqual(back.achv, { done: ['endure100'], title: null });
 });
 
 console.log(`\n${n} 項測試通過`);

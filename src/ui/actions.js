@@ -12,6 +12,7 @@ import * as Dao from '../core/dao.js';
 import * as St from '../core/stories.js';
 import * as Sp from '../core/spec.js';
 import { autoAssign } from '../core/autoAssign.js';
+import * as Ach from '../core/achievements.js';
 import * as Cm from '../core/commissions.js';
 import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
@@ -142,6 +143,7 @@ export function bindActions(s, ui, rerender) {
     unassign: el => { D.assign(s, +el.dataset.uid, null); },
     toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: !(ui.rowOpen || {})[el.dataset.key] }; },
     upgradeAll: () => { const n = B.upgradeAll(s); if (n) { sfx('upgrade'); toast(`共升級 ${n} 級`, 'good'); } },
+    equipTitle: el => { Ach.equip(s, s.achv.title === el.dataset.id ? null : el.dataset.id); },
     toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },

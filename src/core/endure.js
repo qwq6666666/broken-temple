@@ -145,6 +145,7 @@ export function showOff(s) {
       s.recruits.push({ uid: s.nextUid++, defId: def.id, from: v.name });
       got.surrender = def;
     }
+    s.stats.beats = (s.stats.beats || 0) + 1;
     addRep(s, v.sect, 1);                              // 當場打臉也累積威望
     s.visitor.current = null; scheduleNext(s);
     quote(pickLine(LINES.show));

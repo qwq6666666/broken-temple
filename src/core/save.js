@@ -13,6 +13,7 @@ import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { ACHIEVEMENTS_BY_ID } from '../data/achievements.js';
 import { COMMISSION_BY_KIND } from '../data/commissions.js';
 import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { PERSONALITIES, VISITOR_TYPES } from '../data/visitors.js';
@@ -58,6 +59,8 @@ export function sanitize(s) {
   s.recruits = (Array.isArray(s.recruits) ? s.recruits : []).filter(r => isPlain(r) && DISCIPLES_BY_ID[r.defId]);
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
+  const av = isPlain(s.achv) ? s.achv : {};
+  s.achv = { done: [...new Set((Array.isArray(av.done) ? av.done : []).filter(id => ACHIEVEMENTS_BY_ID[id]))], title: ACHIEVEMENTS_BY_ID[av.title] ? av.title : null };
   const cm = isPlain(s.commissions) ? s.commissions : {};
   s.commissions = { list: (Array.isArray(cm.list) ? cm.list : []).filter(c => isPlain(c) && COMMISSION_BY_KIND[c.kind] && isPlain(c.reward))
     .map(c => ({ kind: c.kind, target: Math.max(1, Math.floor(num(c.target, 1))), base: Math.max(0, num(c.base)), reward: c.reward })).slice(0, 3),
