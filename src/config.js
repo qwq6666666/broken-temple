@@ -7,13 +7,15 @@ export const CONFIG = {
   debug: { timeScale: 1 },     // 時間倍率；網址加 ?speed=10 可加速測試
 
   start: { qi: 0, stone: 0, token: 3, templeLevel: 1 },
-  click: { base: 1, perTempleLevel: 0.5 },   // 打坐：基礎 + 破廟每級加成
-  innateQiPerSec: 0.2,                       // 破廟的基礎產出（不受暫停影響）
+  // 打坐（引氣）：有冷卻。收益 = max(保底, 每秒靈氣 × productionSec)，主動最多約為被動產出的 +50%
+  click: { cooldownMs: 8000, productionSec: 4, base: 1, perTempleLevel: 0.5 },
+  innateQiPerSec: 0.5,                       // 破廟的基礎產出（不受暫停影響）
 
   building: {
     maxLevel: 10,
     costGrowth: 1.15,          // 成本 = 基礎成本 × costGrowth ^ 目前等級
     slotEvery: 3,              // 每 N 級多一個弟子駐守位（1 + floor((lv-1)/N)）
+    levelCapRealmFactor: 0.7,  // 建築等級上限 = min(10, 1 + floor(境界序號 × 0.7))，境界不夠就升不上去
   },
 
   disciple: {
@@ -40,8 +42,9 @@ export const CONFIG = {
   realm: {
     multBase: 1.35,            // 境界產出倍率 = multBase ^ 境界序號
     powerBase: 1.6,            // 境界戰力 = powerBase ^ 境界序號（仇人也用同一把尺）
-    stoneBase: 6,              // 突破到第 i 境界的靈石成本 = stoneBase × stoneGrowth ^ (i-1)
-    stoneGrowth: 1.9,
+    stoneBase: 4,              // 突破到第 i 境界的靈石成本 = stoneBase × stoneGrowth ^ (i-1)
+    stoneGrowth: 2.5,          // 煉氣期（序號 ≤9）每階的成長
+    stoneGrowthLate: 3.3,      // 築基以後（序號 ≥10）每階的成長，單獨抽出方便調後期
     shardCosts: { 10: 15, 11: 40, 12: 100, 13: 250 },  // 築基以上另需碎片
     breakMs: 2400,             // 突破演出長度
   },
@@ -61,12 +64,12 @@ export const CONFIG = {
 
   endure: {
     disguiseGain: 1,           // 忍氣吞聲 +偽裝值
-    loss: { stoneFrac: 0.08, pauseMs: 5 * 60 * 1000 },   // 損失：8% 靈石 或 建築暫停 5 分鐘
+    loss: { stoneSec: 20, pauseMs: 5 * 60 * 1000 },   // 損失：約 20 秒的靈石產出（隨進度縮放，不會卡死囤積）或 建築暫停 5 分鐘
   },
 
   conceal: {
     max: 20,                   // 蓄力條滿格所需偽裝值
-    timeGainSec: 45,           // 每 45 秒自然 +1 偽裝值
+    timeGainSec: 120,          // 每 120 秒自然 +1 偽裝值
     chargeStepMs: 10 * 60 * 1000,  // 每 10 分鐘
     chargeStepBonus: 0.05,         // +5% 爆發倍率
     chargeMaxMult: 3,              // 上限 ×3

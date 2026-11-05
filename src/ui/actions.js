@@ -1,5 +1,5 @@
 // 玩家操作：把 DOM 事件（data-act / data-change）轉成對 core 的呼叫。
-import { clickPower } from '../core/economy.js';
+import { meditate } from '../core/meditate.js';
 import { fmt } from '../core/format.js';
 import * as B from '../core/buildings.js';
 import * as R from '../core/realm.js';
@@ -16,7 +16,8 @@ export function bindActions(s, ui, rerender) {
   const act = {
     tab: el => { ui.tab = el.dataset.tab; },
     meditate: (el, ev) => {
-      const gain = clickPower(s); s.res.qi += gain; s.stats.meditations++;
+      const gain = meditate(s);
+      if (!gain) return;
       const sc = document.getElementById('scene'), r = sc.getBoundingClientRect();
       const f = document.createElement('span'); f.className = 'float'; f.textContent = '+' + fmt(gain);
       f.style.left = (ev.clientX - r.left) + 'px'; f.style.top = (ev.clientY - r.top - 10) + 'px';

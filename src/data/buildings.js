@@ -16,7 +16,7 @@ export const BUILDINGS = [
   },
   {
     id: 'field', name: '靈田', specialty: '農修', element: '木',
-    baseCost: { qi: 150 }, produce: { qi: 3 },
+    baseCost: { qi: 60 }, produce: { qi: 3 },
     desc: '穩定的靈氣來源。每級 +3 靈氣/秒。',
     stages: [
       { lv: 0, emoji: '🪨', label: '荒地' },
@@ -28,7 +28,7 @@ export const BUILDINGS = [
   },
   {
     id: 'alchemy', name: '煉丹房', specialty: '丹修', element: '火',
-    baseCost: { qi: 600 }, produce: { stone: 0.08 },
+    baseCost: { qi: 120 }, produce: { stone: 0.08 },
     desc: '產出靈石。每級 +0.08 靈石/秒。',
     stages: [
       { lv: 0, emoji: '🧱', label: '塌掉的灶台' },

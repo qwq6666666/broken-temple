@@ -9,12 +9,19 @@ for (let n = 1; n <= 9; n++) raw.push({ name: `煉氣${'一二三四五六七八
 raw.push({ name: '築基', tier: 2 }, { name: '金丹', tier: 3 }, { name: '元嬰', tier: 4 }, { name: '化神', tier: 5 });
 
 const R = CONFIG.realm;
+// 靈石成本：序號 ≤9 用 stoneGrowth，之後每階改用 stoneGrowthLate（累乘）
+const stoneCostAt = i => {
+  if (i === 0) return 0;
+  let c = R.stoneBase;
+  for (let k = 2; k <= i; k++) c *= k <= 9 ? R.stoneGrowth : R.stoneGrowthLate;
+  return Math.round(c);
+};
 export const REALMS = raw.map((r, i) => ({
   ...r,
   idx: i,
   mult: R.multBase ** i,                     // 產出倍率
   power: R.powerBase ** i,                   // 戰力
-  stoneCost: i === 0 ? 0 : Math.round(R.stoneBase * R.stoneGrowth ** (i - 1)),  // 突破到此境界的靈石
+  stoneCost: stoneCostAt(i),                  // 突破到此境界的靈石
   shardCost: R.shardCosts[i] || 0,           // 突破到此境界的碎片
 }));
 

@@ -175,3 +175,8 @@ select.assign { background: #0e1613; color: var(--paper); border: 1px solid var(
 #toasts { position: fixed; right: 14px; bottom: 14px; z-index: 200; display: flex; flex-direction: column; gap: 6px; max-width: 340px; }
 .toast { background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--jade); padding: 8px 12px; border-radius: 6px; animation: popIn .3s; transition: opacity .5s; }
 .toast.warn { border-left-color: var(--red); } .toast.good { border-left-color: var(--gold); } .toast.out { opacity: 0; }
+
+/* 打坐冷卻進度（疊在按鈕底下） */
+button.meditate { position: relative; overflow: hidden; }
+button.meditate .cd { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(0,0,0,.45); pointer-events: none; }
+button.meditate .mlabel { position: relative; }

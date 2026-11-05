@@ -7,7 +7,8 @@ import { stageOf, stageIndex } from '../core/buildings.js';
 import { clickPower } from '../core/economy.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt, fmtTime } from '../core/format.js';
-import { esc, setHTML } from './dom.js';
+import { cooldownLeft } from '../core/meditate.js';
+import { esc, setHTML, setText } from './dom.js';
 
 export function mountScene(root) {
   root.innerHTML = `
@@ -16,8 +17,10 @@ export function mountScene(root) {
     <div class="ancestor"><div class="avatar">👴</div><div class="bubble" data-r="bubble"></div></div>
     <div class="tiles" data-r="tiles"></div>
     <div class="visitor-slot" data-r="visitor"></div>
-    <div class="meditate-slot" data-r="meditate"></div>`;
-  return Object.fromEntries([...root.querySelectorAll('[data-r]')].map(e => [e.dataset.r, e]));
+    <div class="meditate-slot"><button class="btn meditate" data-act="meditate"><span class="cd" data-r="cd"></span><span class="mlabel" data-r="mlabel"></span></button></div>`;
+  const refs = Object.fromEntries([...root.querySelectorAll('[data-r]')].map(e => [e.dataset.r, e]));
+  refs.mbtn = root.querySelector('.meditate');   // 按鈕只建一次，之後只改屬性，避免連點時被重建
+  return refs;
 }
 
 export function updateScene(root, refs, s, ui) {
@@ -41,8 +44,11 @@ export function updateScene(root, refs, s, ui) {
   }).join(''));
 
   setHTML(refs.visitor, visitorCard(s));
-  setHTML(refs.meditate,
-    `<button class="btn meditate" data-act="meditate">🧘 打坐 <small>+${fmt(clickPower(s))} 靈氣</small></button>`);
+  // 打坐按鈕：冷卻中灰化並顯示進度
+  const left = cooldownLeft(s), ready = left <= 0;
+  refs.mbtn.disabled = !ready;
+  refs.cd.style.width = (ready ? 0 : left / CONFIG.click.cooldownMs * 100).toFixed(1) + '%';
+  setText(refs.mlabel, ready ? `🧘 引氣打坐 +${fmt(clickPower(s))} 靈氣` : `🧘 調息中… ${(left / 1000).toFixed(1)}s`);
 }
 
 function visitorCard(s) {
@@ -50,7 +56,7 @@ function visitorCard(s) {
   if (!v) return '';
   const t = VISITOR_TYPES[v.type];
   const lossText = s.settings.loss
-    ? `偽裝值 +${CONFIG.endure.disguiseGain}，承受輕微損失（靈石 -${Math.round(CONFIG.endure.loss.stoneFrac * 100)}% 或建築暫停 ${CONFIG.endure.loss.pauseMs / 60000} 分鐘）`
+    ? `偽裝值 +${CONFIG.endure.disguiseGain}，承受輕微損失（約 ${CONFIG.endure.loss.stoneSec} 秒靈石產出，或建築暫停 ${CONFIG.endure.loss.pauseMs / 60000} 分鐘）`
     : `偽裝值 +${CONFIG.endure.disguiseGain}（已關閉損失）`;
   return `<div class="visitor-card">
     <div class="vhead"><span class="vemoji">${t.emoji}</span>

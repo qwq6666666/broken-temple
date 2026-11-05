@@ -12,6 +12,7 @@ import * as D from '../src/core/disciples.js';
 import * as E from '../src/core/endure.js';
 import * as C from '../src/core/conceal.js';
 import * as X from '../src/core/burst.js';
+import * as M from '../src/core/meditate.js';
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ✓', name); };
@@ -22,13 +23,40 @@ t('format 大數字', () => {
   assert.equal(fmt(999999), '1M');
 });
 
-t('建築成本 = 基礎 × 1.15^等級，且封頂 10 級', () => {
+t('建築成本 = 基礎 × 1.15^等級 × 解鎖所需境界倍率，且封頂 10 級', () => {
   const s = createState();
-  assert.equal(B.upgradeCost(s, 'field').qi, 150);
-  s.buildings.field.lv = 3;
-  assert.equal(B.upgradeCost(s, 'field').qi, Math.floor(150 * 1.15 ** 3));
-  s.buildings.field.lv = 10; s.res.qi = 1e9;
+  assert.equal(B.upgradeCost(s, 'field').qi, 60);            // 1 級：需境界 0（倍率 1）
+  s.buildings.field.lv = 1;                                  // 升 2 級需煉氣二層（倍率 1.35^2）
+  assert.equal(B.upgradeCost(s, 'field').qi, Math.floor(60 * 1.15 * 1.35 ** 2));
+  s.buildings.field.lv = 10; s.realmIdx = 13; s.res.qi = 1e12;
   assert.equal(B.upgrade(s, 'field'), false);
+});
+
+t('建築等級受境界限制', () => {
+  const s = createState(); s.res.qi = 1e12;
+  assert.equal(B.levelCap(s), 1);
+  assert.equal(B.upgrade(s, 'temple'), false);               // 破廟已 1 級，凡人上限 1
+  s.realmIdx = 2; assert.equal(B.levelCap(s), 2);
+  assert.equal(B.upgrade(s, 'temple'), true);
+  assert.equal(B.upgrade(s, 'temple'), false);               // 再升需更高境界
+  s.realmIdx = 13; assert.equal(B.levelCap(s), 10);
+  assert.equal(B.realmNeededFor(10), 13); assert.equal(B.realmNeededFor(1), 0);
+});
+
+t('打坐有冷卻；冷卻後可再打坐', () => {
+  const s = createState();
+  const g = M.meditate(s);
+  assert.ok(g > 0); assert.equal(M.meditate(s), 0);           // 冷卻中
+  assert.ok(M.cooldownLeft(s) > 0);
+  eco.tick(s, CONFIG.click.cooldownMs);
+  assert.ok(M.canMeditate(s)); assert.ok(M.meditate(s) > 0);
+});
+
+t('打坐收益隨產出縮放，但不超過被動產出的 4 秒（保底除外）', () => {
+  const s = createState(); s.buildings.field.lv = 5; s.realmIdx = 6;
+  assert.ok(Math.abs(eco.clickPower(s) - Math.max(
+    (CONFIG.click.base + s.buildings.temple.lv * CONFIG.click.perTempleLevel) * eco.realmOf(s).mult,
+    eco.qiPerSec(s) * CONFIG.click.productionSec)) < 1e-9);
 });
 
 t('tick：產出與 dt 線性（一次大 tick = 多次小 tick）', () => {

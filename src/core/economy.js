@@ -33,10 +33,11 @@ export function perSec(s, res) {
 export const qiPerSec = s => perSec(s, 'qi');
 export const stonePerSec = s => perSec(s, 'stone');
 
-// 打坐一次獲得的靈氣
-export const clickPower = s =>
-  (CONFIG.click.base + s.buildings.temple.lv * CONFIG.click.perTempleLevel)
-  * realmOf(s).mult * (1 + artifactSum(s, 'clickMult'));
+// 打坐一次獲得的靈氣：取「保底」與「N 秒產出」較大者，所以後期仍有意義但不會超越被動產出太多
+export const clickPower = s => {
+  const floor = (CONFIG.click.base + s.buildings.temple.lv * CONFIG.click.perTempleLevel) * realmOf(s).mult;
+  return Math.max(floor, qiPerSec(s) * CONFIG.click.productionSec) * (1 + artifactSum(s, 'clickMult'));
+};
 
 // 藏經閣：弟子升級折扣（含法寶）
 export const discipleDiscount = s =>

@@ -4,7 +4,7 @@ import { VISITOR_TYPES, SURNAMES, GIVEN, PERSONALITIES, PERSONALITY_KEYS } from 
 import { LINES, pickLine } from '../data/lines.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { pick, randInt, randFloat, weighted, chance } from './rng.js';
-import { rareChance } from './economy.js';
+import { rareChance, stonePerSec } from './economy.js';
 import { quote, toast } from './events.js';
 
 const scheduleNext = s => {
@@ -43,7 +43,7 @@ function applyLoss(s) {
   const canStone = s.res.stone >= 1;
   const useStone = canStone && (!built.length || chance(0.5));
   if (useStone) {
-    const lost = Math.max(1, Math.floor(s.res.stone * CONFIG.endure.loss.stoneFrac));
+    const lost = Math.min(s.res.stone, Math.max(1, Math.floor(stonePerSec(s) * CONFIG.endure.loss.stoneSec)));
     s.res.stone -= lost;
     return `損失 ${lost} 靈石`;
   }

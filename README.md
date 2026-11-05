@@ -12,8 +12,12 @@ npx serve .
 測試／調數值：網址加 `?speed=10`（遊戲時間 10 倍速）。Console 可用 `__game.state` 直接改資源。
 
 ```bash
-node tests/run.mjs   # 核心邏輯測試（保底、成本、連鎖、tick 線性…）
+node tests/run.mjs           # 核心邏輯測試（保底、成本、連鎖、tick 線性…）
+node tests/sim.mjs 40       # 平衡模擬器：貪婪機器人跑 40 小時，印出各里程碑時間
+node tests/sim.mjs 40 passive   # 同上但完全不打坐（純掛機）
 ```
+
+調數值時先跑 sim：目前節奏（機器人，偏樂觀）約為 首次引爆 15 分、煉氣九層 1.1 小時、化神 5.4 小時（含打坐）／9.7 小時（純掛機）。
 
 ## 結構
 - `src/core/`：遊戲邏輯（零 DOM），`loop.js` 為固定 100ms tick（以時間差累積，背景分頁回來會補算）
