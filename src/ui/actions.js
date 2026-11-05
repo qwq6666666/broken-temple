@@ -11,6 +11,7 @@ import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
 import * as St from '../core/stories.js';
 import * as Sp from '../core/spec.js';
+import { autoAssign } from '../core/autoAssign.js';
 import * as Cm from '../core/commissions.js';
 import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
@@ -132,6 +133,13 @@ export function bindActions(s, ui, rerender) {
     abandonCommission: el => { Cm.abandon(s, +el.dataset.i); },
     menuToggle: () => setMenu(document.getElementById('menuMore')?.hidden),
     help: () => showHelp(false),
+    autoAssign: () => { const r = autoAssign(s); sfx('upgrade'); toast(`已重新派駐 ${r.placed}/${r.total} 位弟子`, 'good'); },
+    dSort: el => { ui.dSort = el.dataset.v; }, dFilter: el => { ui.dFilter = el.dataset.v; },
+    toggleD: el => { ui.dOpen = { ...(ui.dOpen || {}), [el.dataset.uid]: !(ui.dOpen || {})[el.dataset.uid] }; },
+    toggleBonds: () => { ui.bondsOpen = !ui.bondsOpen; },
+    slotPick: el => { ui.pickB = el.dataset.b && ui.pickB !== el.dataset.b ? el.dataset.b : null; },
+    slotAssign: el => { if (D.assign(s, +el.dataset.uid, el.dataset.b)) sfx('click'); else toast('駐守位已滿或弟子在探索中', 'warn'); },
+    unassign: el => { D.assign(s, +el.dataset.uid, null); },
     toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },
@@ -146,6 +154,7 @@ export function bindActions(s, ui, rerender) {
       const ok = D.assign(s, +el.dataset.uid, el.value || null);
       if (!ok) toast('駐守位已滿', 'warn');
     },
+    dElem: el => { ui.dElem = el.value; },
     toggleTips: el => { setPref('tips', el.checked); },
     toggleHints: el => { setPref('hints', el.checked); },
     toggleLoss: el => { s.settings.loss = el.checked; },

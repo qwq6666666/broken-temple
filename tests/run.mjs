@@ -23,6 +23,7 @@ import * as Sp from '../src/core/spec.js';
 import * as Fac from '../src/core/factions.js';
 import { TAB_TIPS, HELP } from '../src/data/help.js';
 import { sanitize } from '../src/core/save.js';
+import { autoAssign } from '../src/core/autoAssign.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1031,6 +1032,23 @@ t('宗門委託：舊存檔補預設、壞資料被清掉', () => {
   const back = sanitize(raw); assert.ok(back.commissions.list.every(c => c.kind !== 'nope'));
   const old = JSON.parse(JSON.stringify(s)); delete old.commissions;
   assert.deepEqual(sanitize(old).commissions.list, []);
+});
+
+t('一鍵最佳派駐：專長優先、緣分同棟、不超過駐守位、不動探索中的弟子', () => {
+  const s = createState(); s.realmIdx = 6;
+  for (const id of ['temple', 'field', 'alchemy']) s.buildings[id].lv = 4;       // Lv4 → 2 個駐守位
+  const a = D.addDisciple(s, 'afu').disciple, x = D.addDisciple(s, 'xiaocui').disciple;   // 田間搭檔
+  const r = autoAssign(s);
+  assert.equal(r.placed, 2); assert.ok(a.at && a.at === x.at, '緣分搭檔應同棟');
+  for (const id of ['temple', 'field', 'alchemy']) assert.ok(D.assignedTo(s, id).length <= B.slots(s, id));
+  // 專長：丹修弟子應優先去煉丹房
+  const s2 = createState(); s2.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy']) s2.buildings[id].lv = 1;
+  const alc = D.addDisciple(s2, 'shenyao').disciple; autoAssign(s2);
+  assert.equal(alc.at, 'alchemy');
+  // 探索中的弟子不被動到
+  const s3 = createState(); s3.realmIdx = 6; s3.buildings.temple.lv = 4;
+  const e = D.addDisciple(s3, 'afu').disciple; e.at = 'temple'; s3.expeditions.push({ uids: [e.uid] });
+  autoAssign(s3); assert.equal(e.at, 'temple');
 });
 
 console.log(`\n${n} 項測試通過`);

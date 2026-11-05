@@ -557,3 +557,29 @@ h3.sub:first-child { margin-top: 0; }
 .tip .tiphead { background: none; border: none; color: inherit; font: inherit; cursor: pointer; padding: 4px 2px; flex: 1; text-align: left; }
 .tip .tiptext { flex: 1 1 100%; order: 3; padding: 0 2px 4px; }
 @media (max-width: 860px) { .tip { margin-bottom: 8px; } .stage { flex: 1 1 28%; } .breakact { align-items: stretch; width: 100%; } }
+
+/* 弟子頁：摘要列、駐守（建築視角）、工具列、精簡卡 */
+.dsum { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.dsumhead { flex: 1; text-align: left; background: var(--panel); border: 1px solid var(--line); color: var(--paper); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: .9em; cursor: pointer; }
+.slotsbox { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+.srow { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.sname { min-width: 5.5em; font-size: .9em; }
+.slotline { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.slot { background: #0e1613; color: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; font: inherit; font-size: .85em; cursor: pointer; min-height: 30px; }
+.slot.match { border-color: var(--gold); } .slot.match b { color: var(--gold); }
+.slot.empty { color: var(--dim); border-style: dashed; } .slot.empty.on { color: var(--gold); border-color: var(--gold); }
+.picker { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; background: rgba(0,0,0,.22); border-radius: 8px; }
+.pchip { background: var(--panel2); color: var(--paper); border: 1px solid var(--rc, var(--line)); border-radius: 8px; padding: 4px 8px; font: inherit; font-size: .85em; cursor: pointer; }
+.pchip small { color: var(--dim); }
+.dtools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 8px; }
+.fgroup { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.fchip { background: var(--panel); border: 1px solid var(--line); color: var(--dim); border-radius: 14px; padding: 2px 10px; font: inherit; font-size: .82em; cursor: pointer; }
+.fchip.on { color: var(--gold); border-color: var(--gold); }
+.dgrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); align-items: start; }
+.dcard.open { grid-column: 1 / -1; }
+.dhead { display: flex; gap: 8px; align-items: center; } .dhead .de { font-size: 28px; }
+.dname { display: flex; flex-direction: column; line-height: 1.25; } .dname .rar { color: var(--rc); font-weight: bold; font-size: .75em; }
+.loc { font-size: .8em; color: var(--dim); } .loc.match { color: var(--gold); } .loc.idle { color: var(--red); opacity: .8; } .loc.away { color: var(--jade); }
+.dmore { background: none; border: none; color: var(--dim); font: inherit; font-size: .8em; cursor: pointer; padding: 2px; text-align: left; }
+.ddetail { display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--line); padding-top: 6px; }
+@media (max-width: 860px) { .dgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dcard.open { grid-column: 1 / -1; } .sname { min-width: 100%; } .dtools .btn { width: 100%; } }
