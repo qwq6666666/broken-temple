@@ -84,10 +84,9 @@ export function bindActions(s, ui, rerender) {
       if (ui.busy) return;
       const r = G.pull(s, +el.dataset.n);
       if (!r) return;
-      ui.busy = true; ui.lastPull = null; rerender();
+      ui.busy = true; rerender();
       try { await playPull(r); } catch (e) { console.error(e); }
       finally {
-        ui.lastPull = r; ui.pullAnimUntil = Date.now() + 2400 + r.length * 120;       // 結果卡翻牌動畫的時間窗
         ui.busy = false; rerender();
       }
     },

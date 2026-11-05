@@ -22,7 +22,6 @@ export function gachaPanel(s, ui) {
   const t = s.res.token, g = s.gacha;
   const total = RARITY_ORDER.reduce((a, k) => a + RARITIES[k].weight, 0);
   const rates = RARITY_ORDER.map(k => `<span style="color:${RARITIES[k].color}">${k} ${(RARITIES[k].weight / total * 100).toFixed(0)}%</span>`).join('　');
-  const results = ui.lastPull ? ui.lastPull.map((r, i) => gachaCard(r, i, Date.now() < (ui.pullAnimUntil || 0))).join('') : '<p class="hint">還沒抽過。老祖說：「招賢令，是用來換人的，不是拿來看的。」</p>';
   const left = tokenLeft(s), mins = Math.ceil(tokenResetMs(s) / 60000), p1 = tokenPrice(s, 1), p3 = tokenPrice(s, Math.min(3, Math.max(1, left)));
   const n3 = Math.min(3, Math.max(1, left)), ok1 = left >= 1 && canAfford(s, p1), ok3 = left >= n3 && canAfford(s, p3), mp = meritPrice(1);
   const buy = `<div class="row"><small>招賢令來源：每 ${CONFIG.gacha.tokenTrickleSec} 秒自然 +1、委託、擊敗仇人、事件；也可用靈石或功勳換。</small></div>
@@ -46,5 +45,5 @@ export function gachaPanel(s, ui) {
     </div>
   </div>
   ${crow(ui, { key: 'gbuy', icon: '🛒', title: '<b>購買招賢令與機率</b>', detail: buy })}
-  <div class="gresults">${results}</div>`;
+  <p class="hint">老祖說：「招賢令，是用來換人的，不是拿來看的。」</p>`;
 }
