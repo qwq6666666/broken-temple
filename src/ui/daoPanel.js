@@ -1,6 +1,7 @@
 // 道心商店：用轉生獲得的道心購買永久加成。
 import { DAO_SHOP } from '../data/daoShop.js';
-import { shopLevel, shopCost, canBuy } from '../core/dao.js';
+import { shopLevel, shopCost, canBuy, autoBonus, EXCHANGES } from '../core/dao.js';
+import { canAfford } from '../core/resources.js';
 import { CONFIG } from '../config.js';
 import { fmt } from '../core/format.js';
 import { esc, costChips } from './dom.js';
@@ -19,5 +20,9 @@ export function daoPanel(s) {
         : `<div class="costs">${costChips(s, shopCost(s, it.id))}</div>
            <button class="btn ${can ? 'primary' : ''}" data-act="daoBuy" data-id="${it.id}" ${can ? '' : 'disabled'}>修習</button>`}</div></div>`;
   }).join('');
-  return `<p class="hint">☯️ 道心 ${fmt(s.res.daoHeart)}　已轉生 ${n} 次（每次轉生：靈氣、靈石產出自動 +${Math.round(CONFIG.reincarnation.autoBonusPerCount * 100)}%，目前 +${Math.round(CONFIG.reincarnation.autoBonusPerCount * n * 100)}%）。化神後在「境界」分頁轉生。</p>${rows}`;
+  const ex = EXCHANGES.map(e => `<div class="card ${canAfford(s, { daoHeart: e.cost }) ? 'affordable' : ''}">
+      <div class="big">${e.icon}</div><div class="body"><b>${esc(e.name)}</b><br><small>${esc(e.desc)}</small></div>
+      <div class="act"><div class="costs">${costChips(s, { daoHeart: e.cost })}</div>
+        <button class="btn ${canAfford(s, { daoHeart: e.cost }) ? 'primary' : ''}" data-act="daoExchange" data-id="${e.id}" ${canAfford(s, { daoHeart: e.cost }) ? '' : 'disabled'}>兌換</button></div></div>`).join('');
+  return `<p class="hint">☯️ 道心 ${fmt(s.res.daoHeart)}　已轉生 ${n} 次（轉生次數自動加成：靈氣、靈石 +${Math.round(autoBonus(n) * 100)}%；前 ${CONFIG.reincarnation.autoBonusSoftCap} 次每次 +${Math.round(CONFIG.reincarnation.autoBonusPerCount * 100)}%，之後每次 +${Math.round(CONFIG.reincarnation.autoBonusTail * 100)}%）。化神後在「境界」分頁轉生。</p>${rows}<h3>道心兌換（可重複）</h3>${ex}`;
 }

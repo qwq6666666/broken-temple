@@ -5,13 +5,19 @@ import { createState } from './state.js';
 import { canAfford, pay } from './resources.js';
 import { toast, quote, cue } from './events.js';
 
+// 轉生次數的自動加成：前 softCap 次線性，之後只有小幅尾巴（遞減）
+export function autoBonus(count) {
+  const R = CONFIG.reincarnation;
+  return R.autoBonusPerCount * Math.min(count, R.autoBonusSoftCap) + R.autoBonusTail * Math.max(0, count - R.autoBonusSoftCap);
+}
+
 export const shopLevel = (s, id) => s.reincarnation.shop[id] || 0;
 
 // 道心商店加成總和 + 轉生次數的自動加成（靈氣、靈石各 +10%/次）
 export function perm(s, key) {
   let v = 0;
   for (const it of DAO_SHOP) if (it.key === key) v += shopLevel(s, it.id) * it.perLevel;
-  if (key === 'qiMult' || key === 'stoneMult') v += CONFIG.reincarnation.autoBonusPerCount * s.reincarnation.count;
+  if (key === 'qiMult' || key === 'stoneMult') v += autoBonus(s.reincarnation.count);
   return v;
 }
 
@@ -20,7 +26,8 @@ export const canRebirth = s => s.realmIdx >= CONFIG.reincarnation.minRealm && !s
 // 本輪道心收益
 export function daoGain(s) {
   const R = CONFIG.reincarnation, r = s.run;
-  return Math.floor(R.daoBase + Math.min(R.burstCap, r.bursts) * R.perBurst + r.maxChain * R.perChain
+  const base = Math.min(R.daoBaseMax, R.daoBase + R.daoBasePerCount * s.reincarnation.count);   // 轉生越多次，基礎道心略增
+  return Math.floor(base + Math.min(R.burstCap, r.bursts) * R.perBurst + r.maxChain * R.perChain
     + r.nemeses * R.perNemesis + r.goals * R.perGoal);
 }
 
@@ -60,5 +67,18 @@ export function buy(s, id) {
   if (!canBuy(s, id)) return false;
   pay(s, shopCost(s, id));
   s.reincarnation.shop[id] = shopLevel(s, id) + 1;
+  return true;
+}
+
+// 道心兌換：商店買滿後的出口，固定價格可重複兌換（不影響進度速度，只補收藏與升星需求）
+export const EXCHANGES = [
+  { id: 'exToken', name: '兌換招賢令', icon: '🎫', cost: 6, give: { token: 6 }, desc: '6 道心 → 6 招賢令' },
+  { id: 'exShard', name: '兌換碎片',   icon: '🧩', cost: 6, give: { shard: 12 }, desc: '6 道心 → 12 碎片（升星、築基後突破）' },
+];
+export function exchange(s, id) {
+  const e = EXCHANGES.find(x => x.id === id);
+  if (!e || !canAfford(s, { daoHeart: e.cost })) return false;
+  pay(s, { daoHeart: e.cost });
+  for (const [k, v] of Object.entries(e.give)) s.res[k] += v;
   return true;
 }

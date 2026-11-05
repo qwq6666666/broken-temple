@@ -57,6 +57,7 @@ export function bindActions(s, ui, rerender) {
       const gain = Dao.rebirth(s);
       if (gain != null) { sfx('fanfare'); ui.tab = 'dao'; ui.lastPull = null; }
     },
+    daoExchange: el => { if (Dao.exchange(s, el.dataset.id)) sfx('coin'); },
     daoBuy: el => { if (Dao.buy(s, el.dataset.id)) sfx('upgrade'); },
     incident: el => { if (I.resolve(s, +el.dataset.i)) sfx('coin'); },
     endure: () => { if (E.endure(s)) sfx('endure'); },

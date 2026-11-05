@@ -97,8 +97,11 @@ export const CONFIG = {
     stepMs: 60 * 1000,         // 結算步長
     gapMs: 5 * 60 * 1000,      // 分頁被凍結／電腦休眠超過 5 分鐘 → 視為離線，與關閉分頁行為一致
   },
-  // 轉生：化神後可轉生，依本輪表現換取道心。道心 = base + 引爆(上限) + 連鎖×2 + 擊敗宿敵×5 + 完成大事×2
-  reincarnation: { minRealm: 13, daoBase: 10, burstCap: 40, perBurst: 1, perChain: 2, perNemesis: 5, perGoal: 2, autoBonusPerCount: 0.10 },
+  // 轉生：化神後可轉生，依本輪表現換取道心。
+  // 道心 = base（隨轉生次數小幅成長）+ 引爆(上限) + 連鎖×2 + 擊敗宿敵×5 + 完成大事×2
+  // 自動加成：前 softCap 次每次 +10% 靈氣／靈石，之後每次只 +tail（避免轉生循環無限縮短）
+  reincarnation: { minRealm: 13, daoBase: 10, daoBasePerCount: 1, daoBaseMax: 30, burstCap: 40, perBurst: 1, perChain: 2, perNemesis: 5, perGoal: 2,
+                   autoBonusPerCount: 0.10, autoBonusSoftCap: 10, autoBonusTail: 0.01 },
   nemesis: { chance: 0.5 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵
   save: { key: 'broken-temple-save', autosaveMs: 10000 },
 

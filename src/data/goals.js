@@ -3,6 +3,9 @@
 import { REALMS } from './realms.js';
 import { ARTIFACTS_BY_ID } from './artifacts.js';
 import { NEMESES } from './nemeses.js';
+import { ARTIFACTS } from './artifacts.js';
+import { DISCIPLES } from './disciples.js';
+const NORMAL_ARTS = ARTIFACTS.filter(a => !a.unique).length;
 const normalArts = s => s.artifacts.filter(id => !ARTIFACTS_BY_ID[id].unique).length;
 const minBuilding = s => Math.min(...Object.values(s.buildings).map(b => b.lv));
 const maxStar = s => Math.max(0, ...s.disciples.map(d => d.star || 0));
@@ -25,9 +28,9 @@ export const GOALS = [
   { id: 'star3',   name: '精益求精', desc: '任一弟子升到 3 星', cur: maxStar, target: 3, reward: { token: 10 } },
   { id: 'bld5',    name: '氣象一新', desc: '六棟建築都達 5 級', cur: minBuilding, target: 5, reward: { token: 10, perm: { stoneMult: 0.10 } } },
   { id: 'jindan',  name: '金丹大道', desc: `突破至${REALMS[11].name}`, ...realm(11), reward: { token: 12, perm: { powerMult: 0.10 } } },
-  { id: 'art9',    name: '收藏家', desc: '集齊全部 9 件功法／法寶', cur: normalArts, target: 9, reward: { token: 15, perm: { qiMult: 0.15 } } },
+  { id: 'art9',    name: '收藏家', desc: `集齊全部 ${NORMAL_ARTS} 件功法／法寶`, cur: normalArts, target: NORMAL_ARTS, reward: { token: 15, perm: { qiMult: 0.15 } } },
   { id: 'chain10', name: '十連爆！', desc: '單次引爆連鎖達 10 人', cur: s => s.stats.maxChain || 0, target: 10, reward: { token: 20, perm: { burstReward: 0.10 } } },
-  { id: 'disc20',  name: '桃李滿天下', desc: '收集全部 20 位弟子', cur: s => s.disciples.length, target: 20, reward: { token: 20 } },
+  { id: 'disc20',  name: '桃李滿天下', desc: `收集全部 ${DISCIPLES.length} 位弟子`, cur: s => s.disciples.length, target: DISCIPLES.length, reward: { token: 20 } },
   { id: 'bld10',   name: '天下第一宗（建築）', desc: '六棟建築全部滿級', cur: minBuilding, target: 10, reward: { token: 25, perm: { qiMult: 0.25 } } },
   { id: 'nemAll',  name: '舊債還清', desc: '擊敗全部宿敵，揭開破廟真相', cur: s => s.stats.nemesisDefeated || 0, target: NEMESES.length, reward: { token: 30, perm: { powerMult: 0.10, qiMult: 0.10 } } },
   { id: 'huashen', name: '化神', desc: `突破至${REALMS[13].name}`, ...realm(13), reward: { token: 30, perm: { powerMult: 0.20 } } },

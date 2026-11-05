@@ -83,5 +83,41 @@ export const INCIDENTS = [
       { label: '供奉靈石', cost: { stoneSec: 40 }, desc: '花約 40 秒靈石產出；六成得招賢令，小機率有弟子投奔', effects: { gamble: { p: 0.6, win: { token: 1, recruit: 0.15 }, lose: {} } } },
       { label: '趕走', desc: '白狐一溜煙跑了', effects: {} },
     ] },
+  { id: 'gamble', emoji: '🎲', title: '山下賭坊', weight: 6, good: false, minRealm: 1, timeoutChoice: 1,
+    text: '山腳新開了間賭坊，夥計熱情地招呼你進去「玩兩把」。',
+    choices: [
+      { label: '小賭一把', cost: { stoneSec: 30 }, desc: '花約 30 秒靈石產出；五成贏回三倍', effects: { gamble: { p: 0.5, win: { stoneSec: 90 }, lose: {} } } },
+      { label: '不賭', desc: '君子不入賭坊', effects: {} },
+    ] },
+  { id: 'spring', emoji: '💧', title: '後山靈泉', weight: 8, good: true, minRealm: 0, timeoutChoice: 0,
+    text: '後山冒出一眼靈泉，水汽氤氳，靈氣撲面。',
+    choices: [
+      { label: '取水', desc: '穩穩得到一些靈氣', effects: { qiSec: 100 } },
+      { label: '下去泡澡', desc: '四成得招賢令；失敗則著涼，損失少量靈氣', effects: { gamble: { p: 0.4, win: { token: 2 }, lose: { loseQiSec: 20 } } } },
+    ] },
+  { id: 'old', emoji: '🧑‍🤝‍🧑', title: '同門舊識', weight: 6, good: false, minRealm: 2, timeoutChoice: 0,
+    text: '一位當年的雜役同伴在山門外探頭探腦，欲言又止。',
+    choices: [
+      { label: '裝作不認識', desc: '偽裝值 +1', effects: { disguise: 1 } },
+      { label: '請他進來敘舊', desc: '破費一點靈石，對方感念，留下招賢令一枚', effects: { loseStoneSec: 10, token: 1 } },
+    ] },
+  { id: 'beast', emoji: '🐺', title: '妖獸闖山', weight: 6, good: false, minRealm: 3, timeoutChoice: 1,
+    text: '一頭妖獸闖進山門，在後院低吼。',
+    choices: [
+      { label: '迎戰', desc: '六成擊退並得靈氣與碎片；失敗則建築暫停 4 分鐘', effects: { gamble: { p: 0.6, win: { qiSec: 150, shard: 1 }, lose: { pauseBuilding: min(4) } } } },
+      { label: '躲起來', desc: '損失一點靈氣', effects: { loseQiSec: 40 } },
+    ] },
+  { id: 'recipe', emoji: '📃', title: '遺落的丹方', weight: 6, good: true, minRealm: 2, timeoutChoice: 1,
+    text: '你在舊丹房的牆縫裡摸出一頁泛黃的丹方。',
+    choices: [
+      { label: '潛心研究', cost: { qiSec: 60 }, desc: '花約 60 秒靈氣；五成煉成，得碎片與靈石', effects: { gamble: { p: 0.5, win: { shard: 3, stoneSec: 60 }, lose: {} } } },
+      { label: '轉手賣掉', desc: '換一點靈石', effects: { stoneSec: 40 } },
+    ] },
+  { id: 'story', emoji: '👴', title: '老祖講古', weight: 6, good: true, minRealm: 0, timeoutChoice: 0,
+    text: '老祖心情不錯，開始講三千年前的「光榮事蹟」。',
+    choices: [
+      { label: '認真聽', desc: '聽出點門道，得到靈氣', effects: { qiSec: 50 } },
+      { label: '打瞌睡', desc: '老祖氣得塞給你一枚招賢令堵嘴', effects: { token: 1 } },
+    ] },
 ];
 export const INCIDENTS_BY_ID = Object.fromEntries(INCIDENTS.map(i => [i.id, i]));

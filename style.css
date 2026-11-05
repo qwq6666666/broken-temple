@@ -312,3 +312,13 @@ button.meditate .mlabel { position: relative; }
   .tab .ti { font-size: 20px; }
   .tab i { position: absolute; top: 0; right: 2px; font-size: 10px; padding: 0 4px; }
 }
+
+/* 手機收尾：標籤不亂換行、關閉鈕與選單鈕夠大 */
+@media (max-width: 860px) {
+  .tag.elt { display: none; }
+  .card .row { gap: 4px; }
+  .card .body small { line-height: 1.4; }
+  #hint .hx { min-width: 44px; min-height: 44px; font-size: 1.1em; }
+  #menu .btn.mini { min-height: 40px; padding: 4px 12px; }
+  .btn.mini { min-height: 38px; }
+}

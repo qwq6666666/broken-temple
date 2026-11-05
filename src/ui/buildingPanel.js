@@ -14,7 +14,7 @@ export function buildingPanel(s) {
       <div class="big">${st.emoji}</div>
       <div class="body">
         <div class="row"><b>${esc(d.name)}</b> <span class="lv">Lv ${lv}/${CONFIG.building.maxLevel}</span>
-          <span class="tag">專長：${esc(d.specialty)}</span> <span class="tag">${esc(d.element)}</span></div>
+          <span class="tag">專長：${esc(d.specialty)}</span> <span class="tag elt">${esc(d.element)}</span></div>
         <small>${esc(d.desc)}</small><br>
         <small class="dim">${esc(st.label)}${next ? `　→　Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}　駐守位 ${slots(s, d.id)}</small>
       </div>

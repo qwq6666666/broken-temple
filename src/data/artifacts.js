@@ -11,6 +11,10 @@ export const ARTIFACTS = [
   { id: 'juling',  kind: '法寶', name: '聚靈玉',         emoji: '💎', effect: { qiMult: 0.30 },          desc: '靈氣產出 +30%' },
   { id: 'chuangong',kind:'法寶', name: '傳功玉簡',       emoji: '📿', effect: { discipleDiscount: 0.10 },desc: '弟子升級成本 -10%' },
   { id: 'pixiu',   kind: '法寶', name: '招財貔貅',       emoji: '🐲', effect: { burstReward: 0.15 },     desc: '爆擊獎勵 +15%' },
+  { id: 'hunyuan', kind: '功法', name: '《混元功》', emoji: '📕', effect: { qiMult: 0.25 }, desc: '靈氣產出 +25%' },
+  { id: 'qiankun', kind: '法寶', name: '乾坤袋', emoji: '👝', effect: { stoneMult: 0.20 }, desc: '靈石產出 +20%' },
+  { id: 'jingang', kind: '法寶', name: '金剛符', emoji: '🧿', effect: { powerMult: 0.18 }, desc: '戰力 +18%' },
+  { id: 'jubao',   kind: '法寶', name: '聚寶盆', emoji: '🏺', effect: { burstReward: 0.12 }, desc: '爆擊獎勵 +12%' },
   // ── 宿敵專屬（unique：不會從一般掉落／事件取得）──
   { id: 'qian_abacus', unique: true, kind: '法寶', name: '生鏽的算盤', emoji: '🧮', effect: { stoneMult: 0.15 }, desc: '靈石產出 +15%（錢貫）' },
   { id: 'xiao_sword', unique: true, kind: '法寶', name: '斷劍', emoji: '🗡️', effect: { powerMult: 0.12 }, desc: '戰力 +12%（蕭承曜）' },
