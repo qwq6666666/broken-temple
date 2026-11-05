@@ -1,6 +1,7 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
-// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission]
-//   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission = 開啟對應新功能的最佳化行為
+// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart]
+//   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission/insight = 開啟對應新功能的最佳化行為
+//   smart = 用「補滿空位」依專長五行派駐；環境變數 ELEMENT=0 關閉五行效果（比較基準）
 //   亂數種子可用環境變數 SEED=… 指定（比較設定時請多跑幾個種子取平均）
 import { createState } from '../src/core/state.js';
 import { setRng } from '../src/core/rng.js';
@@ -15,6 +16,10 @@ import * as X from '../src/core/burst.js';
 import * as Inc from '../src/core/incidents.js';
 import * as Dao from '../src/core/dao.js';
 import * as Nem from '../src/core/nemesis.js';
+import * as Ins from '../src/core/insight.js';
+import { INSIGHTS } from '../src/data/insights.js';
+import { autoAssign } from '../src/core/autoAssign.js';
+import { CONFIG } from '../src/config.js';
 import * as Cm from '../src/core/commissions.js';
 import { meditate } from '../src/core/meditate.js';
 import { BUILDINGS } from '../src/data/buildings.js';
@@ -25,6 +30,11 @@ import { REALMS } from '../src/data/realms.js';
 const HOURS = Number(process.argv[2]) || 12;
 const PASSIVE = process.argv[3] === 'passive';
 const FLAG = f => process.argv.includes(f);          // equip（自動裝備最佳 3 件法寶）／branch（弟子 Lv10 自動進階）／commission（自動領委託）
+if (process.env.ELEMENT === '0') CONFIG.element.enabled = false;     // ELEMENT=0：關閉五行相生相剋／克制，當作比較基準
+if (process.env.SHENG) CONFIG.element.shengBonus = Number(process.env.SHENG);   // 覆寫相生／相剋加成（調數值用）
+if (process.env.KE) CONFIG.element.keBonus = Number(process.env.KE);
+if (process.env.ENEMY_BEAT) CONFIG.element.enemyBeat = Number(process.env.ENEMY_BEAT);
+if (process.env.ENEMY_BEATEN) CONFIG.element.enemyBeaten = Number(process.env.ENEMY_BEATEN);
 const REBIRTH = process.argv.includes('rebirth');   // 化神後自動轉生並購買道心商店，印出每一輪耗時
 
 // 固定亂數種子，讓每次結果可比較
@@ -61,6 +71,14 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
     s.equipped = [...s.artifacts].sort((a, b) => val(b) - val(a)).slice(0, EQUIP_SLOTS);
   }
   if (FLAG('branch') && step % 60 === 0) for (const d of s.disciples) if (D.canBranch(d)) D.setBranch(s, d.uid, d.at && isSpecialtyMatch(d, d.at) ? 'focus' : 'might');
+  // 專長心得：碎片夠「下一次突破 + 這次領悟」才買，避免擋住突破；挑最便宜的
+  if (FLAG('insight') && step % 30 === 0) {
+    const need = R.breakCost(s)?.shard ?? 0;
+    const opt = INSIGHTS.map(i => [i.spec, Ins.insightCost(s, i.spec)]).filter(([, c]) => c && s.res.shard >= need + c.shard).sort((a, b) => a[1].shard - b[1].shard)[0];
+    if (opt) Ins.learn(s, opt[0]);
+  }
+  // smart：玩家用「補滿空位」依專長／五行補位（預設機器人只是依序塞進第一個空位）
+  if (FLAG('smart') && step % 10 === 0) autoAssign(s);
   // 突破
   while (R.canBreak(s)) { R.breakthrough(s); if (!REBIRTH) once('境界 ' + REALMS[s.realmIdx].name, true); }
   // 建築：最便宜的先買
@@ -72,7 +90,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   }
   // 抽卡、派駐、升級
   while (s.res.token >= 1) G.pull(s, 1);
-  for (const d of [...s.disciples].sort((a, b) => b.lv - a.lv)) {
+  if (!FLAG('smart')) for (const d of [...s.disciples].sort((a, b) => b.lv - a.lv)) {     // 預設：依序塞進第一個有空位的建築
     if (!d.at) for (const b of BUILDINGS) if (D.assign(s, d.uid, b.id)) break;
   }
   for (const d of s.disciples) { const c = D.levelCost(s, d).qi; if (D.canLevel(s, d) && c < s.res.qi * 0.25) D.levelUp(s, d.uid); }
