@@ -35,6 +35,7 @@ export function createState() {
     unlocked: {},                           // 已解鎖的分頁（新手引導）
     seenIntro: false,                       // 是否看過開場說明
     nemeses: {},                            // 宿敵進度 {id: {met, defeated}}
+    glory: { lv: 0 },                       // 宗門榮耀已達等級（只升不降，跨轉生保留）
     insight: {},                            // 專長心得層數 {專長: 0~3}（跨轉生保留）
     weekly: { claimed: -1 },                // 已領取每週挑戰獎勵的週序號（跨轉生保留）
     equipped: [],                           // 裝備欄中的法寶 id（跨轉生保留）

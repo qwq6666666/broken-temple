@@ -16,6 +16,7 @@ import * as endure from './core/endure.js';
 import * as goals from './core/goals.js';
 import * as commissions from './core/commissions.js';
 import * as achievements from './core/achievements.js';
+import * as glory from './core/glory.js';
 import * as progress from './core/progress.js';
 import * as incidents from './core/incidents.js';
 import * as expeditions from './core/expeditions.js';
@@ -58,6 +59,7 @@ function onTick(dt) {
   goals.tick(state);
   commissions.tick(state);
   achievements.tick(state);
+  glory.tick(state);
   progress.tick(state);
 }
 // 分頁被凍結或電腦休眠超過 5 分鐘：以離線收益結算（演出中只顯示提示，避免蓋掉演出）

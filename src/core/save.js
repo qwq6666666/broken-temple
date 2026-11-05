@@ -13,6 +13,7 @@ import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { GLORY_LEVELS } from '../data/glory.js';
 import { INSIGHTS, INSIGHT_MAX } from '../data/insights.js';
 import { ELEMENTS, elementFromName } from '../data/elements.js';
 import { BRANCH_KEYS } from '../data/branches.js';
@@ -66,6 +67,7 @@ export function sanitize(s) {
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
+  s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };
   const ins = isPlain(s.insight) ? s.insight : {};
   s.insight = Object.fromEntries(INSIGHTS.map(i => [i.spec, Math.max(0, Math.min(INSIGHT_MAX, Math.floor(num(Number(ins[i.spec])))))]));
   const av = isPlain(s.achv) ? s.achv : {};

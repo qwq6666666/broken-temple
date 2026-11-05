@@ -36,6 +36,8 @@ import { elementEffect, contribution } from '../src/core/discipleMath.js';
 import * as Conc from '../src/core/conceal.js';
 import * as Ins from '../src/core/insight.js';
 import { INCIDENTS } from '../src/data/incidents.js';
+import * as Gl from '../src/core/glory.js';
+import { GLORY_LEVELS } from '../src/data/glory.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID } from '../src/data/expeditions.js';
@@ -1331,6 +1333,29 @@ t('擴充內容：每則事件的每個選項都能結算；宿敵鏈串到後�
   const m = createState(); m.realmIdx = 13;
   ['qinwu', 'lingshuang', 'yanhui', 'afu', 'liu2', 'xiaocui', 'tieniu', 'shigan'].forEach(id => { D.addDisciple(m, id).disciple.lv = 6; });
   for (const id of ['spring', 'swamp', 'sky']) { const bt = Ex.bestTeam(m, id); assert.ok(bt, id); assert.ok(Ex.reqCheck(m, EXPEDITIONS_BY_ID[id], bt.uids).ok, id); }
+});
+
+t('宗門榮耀：榮耀值由進度換算、等級只升不降並彈提示寫年表、永久 +1%／級、轉生與存檔保留', () => {
+  const s = createState(); assert.equal(Gl.gloryPoints(s), 0); assert.equal(Gl.gloryLevel(s), 0); assert.equal(Gl.gloryName(s), '破廟宗主');
+  assert.equal(Gl.gloryPerm(s, 'qiMult'), 0);
+  s.reincarnation.count = 5;                                            // 5 × 6 = 30 → 1 級
+  assert.equal(Gl.gloryPoints(s), 30); Gl.tick(s); assert.equal(s.glory.lv, 1); assert.ok(s.chronicle.some(e => e.text.includes('宗門榮耀升至 1 級')));
+  assert.equal(Gl.gloryName(s), GLORY_LEVELS[0].name); assert.ok(Math.abs(Gl.gloryPerm(s, 'qiMult') - 0.01) < 1e-9);
+  assert.equal(Gl.gloryPerm(s, 'clickMult'), 0, '只加靈氣／靈石／戰力');
+  // 加成實際進經濟：同一個狀態下，榮耀 1 級讓靈氣產出 +1%（乘在倍率上）
+  const a = createState(); a.buildings.temple.lv = 5; const base = eco.qiPerSec(a);
+  a.glory.lv = 1; assert.ok(eco.qiPerSec(a) > base);
+  // 只增不減：即使進度「看起來」變少，等級仍取歷史最高
+  s.reincarnation.count = 0; assert.equal(Gl.gloryLevel(s), 1);
+  // 滿級
+  const m = createState(); m.reincarnation.count = 200; Gl.tick(m); assert.equal(m.glory.lv, GLORY_LEVELS.length); assert.equal(Gl.gloryNext(m), null);
+  assert.ok(Math.abs(Gl.gloryPerm(m, 'powerMult') - 0.10) < 1e-9);
+  // 轉生保留；存檔清理
+  s.realmIdx = 13; s.res.stone = 1e12; s.reincarnation.count = 5; Dao.rebirth(s); assert.equal(s.glory.lv, 1);
+  const raw = JSON.parse(JSON.stringify(s)); raw.glory = { lv: 99 }; assert.equal(sanitize(raw).glory.lv, GLORY_LEVELS.length);
+  raw.glory = 'zzz'; assert.equal(sanitize(raw).glory.lv, 0);
+  // 後期大事存在且可完成
+  const g = createState(); g.reincarnation.count = 10; Goals.tick(g); assert.ok(g.goalsDone.includes('reb3') && g.goalsDone.includes('reb10'));
 });
 
 console.log(`\n${n} 項測試通過`);
