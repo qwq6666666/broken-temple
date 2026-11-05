@@ -17,6 +17,8 @@ import * as Goals from '../src/core/goals.js';
 import * as Inc from '../src/core/incidents.js';
 import * as Nem from '../src/core/nemesis.js';
 import * as Dao from '../src/core/dao.js';
+import * as Prog from '../src/core/progress.js';
+import { bus } from '../src/core/events.js';
 import { NEMESES, NEMESES_BY_ID } from '../src/data/nemeses.js';
 import { ARTIFACTS_BY_ID } from '../src/data/artifacts.js';
 import { GOALS_BY_ID } from '../src/data/goals.js';
@@ -646,6 +648,43 @@ t('存檔資源負數／偽裝值越界會被拉回合理範圍', () => {
 
 t('大數字格式：超過字尾表改用科學記號，NaN 不顯示成無限大', async () => {
   assert.equal(fmt(1e33), '1Dc'); assert.equal(fmt(1.5e67), '1.50e67'); assert.equal(fmt(NaN), '—'); assert.equal(fmt(Infinity), '∞');
+});
+
+// ── C1：新手引導 ──
+t('分頁漸進解鎖：條件達成才解鎖，旗標保留（含轉生後）', () => {
+  const s = createState();
+  Prog.tick(s, true);
+  assert.deepEqual(Object.keys(s.unlocked), []);              // 開局只有建築、境界
+  s.realmIdx = 1; Prog.tick(s, true);
+  assert.ok(s.unlocked.gacha && s.unlocked.goals && !s.unlocked.disciples);
+  D.addDisciple(s, 'afu'); s.visitor.current = visitor('former', 1); Prog.tick(s, true);
+  assert.ok(s.unlocked.disciples && s.unlocked.avenge);
+  s.realmIdx = 13; Prog.tick(s, true); assert.ok(s.unlocked.dao);
+  s.run = { bursts: 1, maxChain: 1, nemeses: 0, goals: 0 }; Dao.rebirth(s);
+  assert.ok(s.unlocked.dao && s.unlocked.gacha);               // 轉生後仍保留
+});
+
+t('舊存檔載入後，已達成的條件一次解鎖（不彈提示）', () => {
+  const s = createState(); s.realmIdx = 11; s.stats.bursts = 5; D.addDisciple(s, 'afu'); s.nemeses.qian = { met: 1, defeated: false };
+  const toasts = []; bus.on('toast', x => toasts.push(x));
+  Prog.tick(s, true);
+  assert.ok(s.unlocked.gacha && s.unlocked.disciples && s.unlocked.avenge && s.unlocked.nemesis && s.unlocked.goals);
+  assert.equal(toasts.length, 0);
+});
+
+t('下一步提示：依進度給出對應建議', () => {
+  const s = createState(); s.t = 0;
+  assert.match(Prog.nextStep(s).text, /煉丹房/);                 // 開局：先建煉丹房（靈氣不夠）
+  s.res.qi = 1e6; assert.equal(Prog.nextStep(s).tab, 'buildings');
+  s.buildings.alchemy.lv = 1; s.res.qi = 0; s.res.stone = 0;
+  s.res.token = 3; assert.match(Prog.nextStep(s).text, /招賢令/);  // 沒有弟子 → 抽卡
+  s.res.stone = 100; assert.match(Prog.nextStep(s).text, /突破/);  // 能突破 → 優先
+  s.res.stone = 0; D.addDisciple(s, 'afu'); s.res.token = 0;
+  assert.match(Prog.nextStep(s).text, /派駐/);
+  s.visitor.current = visitor('former', 1); assert.match(Prog.nextStep(s).text, /來訪/);   // 訪客優先
+  s.visitor.current = null; s.disguise.value = 20; s.grudges = [visitor('former', 1)];
+  assert.match(Prog.nextStep(s).text, /不裝了/);
+  s.realmIdx = 13; s.disguise.value = 0; s.grudges = []; assert.equal(Prog.nextStep(s).tab, 'realm');   // 化神 → 轉生
 });
 
 console.log(`\n${n} 項測試通過`);

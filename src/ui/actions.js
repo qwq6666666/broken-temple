@@ -13,7 +13,7 @@ import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITY_ORDER } from '../data/gachaRates.js';
-import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm } from './overlay.js';
+import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp } from './overlay.js';
 import { sfx, unlock, applyVolume } from './audio.js';
 import { getPrefs, setPref } from './prefs.js';
 import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from './saveMenu.js';
@@ -82,6 +82,8 @@ export function bindActions(s, ui, rerender) {
       finally { X.endBurst(s); ui.tab = 'avenge'; ui.busy = false; }    // 一定要解除封鎖，否則訪客與引爆都會卡死
     },
     closeSettle: () => closeOverlay(),
+    help: () => showHelp(false),
+    hideHints: () => { setPref('hints', false); toast('已隱藏提示，可在「❓ 說明」重新開啟', 'info'); },
     toggleSound: () => { setPref('muted', !getPrefs().muted); if (!getPrefs().muted) sfx('click'); updateMenu(); },
     toggleMotion: () => { setPref('reduceMotion', !getPrefs().reduceMotion); updateMenu(); },
     saveNow: () => saveNow(s), exportSave: () => openExport(s), copyExport, importSave: openImport, doImport, resetSave,
@@ -91,6 +93,7 @@ export function bindActions(s, ui, rerender) {
       const ok = D.assign(s, +el.dataset.uid, el.value || null);
       if (!ok) toast('駐守位已滿', 'warn');
     },
+    toggleHints: el => { setPref('hints', el.checked); },
     toggleLoss: el => { s.settings.loss = el.checked; },
   };
   document.addEventListener('pointerdown', unlock, { once: false });

@@ -26,10 +26,9 @@ export function disciplePanel(s) {
     return `<div class="dcard" style="--rc:${r.color}">
       <div class="dtop"><span class="rar">${df.rarity}</span><span class="de">${df.emoji}</span></div>
       <b>${esc(df.name)}</b>
-      <div class="tags"><span class="tag">${esc(df.element)}</span><span class="tag">${esc(df.specialty)}</span><span class="tag">${esc(df.personality)}</span></div>
+      <small class="dim" title="${esc(df.quote)}">${esc(df.element)}・${esc(df.specialty)}・${esc(df.personality)}</small>
       <small>Lv ${d.lv}/${levelCapOf(s, d)}・屬性 ${fmt(stat(d))} <span class="gold">${'★'.repeat(star)}${'☆'.repeat(3 - star)}</span></small>
       <small class="trait ${d.at ? 'on' : ''}">✦ ${esc(traitText(df.trait.key, traitValue(d)))}${d.at ? '（生效中）' : '（派駐後生效）'}</small>
-      <small class="dim">「${esc(df.quote)}」</small>
       <select class="assign" data-change="assign" data-uid="${d.uid}">
         <option value="">— 未派駐 —</option>${opts}
       </select>

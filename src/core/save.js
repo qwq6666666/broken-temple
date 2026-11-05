@@ -66,6 +66,7 @@ export function sanitize(s) {
   if (s.incident.current && !INCIDENTS_BY_ID[s.incident.current.id]) s.incident.current = null;
   if (!isPlain(s.visitor)) s.visitor = { current: null, nextAt: s.t };
   if (s.visitor.current) s.visitor.current = sanitizeGrudge(s.visitor.current);
+  if (!isPlain(s.unlocked)) s.unlocked = {};
   s.disguise.value = Math.max(0, Math.min(20, num(s.disguise.value)));
   for (const k of Object.keys(s.res)) s.res[k] = Math.max(0, num(s.res[k]));
   return s;

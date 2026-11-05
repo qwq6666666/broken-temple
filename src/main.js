@@ -3,7 +3,7 @@ import { CONFIG } from './config.js';
 import { createState } from './core/state.js';
 import { load, save } from './core/save.js';
 import { applyOffline } from './core/offline.js';
-import { showWelcome } from './ui/overlay.js';
+import { showWelcome, showHelp } from './ui/overlay.js';
 import { guard } from './ui/saveMenu.js';
 import { toast, bus } from './core/events.js';
 import { sfx } from './ui/audio.js';
@@ -12,6 +12,7 @@ import * as economy from './core/economy.js';
 import * as conceal from './core/conceal.js';
 import * as endure from './core/endure.js';
 import * as goals from './core/goals.js';
+import * as progress from './core/progress.js';
 import * as incidents from './core/incidents.js';
 import { createRenderer } from './ui/render.js';
 import { bindActions } from './ui/actions.js';
@@ -28,6 +29,7 @@ if (loaded && loaded.state) {
   state = loaded.state;
   welcome = applyOffline(state, Date.now() - loaded.savedAt);
 } else state = createState();
+progress.tick(state, true);     // 舊存檔：已達成的條件直接解鎖，不彈提示
 const ui = { tab: 'buildings', lastPull: null, quote: '', quoteAt: 0, busy: false };
 
 bus.on('cue', ({ name, data }) => sfx(name, data || {}));   // core 的提示音
@@ -42,6 +44,7 @@ function onTick(dt) {
   endure.tick(state);
   incidents.tick(state);
   goals.tick(state);
+  progress.tick(state);
 }
 // 分頁被凍結或電腦休眠超過 5 分鐘：以離線收益結算（演出中只顯示提示，避免蓋掉演出）
 function onGap(ms) {
@@ -67,5 +70,7 @@ addEventListener('storage', e => {
 });
 if (loaded && loaded.error) toast('存檔損壞，已開始新遊戲：' + loaded.error, 'warn');
 if (welcome) showWelcome(welcome);
+else if (!state.seenIntro && state.realmIdx === 0 && !state.stats.bursts) showHelp(true);   // 第一次進來：開場說明
+state.seenIntro = true;
 
 window.__game = { state, ui, CONFIG };   // 方便在 console 除錯，例如 __game.state.res.stone = 999

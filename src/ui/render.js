@@ -14,6 +14,8 @@ import { avengePanel } from './avengePanel.js';
 import { goalPanel } from './goalPanel.js';
 import { nemesisPanel } from './nemesisPanel.js';
 import { daoPanel } from './daoPanel.js';
+import { isUnlocked, nextStep } from '../core/progress.js';
+import { getPrefs } from './prefs.js';
 import { GOALS } from '../data/goals.js';
 
 const TABS = [
@@ -25,7 +27,7 @@ export function createRenderer(s, ui) {
   const sceneEl = $('#scene'), concealEl = $('#conceal');
   const sceneRefs = mountScene(sceneEl);
   const concealRefs = mountConceal(concealEl);
-  const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar');
+  const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar'), hintEl = $('#hint');
   ui.quote = pickLine(LINES.idle);
   bus.on('quote', t => { ui.quote = t; ui.quoteAt = Date.now(); });
 
@@ -35,19 +37,29 @@ export function createRenderer(s, ui) {
 
     // 資源列
     const r = realmOf(s);
+    const show = {
+      token: s.unlocked.gacha || s.res.token > 0,
+      shard: s.res.shard > 0 || s.disciples.length > 0,
+      dao: s.unlocked.dao || s.res.daoHeart > 0,
+    };
     setHTML(resEl, `
       <div class="res"><span>✨ 靈氣</span><b>${fmt(s.res.qi)}</b><small>+${fmtRate(qiPerSec(s))}</small></div>
-      <div class="res"><span>💎 靈石</span><b>${fmt(s.res.stone)}</b><small>+${fmtRate(stonePerSec(s))}</small></div>
-      <div class="res"><span>🎫 招賢令</span><b>${fmt(s.res.token)}</b></div>
-      <div class="res"><span>🧩 碎片</span><b>${fmt(s.res.shard)}</b></div>
-      <div class="res ${s.res.daoHeart || s.reincarnation.count ? '' : 'dim'}" title="轉生獲得，可在「道心」分頁購買永久加成"><span>☯️ 道心</span><b>${fmt(s.res.daoHeart)}</b><small>${s.reincarnation.count ? '轉生 ' + s.reincarnation.count + ' 次' : '化神後可轉生'}</small></div>
+      <div class="res"><span>💎 靈石</span><b>${fmt(s.res.stone)}</b><small>${stonePerSec(s) > 0 ? '+' + fmtRate(stonePerSec(s)) : '建煉丹房產出'}</small></div>
+      ${show.token ? `<div class="res"><span>🎫 招賢令</span><b>${fmt(s.res.token)}</b></div>` : ''}
+      ${show.shard ? `<div class="res"><span>🧩 碎片</span><b>${fmt(s.res.shard)}</b></div>` : ''}
+      ${show.dao ? `<div class="res"><span>☯️ 道心</span><b>${fmt(s.res.daoHeart)}</b><small>${s.reincarnation.count ? '轉生 ' + s.reincarnation.count + ' 次' : '化神後可轉生'}</small></div>` : ''}
       <div class="res realm"><span>境界</span><b>${r.name}</b><small>產出 ×${fmt(r.mult)}</small></div>`);
+
+    // 下一步提示（可關閉；在「說明」裡重新開啟）
+    const hint = getPrefs().hints ? nextStep(s) : null;
+    setHTML(hintEl, hint ? `<span class="hbulb">💡 下一步</span><span class="htext">${hint.text}</span>${hint.tab ? `<button class="btn mini" data-act="tab" data-tab="${hint.tab}">前往</button>` : ''}<button class="hx" data-act="hideHints" title="隱藏提示">✕</button>` : '');
 
     updateScene(sceneEl, sceneRefs, s, ui);
     updateConceal(concealRefs, s);
 
     // 分頁
-    setHTML(tabsEl, TABS.map(([id, label]) => {
+    if (!isUnlocked(s, ui.tab)) ui.tab = 'buildings';
+    setHTML(tabsEl, TABS.filter(([id]) => isUnlocked(s, id)).map(([id, label]) => {
       const badge = id === 'avenge' && s.grudges.length ? ` <i>${s.grudges.length}</i>` : '';
       const alert = (id === 'avenge' && s.recruits.length) ? ' <i class="new">新</i>' : (id === 'goals' ? ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>` : '');
       return `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}">${label}${badge}${alert}</button>`;

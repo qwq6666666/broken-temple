@@ -6,6 +6,8 @@ import { fmt, fmtTime } from '../core/format.js';
 import { esc, sleep } from './dom.js';
 import { sfx } from './audio.js';
 import { daoGain } from '../core/dao.js';
+import { HELP, INTRO } from '../data/help.js';
+import { getPrefs } from './prefs.js';
 import { shake, flash, particles, banner, countUp } from './fx.js';
 
 const root = () => document.getElementById('overlay');
@@ -192,4 +194,12 @@ export function showRebirthConfirm(s) {
     <p><b>會保留：</b>弟子收藏與星級、碎片、功法法寶、宗門大事、宿敵進度、抽卡保底、道心與商店加成、設定。</p>
     <p class="hint">轉生後境界回到凡人，但道心加成與轉生次數加成會讓你重新修煉得更快。</p>
     <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmRebirth">確定轉生</button></div>`);
+}
+
+// ── 玩法說明／開場介紹 ──
+export function showHelp(intro = false) {
+  const list = intro ? INTRO : HELP;
+  return showModal(`<h3>${intro ? '🏚️ 歡迎來到破廟宗主' : '❓ 玩法說明'}</h3>
+    ${list.map(x => `<p><b class="gold">${esc(x.t)}</b><br>${esc(x.d)}</p>`).join('')}
+    ${intro ? '' : `<label class="loss"><input type="checkbox" data-change="toggleHints" ${getPrefs().hints ? 'checked' : ''}> 顯示畫面上方的「下一步」提示</label>`}`);
 }
