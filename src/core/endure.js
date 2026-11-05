@@ -11,10 +11,11 @@ import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { quote, toast, cue } from './events.js';
 import { pickNemesis, makeNemesisVisitor } from './nemesis.js';
 import { addRep, tierOfSect } from './factions.js';
+import { mutSum } from './mutators.js';
 import { FACTION_RULES as FR } from '../data/factions.js';
 
 const scheduleNext = s => {
-  s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000;
+  s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000 / Math.max(0.2, 1 + mutSum(s, 'visitFreq'));   // 輪迴詞條影響頻率
 };
 
 // 回頭客：復仇者變強了、嘴更硬；求和者帶著賠禮

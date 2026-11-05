@@ -21,6 +21,9 @@ import * as St from '../src/core/stories.js';
 import * as Bond from '../src/core/bonds.js';
 import * as Sp from '../src/core/spec.js';
 import * as Fac from '../src/core/factions.js';
+import * as Ex from '../src/core/expeditions.js';
+import { EXPEDITIONS } from '../src/data/expeditions.js';
+import { MUTATORS } from '../src/data/mutators.js';
 import { SPECS, specText } from '../src/data/specs.js';
 import { STORIES, STORIES2 } from '../src/data/stories.js';
 import { BONDS } from '../src/data/bonds.js';
@@ -887,6 +890,79 @@ t('勢力分頁與提示：有威望才解鎖；求和提示優先', () => {
   Fac.addRep(s, '青雲宗', 1); Prog.tick(s, true); assert.ok(s.unlocked.factions);
   s.visitor.current = { id: 1, name: 'a', type: 'former', sect: '青雲宗', role: 'r', personality: '傲慢', lvl: 1, alert: false, returning: 'plead' };
   assert.match(Prog.nextStep(s).text, /求和/);
+});
+
+// ── R13 秘境與輪迴詞條 ──
+const teamOf = (s, ids, lv = 1) => ids.map(id => { const d = D.addDisciple(s, id).disciple; d.lv = lv; return d.uid; });
+
+t('秘境：解鎖、組隊上限、隊員自動撤下建築、探索位數量', () => {
+  const s = createState(); const [a] = teamOf(s, ['qinwu']);
+  assert.equal(Ex.start(s, 'cave', [a]), false);                       // 凡人：尚未解鎖
+  s.realmIdx = 2; s.buildings.arena.lv = 1; D.assign(s, a, 'arena');
+  assert.equal(Ex.start(s, 'cave', []), false);                        // 沒有隊員
+  assert.equal(Ex.start(s, 'cave', [a]), true);
+  assert.equal(s.disciples[0].at, null); assert.equal(Ex.away(s, a), true);
+  assert.equal(D.assign(s, a, 'arena'), false);                        // 探索中不可派駐
+  const [b] = teamOf(s, ['afu']); assert.equal(Ex.start(s, 'cave', [b]), false);   // 探索位已滿
+  assert.equal(Ex.slotCount(s), 1); s.realmIdx = 9; assert.equal(Ex.slotCount(s), 2); s.realmIdx = 12; assert.equal(Ex.slotCount(s), 3);
+  const many = teamOf(s, ['liuzi', 'liu2', 'chenlan', 'tieniu']); s.realmIdx = 12;
+  assert.equal(Ex.start(s, 'cave', many), false);                      // 超過 3 人
+});
+
+t('秘境：成功率隨隊伍強度與專長相合提高，且有上下限', () => {
+  const s = createState(); s.realmIdx = 5;
+  const [weak] = teamOf(s, ['afu']), [sword] = teamOf(s, ['qinwu']), [sword2] = teamOf(s, ['lingshuang'], 12);
+  const c0 = Ex.successChance(s, 'field', [weak]), c1 = Ex.successChance(s, 'field', [sword]), c2 = Ex.successChance(s, 'field', [sword, sword2]);
+  assert.ok(c0 < c1 && c1 < c2);                                       // 劍修相合 → 更高
+  assert.ok(c0 >= 0.05 && c2 <= 0.95);
+  const huge = teamOf(s, ['xuantian', 'luoshen', 'taixu'], 30); assert.equal(Ex.successChance(s, 'cave', huge), 0.95);
+});
+
+t('秘境：到期結算、領取獎勵、成功與失敗、隊員歸隊', () => {
+  setRng(() => 0);                                                     // 擲骰必成功，機率類必中
+  const s = createState(); s.realmIdx = 5; s.buildings.field.lv = 3; s.buildings.alchemy.lv = 2;
+  const ids = teamOf(s, ['qinwu', 'lingshuang'], 8);
+  Ex.start(s, 'field', ids); Ex.tick(s); assert.equal(s.expeditions[0].status, 'running');   // 未到期
+  s.t += 21 * 60000; Ex.tick(s);
+  assert.equal(s.expeditions[0].status, 'done'); assert.equal(s.expeditions[0].success, true);
+  const st = s.res.stone, sh = s.res.shard;
+  const r = Ex.claim(s, 0); setRng(Math.random);
+  assert.equal(r.success, true); assert.ok(s.res.stone > st && s.res.shard >= sh + 3); assert.equal(s.expeditions.length, 0);
+  assert.equal(Ex.away(s, ids[0]), false); assert.ok(r.artifact);       // 隊員回來、法寶機率 1.0 時掉落
+  setRng(() => 0.999);                                                  // 擲骰必失敗
+  Ex.start(s, 'field', ids); s.t += 21 * 60000; Ex.tick(s);
+  assert.equal(s.expeditions[0].success, false); const f = Ex.claim(s, 0); setRng(Math.random);
+  assert.equal(f.success, false); assert.equal(f.result.token, 0);
+  assert.equal(Ex.claim(s, 5), null);
+});
+
+t('離線期間秘境照常完成；轉生清空探索；存檔清理', () => {
+  const s = createState(); s.realmIdx = 5; const ids = teamOf(s, ['qinwu'], 5); Ex.start(s, 'field', ids);
+  applyOffline(s, 2 * 3600 * 1000); assert.equal(s.expeditions[0].status, 'done');
+  const m = maxedRun(); teamOf(m, ['afu']); m.expeditions = [{ id: 'cave', uids: [1], startAt: 0, endAt: 1, chance: 0.5, status: 'running' }];
+  Dao.rebirth(m); assert.deepEqual(m.expeditions, []);
+  const x = loadPatched(st => { st.disciples = [{ uid: 1, defId: 'afu', lv: 1, at: null }]; st.expeditions = [{ id: 'gone', uids: [1] }, { id: 'cave', uids: [1, 99], endAt: 'x', chance: 9, status: 'weird' }, { id: 'field', uids: [99] }]; });
+  assert.equal(x.expeditions.length, 1); assert.deepEqual(x.expeditions[0].uids, [1]); assert.equal(x.expeditions[0].chance, 0.95); assert.equal(x.expeditions[0].status, 'running');
+});
+
+t('輪迴詞條：效果、訪客頻率、本輪道心倍率、轉生選擇與存檔', () => {
+  const s = createState(); s.mutator = 'ascetic';
+  const q = eco.qiPerSec(s); s.mutator = null; assert.ok(Math.abs(q / eco.qiPerSec(s) - 0.7) < 1e-9);         // 靈氣 -30%
+  const a = maxedRun(); a.mutator = 'tribulation'; const b = maxedRun();
+  assert.equal(Dao.daoGain(a), Math.floor(Dao.daoGain(b) * 1.3));                                            // 本輪道心 +30%
+  assert.ok(Math.abs(eco.combatPower(a) / eco.combatPower(b) - 0.8) < 1e-9);                                 // 戰力 -20%
+  const gap = mut => { setRng(() => 0.5); const x = createState(); x.mutator = mut; x.visitor.current = visitor('former', 1); E.endure(x); setRng(Math.random); return x.visitor.nextAt; };
+  assert.ok(gap('bustle') < gap(null) && gap(null) < gap('hermit'));
+  const m = maxedRun(); Dao.rebirth(m, 'poor'); assert.equal(m.mutator, 'poor');
+  const m2 = maxedRun(); Dao.rebirth(m2, 'nonsense'); assert.equal(m2.mutator, null);
+  assert.equal(loadPatched(st => { st.mutator = 'gone'; }).mutator, null);
+  assert.equal(loadPatched(st => { st.mutator = 'poor'; }).mutator, 'poor');
+});
+
+t('秘境與詞條資料完整', () => {
+  EXPEDITIONS.forEach(e => { assert.ok(e.minutes > 0 && e.difficulty > 0 && Object.keys(e.reward).length); });
+  assert.ok(EXPEDITIONS.every((e, i) => i === 0 || e.unlockRealm > EXPEDITIONS[i - 1].unlockRealm));
+  MUTATORS.forEach(m => assert.ok(m.effects.dao > 0 && m.desc));
 });
 
 console.log(`\n${n} 項測試通過`);

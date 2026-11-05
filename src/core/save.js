@@ -6,6 +6,8 @@ import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { STORIES, STORIES2 } from '../data/stories.js';
 import { SPECS } from '../data/specs.js';
 import { FACTIONS_BY_ID } from '../data/factions.js';
+import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
+import { MUTATORS_BY_ID } from '../data/mutators.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
@@ -76,6 +78,11 @@ export function sanitize(s) {
   s.returners = (Array.isArray(s.returners) ? s.returners : []).filter(r => isPlain(r) && (r.mode === 'plead' || r.mode === 'revenge')).map(r => ({
     ...sanitizeGrudge({ ...r, id: 0 }), mode: r.mode, dueAt: num(Number(r.dueAt), 0) })).map(({ id, alert, nemesisId, ...r }) => r);
   if (s.visitor.current && s.visitor.current.returning !== 'plead' && s.visitor.current.returning !== 'revenge') delete s.visitor.current.returning;
+  if (!MUTATORS_BY_ID[s.mutator]) s.mutator = null;
+  const owned = new Set(s.disciples.map(d => d.uid));
+  s.expeditions = (Array.isArray(s.expeditions) ? s.expeditions : []).filter(x => isPlain(x) && EXPEDITIONS_BY_ID[x.id] && Array.isArray(x.uids)).map(x => ({
+    ...x, uids: x.uids.filter(u => owned.has(u)), endAt: num(Number(x.endAt)), startAt: num(Number(x.startAt)), chance: Math.max(0.05, Math.min(0.95, num(Number(x.chance), 0.5))),
+    status: x.status === 'done' ? 'done' : 'running', result: isPlain(x.result) ? x.result : { qi: 0, stone: 0, token: 0, shard: 0 } })).filter(x => x.uids.length);
   if (!isPlain(s.specs)) s.specs = {};
   for (const id of Object.keys(s.specs)) if (!(SPECS[id] || []).some(o => o.id === s.specs[id])) delete s.specs[id];
   if (!isPlain(s.stories)) s.stories = {};

@@ -16,6 +16,7 @@ export const TAB_RULES = {
   gacha:     { name: '招賢',   when: s => s.realmIdx >= 1 || s.gacha.total > 0 || s.disciples.length > 0 },
   disciples: { name: '弟子',   when: s => s.disciples.length > 0 || s.recruits.length > 0 },
   avenge:    { name: '復仇簿', when: s => s.grudges.length > 0 || !!s.visitor.current || s.stats.bursts > 0 },
+  expedition: { name: '秘境',  when: s => s.realmIdx >= 2 || s.expeditions.length > 0 },
   factions:  { name: '勢力',   when: s => Object.values(s.factions).some(v => v > 0) || s.returners.length > 0 },
   nemesis:   { name: '宿敵錄', when: s => Object.keys(s.nemeses).length > 0 },
   goals:     { name: '大事',   when: s => s.realmIdx >= 1 || s.goalsDone.length > 0 },

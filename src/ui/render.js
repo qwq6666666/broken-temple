@@ -15,6 +15,7 @@ import { goalPanel } from './goalPanel.js';
 import { nemesisPanel } from './nemesisPanel.js';
 import { daoPanel } from './daoPanel.js';
 import { factionPanel } from './factionPanel.js';
+import { expeditionPanel } from './expeditionPanel.js';
 import { isUnlocked, nextStep } from '../core/progress.js';
 import { getPrefs } from './prefs.js';
 import { initParticles, setAmbientIntensity } from './particles.js';
@@ -23,7 +24,7 @@ import { GOALS } from '../data/goals.js';
 
 const TABS = [
   ['buildings', '🏯 建築'], ['realm', '🧘 境界'], ['gacha', '🎫 招賢'],
-  ['disciples', '👥 弟子'], ['avenge', '📖 復仇簿'], ['factions', '🏴 勢力'], ['nemesis', '⚔️ 宿敵錄'], ['dao', '☯️ 道心'], ['goals', '🎯 大事'],
+  ['disciples', '👥 弟子'], ['avenge', '📖 復仇簿'], ['expedition', '🧭 秘境'], ['factions', '🏴 勢力'], ['nemesis', '⚔️ 宿敵錄'], ['dao', '☯️ 道心'], ['goals', '🎯 大事'],
 ];
 
 export function createRenderer(s, ui) {
@@ -81,7 +82,7 @@ export function createRenderer(s, ui) {
       return `<button class="tab ${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}"><span class="ti">${ico}</span> <span class="tl">${txt.join(' ')}</span>${badge}${alert}</button>`;
     }).join(''));
 
-    const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel, factions: factionPanel }[ui.tab];
+    const body = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel, factions: factionPanel, expedition: expeditionPanel }[ui.tab];
     setHTML(panelEl, body(s, ui));
   }
   return render;

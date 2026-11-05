@@ -3,6 +3,7 @@ import { REALMS } from '../data/realms.js';
 import { nextRealm, breakCost, canBreak } from '../core/realm.js';
 import { fmt } from '../core/format.js';
 import { canRebirth, daoGain } from '../core/dao.js';
+import { mutatorOf } from '../core/mutators.js';
 import { esc, costChips } from './dom.js';
 
 export function realmPanel(s) {
@@ -20,7 +21,7 @@ export function realmPanel(s) {
   </div>
   ${nx && nx.shardCost ? '<p class="hint">🧩 築基以上需要「碎片」，重複抽到的弟子會轉為碎片。</p>' : ''}
   <div class="ladder">${ladder}</div>
-  ${rebirthBox(s)}`;
+  ${mutatorBox(s)}${rebirthBox(s)}`;
 }
 
 // 轉生：化神後才出現
@@ -30,4 +31,10 @@ function rebirthBox(s) {
     <div class="big">☯️</div>
     <div class="body"><b>轉生</b><br><small>重置建築、境界、資源與弟子等級，換取 <b class="gold">道心 ${fmt(daoGain(s))}</b>（本輪：引爆 ${s.run.bursts} 次、最大連鎖 ${s.run.maxChain}、擊敗宿敵 ${s.run.nemeses}、完成大事 ${s.run.goals}）。弟子收藏、法寶、大事、宿敵進度全部保留。</small></div>
     <div class="act"><button class="btn primary" data-act="rebirth">轉生</button></div></div>`;
+}
+
+// 本輪輪迴詞條
+function mutatorBox(s) {
+  const m = mutatorOf(s);
+  return m ? `<div class="card"><div class="big">🌀</div><div class="body"><b>本輪輪迴詞條：${esc(m.name)}</b><br><small>${esc(m.desc)}</small><br><small class="dim">${esc(m.flavor)}</small></div></div>` : '';
 }

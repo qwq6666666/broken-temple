@@ -43,6 +43,7 @@ export const assignedTo = (s, bid) => s.disciples.filter(d => d.at === bid);
 export function assign(s, uid, bid) {
   const d = s.disciples.find(x => x.uid === uid);
   if (!d) return false;
+  if (s.expeditions.some(x => x.uids.includes(uid))) return false;           // 探索中
   if (!bid) { d.at = null; return true; }
   if (d.at === bid) return true;
   if (assignedTo(s, bid).length >= slots(s, bid)) return false;

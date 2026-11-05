@@ -6,6 +6,8 @@ import { canAfford, pay } from './resources.js';
 import { toast, quote, cue } from './events.js';
 import { specSum } from './spec.js';
 import { factionPerm } from './factions.js';
+import { mutSum } from './mutators.js';
+import { MUTATORS_BY_ID } from '../data/mutators.js';
 
 // 轉生次數的自動加成：前 softCap 次線性，之後只有小幅尾巴（遞減）
 export function autoBonus(count) {
@@ -20,7 +22,7 @@ export function perm(s, key) {
   let v = 0;
   for (const it of DAO_SHOP) if (it.key === key) v += shopLevel(s, it.id) * it.perLevel;
   if (key === 'qiMult' || key === 'stoneMult') v += autoBonus(s.reincarnation.count);
-  return v + specSum(s, key) + factionPerm(s, key);          // 建築專精、勢力威望
+  return v + specSum(s, key) + factionPerm(s, key) + mutSum(s, key);   // 建築專精、勢力威望、輪迴詞條
 }
 
 export const canRebirth = s => s.realmIdx >= CONFIG.reincarnation.minRealm && !s.burstActive;
@@ -29,12 +31,12 @@ export const canRebirth = s => s.realmIdx >= CONFIG.reincarnation.minRealm && !s
 export function daoGain(s) {
   const R = CONFIG.reincarnation, r = s.run;
   const base = Math.min(R.daoBaseMax, R.daoBase + R.daoBasePerCount * s.reincarnation.count);   // 轉生越多次，基礎道心略增
-  return Math.floor(base + Math.min(R.burstCap, r.bursts) * R.perBurst + r.maxChain * R.perChain
-    + r.nemeses * R.perNemesis + r.goals * R.perGoal);
+  const raw = base + Math.min(R.burstCap, r.bursts) * R.perBurst + r.maxChain * R.perChain + r.nemeses * R.perNemesis + r.goals * R.perGoal;
+  return Math.floor(raw * (1 + mutSum(s, 'dao')));                       // 輪迴詞條：本輪道心倍率
 }
 
 // 轉生：重置本輪，保留收藏類進度。回傳獲得的道心；不符條件回傳 null
-export function rebirth(s) {
+export function rebirth(s, mutatorId = null) {
   if (!canRebirth(s)) return null;
   const gain = daoGain(s);
   const fresh = createState();
@@ -49,7 +51,7 @@ export function rebirth(s) {
   const t = s.t;
   const shard = s.res.shard, dao = s.res.daoHeart + gain;
   Object.assign(s, fresh, keep);
-  s.t = t;
+  s.t = t; s.mutator = MUTATORS_BY_ID[mutatorId] ? mutatorId : null;      // 下一輪的輪迴詞條
   s.res.shard = shard; s.res.daoHeart = dao;
   s.res.stone += perm(s, 'startStone'); s.res.token += perm(s, 'startToken');
   s.visitor.nextAt = s.t + CONFIG.visitor.firstSec * 1000;

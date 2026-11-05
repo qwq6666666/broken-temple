@@ -11,6 +11,7 @@ import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
 import * as St from '../core/stories.js';
 import * as Sp from '../core/spec.js';
+import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
@@ -43,6 +44,16 @@ export function bindActions(s, ui, rerender) {
     },
     selectBuilding: el => { ui.selBuilding = ui.selBuilding === el.dataset.id ? null : el.dataset.id; sfx('click'); },
     chooseSpec: el => { if (Sp.choose(s, el.dataset.id, el.dataset.opt)) sfx('goal'); },
+    expPick: el => { ui.expPick = ui.expPick === el.dataset.id ? null : el.dataset.id; ui.expTeam = []; },
+    expToggle: el => {
+      const uid = +el.dataset.uid, t = ui.expTeam || [];
+      ui.expTeam = t.includes(uid) ? t.filter(x => x !== uid) : t.length < 3 ? [...t, uid] : t;
+    },
+    expGo: () => { if (Ex.start(s, ui.expPick, ui.expTeam || [])) { ui.expTeam = []; ui.expPick = null; sfx('upgrade'); toast('隊伍出發了', 'good'); } },
+    expClaim: el => {
+      const r = Ex.claim(s, +el.dataset.i);
+      if (r) { sfx(r.success ? 'goal' : 'click'); toast(r.success ? '秘境獎勵已領取' : '探索失敗，帶回一點收穫', r.success ? 'good' : 'warn'); }
+    },
     closeBuilding: () => { ui.selBuilding = null; },
     upgrade: el => { if (B.upgrade(s, el.dataset.id)) sfx('upgrade'); },
     breakthrough: async () => {
@@ -70,8 +81,9 @@ export function bindActions(s, ui, rerender) {
     starUp: el => { if (D.starUp(s, +el.dataset.uid)) { toast('升星成功！', 'good'); sfx('goal'); } },
     rebirth: () => { if (!ui.busy && Dao.canRebirth(s)) showRebirthConfirm(s); },
     confirmRebirth: () => {
+      const sel = document.getElementById('mutsel'), mut = sel ? sel.value : '';     // 先讀選單，再關閉彈窗
       closeOverlay();
-      const gain = Dao.rebirth(s);
+      const gain = Dao.rebirth(s, mut || null);
       if (gain != null) { sfx('fanfare'); ui.tab = 'dao'; ui.lastPull = null; }
     },
     daoExchange: el => { if (Dao.exchange(s, el.dataset.id)) sfx('coin'); },

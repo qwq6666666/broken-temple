@@ -16,6 +16,7 @@ import * as endure from './core/endure.js';
 import * as goals from './core/goals.js';
 import * as progress from './core/progress.js';
 import * as incidents from './core/incidents.js';
+import * as expeditions from './core/expeditions.js';
 import { createRenderer } from './ui/render.js';
 import { bindActions } from './ui/actions.js';
 import { initToasts } from './ui/toast.js';
@@ -51,6 +52,7 @@ function onTick(dt) {
   conceal.tick(state, dt);
   endure.tick(state);
   incidents.tick(state);
+  expeditions.tick(state);
   goals.tick(state);
   progress.tick(state);
 }

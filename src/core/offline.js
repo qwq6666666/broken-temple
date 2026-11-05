@@ -5,6 +5,7 @@ import { lvlLabel } from '../data/realms.js';
 import * as economy from './economy.js';
 import * as conceal from './conceal.js';
 import { perm } from './dao.js';
+import * as expeditions from './expeditions.js';
 
 export function applyOffline(s, elapsedMs) {
   const O = CONFIG.offline;
@@ -21,6 +22,7 @@ export function applyOffline(s, elapsedMs) {
     economy.tick(s, step * eff);       // 產出 × 效率
     s.t += step * (1 - eff);           // 補齊遊戲時鐘
     conceal.tick(s, step);                      // 偽裝／蓄力／仇人成長：全時間
+    expeditions.tick(s);                        // 秘境探索照常進行
   }
   // 回來時別立刻被訪客蓋住歡迎畫面
   s.visitor.nextAt = Math.max(s.visitor.nextAt, s.t + 20000);
