@@ -28,6 +28,7 @@ import * as Chr from '../src/core/chronicle.js';
 import * as Ach from '../src/core/achievements.js';
 import * as Off from '../src/core/offlineEvent.js';
 import * as Eq from '../src/core/equip.js';
+import * as NemM from '../src/core/nemesis.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
@@ -1119,6 +1120,26 @@ t('弟子進階：Lv10 才能選、只能選一次、專精／悍勇各有效果
   const q0 = eco.combatPower(s2); D.setBranch(s2, e.uid, 'might'); assert.ok(eco.combatPower(s2) > q0);
   s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.disciples[0].branch, null);
   const raw = JSON.parse(JSON.stringify(s)); raw.disciples[0].branch = 'zzz'; assert.equal(sanitize(raw).disciples[0].branch, null);
+});
+
+t('宿敵覺醒：未達轉生次數與境界不會出現、達成後出現且更強、引爆碾壓給道心並升階', () => {
+  const s = createState(); s.realmIdx = 13;
+  const qian = NEMESES.find(n => n.id === 'qian');
+  s.nemeses.qian = { met: 3, defeated: true };
+  s.nemeses = { ...s.nemeses }; for (const n of NEMESES) s.nemeses[n.id] = { met: 3, defeated: true };    // 全部擊敗過
+  assert.equal(NemM.canAwaken(s, qian), false); assert.equal(NemM.pickNemesis(s), null);                  // 轉生 0 次
+  s.reincarnation.count = 1; assert.ok(NemM.canAwaken(s, qian)); assert.equal(NemM.pickNemesis(s).id, 'qian');
+  const v = NemM.makeNemesisVisitor(s, qian); assert.equal(v.awaken, 1); assert.ok(v.name.includes('覺醒Ⅰ'));
+  const lowRealm = createState(); lowRealm.reincarnation.count = 9; lowRealm.nemeses.qian = { met: 3, defeated: true };
+  assert.equal(NemM.canAwaken(lowRealm, qian), false);                                                    // 境界不夠
+  // 引爆：碾壓覺醒者 → 道心 +3、覺醒階數 1、不再給法寶、不重複算「擊敗宿敵」統計
+  s.stats.nemesisDefeated = 6; s.res.daoHeart = 0; s.artifacts = [];
+  s.grudges = [{ ...v, alert: false }]; s.disguise.value = 20; s.res.qi = 0; s.buildings.arena.lv = 10; s.buildings.tower.lv = 10;
+  s.disciples = []; s.res.stone = 0;
+  for (const k of Object.keys(s.buildings)) s.buildings[k].lv = 10; s.grudges[0].lvl = 0.5;
+  const r = X.burst(s); assert.ok(r);
+  const aw = r.nemesesDefeated.find(d => d.awaken); assert.ok(aw, '應擊敗覺醒者'); assert.equal(aw.dao, 3);
+  assert.equal(s.res.daoHeart, 3); assert.equal(s.nemeses.qian.awakeLv, 1); assert.equal(s.stats.nemesisDefeated, 6); assert.equal(s.artifacts.length, 0);
 });
 
 console.log(`\n${n} 項測試通過`);

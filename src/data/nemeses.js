@@ -59,3 +59,16 @@ export const NEMESES = [
     reward: { token: 15, stone: 120, artifact: 'xuan_case' }, finale: true },
 ];
 export const NEMESES_BY_ID = Object.fromEntries(NEMESES.map(n => [n.id, n]));
+
+// 覺醒（強化形態）：擊敗過的宿敵，在轉生次數夠多、境界夠高時以更強的姿態回歸。最多三階。
+// 覺醒者一樣不能當場打臉，引爆時要「碾壓」；獎勵是更多招賢令、靈石，以及道心（不再給法寶）。
+export const AWAKEN = {
+  maxLv: 3,
+  needRebirth: [1, 3, 5],        // 第 N 階覺醒需要的轉生次數
+  realmPlus: 2,                  // 境界需達到「該宿敵原本的登場境界 + 2」（最高 13）
+  levelBoost: 1,                 // 覺醒者的境界 = 原本偏移 + 階數 × 此值
+  tokenMult: 2, stoneMult: 3,
+  dao: [3, 5, 8],                // 各階擊敗獲得的道心
+  taunts: ['上一世的帳，我還記著。', '這一次，我把你的每一招都想過了。', '你贏過我三次？那是因為我還沒認真。'],
+};
+export const ROMAN = ['', 'Ⅰ', 'Ⅱ', 'Ⅲ'];

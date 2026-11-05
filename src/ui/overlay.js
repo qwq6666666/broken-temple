@@ -125,7 +125,8 @@ function showSettlement(r) {
       <div><span>💎 靈石</span><b data-count="${r.total.stone}">0</b></div>
       <div><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b></div>
     </div>
-    ${r.nemesesDefeated.map(d => `<div class="nemstory"><b>⚔️ 宿敵倒下：${esc(d.n.name)}（${esc(d.n.title)}）</b>
+    ${r.nemesesDefeated.map(d => d.awaken ? `<div class="nemstory"><b>🌟 覺醒${'ⅠⅡⅢ'[d.awaken - 1]}的宿敵再度倒下：${esc(d.n.name)}</b>
+      <p class="gold">☯️ 道心 +${d.dao}</p></div>` : `<div class="nemstory"><b>⚔️ 宿敵倒下：${esc(d.n.name)}（${esc(d.n.title)}）</b>
       <p>${esc(d.n.story.defeat)}</p>
       ${d.art ? `<span class="art rare">${d.art.emoji} ${esc(d.art.name)}<small>${esc(d.art.desc)}</small></span>` : ''}
       ${d.finale ? '<p class="gold"><b>🏯 破廟的真相已經揭開——這座廟，是青雲宗的祖庭。</b></p>' : ''}</div>`).join('')}

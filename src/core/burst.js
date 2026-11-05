@@ -14,6 +14,7 @@ import { quote } from './events.js';
 import { isNemesis, nemOf, nemState, lineFor } from './nemesis.js';
 import { addRep, rewardMult, tierOfSect } from './factions.js';
 import { FACTION_RULES as FR } from '../data/factions.js';
+import { AWAKEN, ROMAN } from '../data/nemeses.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { addDisciple } from './disciples.js';
 import { rollSurrender, applyLoss } from './endure.js';
@@ -117,13 +118,22 @@ export function burst(s) {
     }
     // 宿敵被碾壓：固定獎勵 + 專屬法寶，劇情推進
     if (e.nemesis && e.verdict === 'crush') {
-      const n = e.nemesis, rw = n.reward;
-      total.token += rw.token; total.stone += rw.stone; r.nemesisReward = rw;
-      const art = ARTIFACTS_BY_ID[rw.artifact];
-      if (art && !s.artifacts.includes(art.id)) { s.artifacts.push(art.id); artifacts.push(art); }
-      note(s, '⚔️', `擊敗宿敵「${n.name}」`);
-      nemState(s, n.id).defeated = true; s.stats.nemesisDefeated = (s.stats.nemesisDefeated || 0) + 1; s.run.nemeses++;
-      nemesesDefeated.push({ n, art, finale: !!n.finale });
+      const n = e.nemesis, rw = n.reward, aw = e.g.awaken || 0;
+      if (aw) {                                                      // 覺醒形態：更多資源與道心，不再給法寶
+        const dao = AWAKEN.dao[aw - 1];
+        total.token += rw.token * AWAKEN.tokenMult; total.stone += rw.stone * AWAKEN.stoneMult; s.res.daoHeart += dao;
+        r.nemesisReward = { token: rw.token * AWAKEN.tokenMult, stone: rw.stone * AWAKEN.stoneMult, dao };
+        note(s, '🌟', `擊敗覺醒${ROMAN[aw]}的「${n.name}」，獲得道心 ${dao}`);
+        nemState(s, n.id).awakeLv = Math.max(nemState(s, n.id).awakeLv || 0, aw); s.run.nemeses++;
+        nemesesDefeated.push({ n, art: null, finale: false, awaken: aw, dao });
+      } else {
+        total.token += rw.token; total.stone += rw.stone; r.nemesisReward = rw;
+        const art = ARTIFACTS_BY_ID[rw.artifact];
+        if (art && !s.artifacts.includes(art.id)) { s.artifacts.push(art.id); artifacts.push(art); }
+        note(s, '⚔️', `擊敗宿敵「${n.name}」`);
+        nemState(s, n.id).defeated = true; s.stats.nemesisDefeated = (s.stats.nemesisDefeated || 0) + 1; s.run.nemeses++;
+        nemesesDefeated.push({ n, art, finale: !!n.finale });
+      }
     }
   }
   s.res.qi += total.qi; s.res.stone += total.stone; s.res.token += total.token;

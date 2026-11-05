@@ -27,7 +27,7 @@ export function avengePanel(s, ui) {
       <div class="tags"><span class="tag">${esc(t.label)}</span> <span class="tag">${esc(g.personality)}</span>
         ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}</div>`;
     return crow(ui, { key: 'g' + g.id, cls: `${nem ? 'nemesis' : ''} vr-${escapes ? 'fail' : gap.verdict}`, icon: nem ? nem.emoji : t.emoji,
-      title: `<b>${esc(g.name)}</b>`, badges: nem ? ' <span class="tag gold">宿敵</span>' : '',
+      title: `<b>${esc(g.name)}</b>`, badges: nem ? ` <span class="tag gold">${g.awaken ? '覺醒宿敵' : '宿敵'}</span>` : '',
       sub: `${esc(gap.enemy)}・${esc(g.sect)}・${esc(g.role)}`, act: `<span class="verdict ${v.c}">${v.t}</span>`, detail });
   }).join('') || '<p class="hint">復仇簿是空的。等人來嘲諷，然後忍著。</p>';
   const summary = s.grudges.length

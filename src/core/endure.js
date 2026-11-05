@@ -98,7 +98,7 @@ export { applyLoss };
 function toBook(s, v) {
   s.visitor.current = null;
   s.grudges.push({ id: v.id, name: v.name, type: v.type, sect: v.sect, role: v.role,
-                   personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt, nemesisId: v.nemesisId,
+                   personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt, nemesisId: v.nemesisId, awaken: v.awaken || 0,
                    returnBonus: v.returning === 'revenge' });
   scheduleNext(s);
 }

@@ -46,6 +46,7 @@ function sanitizeGrudge(g) {
   if (!VISITOR_TYPES[out.type]) out.type = 'former';
   if (!PERSONALITIES[out.personality]) out.personality = '傲慢';
   if (out.nemesisId && !NEMESES_BY_ID[out.nemesisId]) delete out.nemesisId;
+  out.awaken = out.nemesisId ? Math.max(0, Math.min(3, Math.floor(num(Number(out.awaken))))) : 0;
   out.lvl = Math.max(0, num(Number(out.lvl)));
   out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');
   out.alert = !!out.alert;
