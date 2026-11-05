@@ -62,7 +62,7 @@ function applyEffects(s, e, out) {
     }
   }
   if (e.artifact && chance(e.artifact)) {
-    const left = ARTIFACTS.filter(a => !s.artifacts.includes(a.id));
+    const left = ARTIFACTS.filter(a => !a.unique && !s.artifacts.includes(a.id));
     if (left.length) { const a = pick(left); s.artifacts.push(a.id); out.push(`${a.emoji}獲得 ${a.name}`); }
     else { s.res.shard += 10; out.push('🧩碎片 +10'); }
   }

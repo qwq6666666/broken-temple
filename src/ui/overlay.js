@@ -59,9 +59,9 @@ export async function playBurst(result) {
   for (const e of result.entries) {
     const t = VISITOR_TYPES[e.g.type];
     const card = document.createElement('div');
-    card.className = `enemy ${e.verdict}`;
-    card.innerHTML = `<div class="ehead"><span class="eemoji">${t.emoji}</span>
-      <div><b>${esc(e.g.name)}</b> <span class="tag">${esc(t.label)}</span><br><small>${esc(e.g.sect)}・${esc(e.g.label)}</small></div></div>
+    card.className = `enemy ${e.verdict} ${e.nemesis ? 'nemesis' : ''}`;
+    card.innerHTML = `<div class="ehead"><span class="eemoji">${e.nemesis ? e.nemesis.emoji : t.emoji}</span>
+      <div><b>${esc(e.g.name)}</b> ${e.nemesis ? `<span class="tag gold">宿敵・${esc(e.nemesis.title)}</span>` : ''}<span class="tag">${esc(t.label)}</span><br><small>${esc(e.g.sect)}・${esc(e.g.label)}</small></div></div>
       <p class="etaunt"></p><p class="eline"></p><div class="everdict"></div>`;
     stage.appendChild(card);
     stage.scrollTop = stage.scrollHeight;
@@ -71,7 +71,7 @@ export async function playBurst(result) {
     card.querySelector('.etaunt').classList.add('old');
     await typeInto(card.querySelector('.eline'), `「${e.line}」`, skip, 22);
     const vd = card.querySelector('.everdict');
-    if (e.verdict === 'fail') { vd.innerHTML = '😏 打不過……暫且留在名單'; if (!skip.v) sfx('fail'); }
+    if (e.verdict === 'fail') { vd.innerHTML = e.escaped ? '😤 險勝……但宿敵脫身逃走了，仍在名單上' : '😏 打不過……暫且留在名單'; if (!skip.v) sfx('fail'); }
     else {
       n++;
       vd.innerHTML = (e.verdict === 'crush' ? '🙇 碾壓！跪地求饒' : '😤 險勝') + `　<span class="chainno">連鎖 ${n}</span>`;
@@ -81,6 +81,7 @@ export async function playBurst(result) {
         sfx(e.verdict === 'crush' ? 'crush' : 'narrow'); sfx('chain', { n });
         if (e.verdict === 'crush') { shake(scene); flash(scene); particles(scene, ['🙇', '💢', '✨'], 10); }
         if (CHAIN_BANNER[n]) banner(scene, CHAIN_BANNER[n], 'chainbanner');
+        if (e.nemesis) { banner(scene, `宿敵伏法：${e.g.name}`, 'chainbanner'); sfx('fanfare'); }
       }
     }
     card.classList.add('shown');
@@ -118,6 +119,10 @@ function showSettlement(r) {
       <div><span>💎 靈石</span><b data-count="${r.total.stone}">0</b></div>
       <div><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b></div>
     </div>
+    ${r.nemesesDefeated.map(d => `<div class="nemstory"><b>⚔️ 宿敵倒下：${esc(d.n.name)}（${esc(d.n.title)}）</b>
+      <p>${esc(d.n.story.defeat)}</p>
+      ${d.art ? `<span class="art rare">${d.art.emoji} ${esc(d.art.name)}<small>${esc(d.art.desc)}</small></span>` : ''}
+      ${d.finale ? '<p class="gold"><b>🏯 破廟的真相已經揭開——這座廟，是青雲宗的祖庭。</b></p>' : ''}</div>`).join('')}
     <h3>降服弟子（到「復仇簿」招募）</h3><div class="arts">${sur}</div>
     <h3>功法／法寶</h3><div class="arts">${arts}</div>
     ${r.backfire ? `<p class="warnline">⚠ 反噬！${esc(r.backfire.names.join('、'))} 實力遠勝於你，反擊造成損失 💎${fmt(r.backfire.lost)}${r.backfire.paused ? '，並有一處建築暫停產出' : ''}。</p>` : ''}

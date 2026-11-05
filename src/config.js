@@ -96,6 +96,7 @@ export const CONFIG = {
     minMs: 60 * 1000,          // 離開不到 1 分鐘不結算
     stepMs: 60 * 1000,         // 結算步長
   },
+  nemesis: { chance: 0.5 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵
   save: { key: 'broken-temple-save', autosaveMs: 10000 },
 
   burst: {

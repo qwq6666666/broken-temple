@@ -11,5 +11,11 @@ export const ARTIFACTS = [
   { id: 'juling',  kind: '法寶', name: '聚靈玉',         emoji: '💎', effect: { qiMult: 0.30 },          desc: '靈氣產出 +30%' },
   { id: 'chuangong',kind:'法寶', name: '傳功玉簡',       emoji: '📿', effect: { discipleDiscount: 0.10 },desc: '弟子升級成本 -10%' },
   { id: 'pixiu',   kind: '法寶', name: '招財貔貅',       emoji: '🐲', effect: { burstReward: 0.15 },     desc: '爆擊獎勵 +15%' },
+  // ── 宿敵專屬（unique：不會從一般掉落／事件取得）──
+  { id: 'qian_abacus', unique: true, kind: '法寶', name: '生鏽的算盤', emoji: '🧮', effect: { stoneMult: 0.15 }, desc: '靈石產出 +15%（錢貫）' },
+  { id: 'xiao_sword', unique: true, kind: '法寶', name: '斷劍', emoji: '🗡️', effect: { powerMult: 0.12 }, desc: '戰力 +12%（蕭承曜）' },
+  { id: 'liu_token', unique: true, kind: '法寶', name: '執法令牌', emoji: '🪪', effect: { burstReward: 0.15 }, desc: '爆擊獎勵 +15%（柳玄素）' },
+  { id: 'yun_seal', unique: true, kind: '法寶', name: '掌門信物', emoji: '🔱', effect: { qiMult: 0.30 }, desc: '靈氣產出 +30%（雲渺子）' },
+  { id: 'xuan_case', unique: true, kind: '法寶', name: '祖庭劍匣', emoji: '🏺', effect: { powerMult: 0.20, qiMult: 0.20 }, desc: '戰力 +20%、靈氣 +20%（玄機子）' },
 ];
 export const ARTIFACTS_BY_ID = Object.fromEntries(ARTIFACTS.map(a => [a.id, a]));

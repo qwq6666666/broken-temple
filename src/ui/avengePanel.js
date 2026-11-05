@@ -4,6 +4,7 @@ import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { gapInfo } from '../core/conceal.js';
+import { nemOf } from '../core/nemesis.js';
 import { recruitCost } from '../core/burst.js';
 import { canAfford } from '../core/resources.js';
 import { CONFIG } from '../config.js';
@@ -17,11 +18,12 @@ const VERDICT = {
 
 export function avengePanel(s) {
   const rows = [...s.grudges].sort((a, b) => b.lvl - a.lvl).map(g => {
-    const t = VISITOR_TYPES[g.type], gap = gapInfo(s, g), v = VERDICT[gap.verdict];
-    return `<div class="card gcrd">
-      <div class="big">${t.emoji}</div>
+    const t = VISITOR_TYPES[g.type], gap = gapInfo(s, g), nem = g.nemesisId ? nemOf(g) : null;
+    const v = nem && gap.verdict === 'narrow' ? { t: '預估：險勝（會脫身）', c: 'v-fail' } : VERDICT[gap.verdict];
+    return `<div class="card gcrd ${nem ? 'nemesis' : ''}">
+      <div class="big">${nem ? nem.emoji : t.emoji}</div>
       <div class="body">
-        <div class="row"><b>${esc(g.name)}</b> <span class="tag">${esc(t.label)}</span> <span class="tag">${esc(g.personality)}</span>
+        <div class="row"><b>${esc(g.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(g.personality)}</span>
           ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}</div>
         <small>${esc(g.sect)}・${esc(g.role)}</small><br>
         <small class="gap">對方 <b>${esc(gap.enemy)}</b>，你 <b>${esc(gap.me)}</b> — ${esc(gap.text)}</small>

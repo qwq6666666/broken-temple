@@ -9,6 +9,7 @@ import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { cooldownLeft } from '../core/meditate.js';
 import { assess } from '../core/endure.js';
+import { nemOf } from '../core/nemesis.js';
 import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
 import { costChips } from './dom.js';
 import { esc, setHTML, setText } from './dom.js';
@@ -61,7 +62,8 @@ const VERDICT_TXT = { crush: ['v-crush', '你能碾壓他'], narrow: ['v-narrow'
 function visitorCard(s) {
   const v = s.visitor.current;
   if (!v) return '';
-  const t = VISITOR_TYPES[v.type], a = assess(s, v), [vc, vt] = VERDICT_TXT[a.verdict];
+  const t = VISITOR_TYPES[v.type], a = assess(s, v), [vc, vt] = a.escape ? ['v-narrow', '勉強勝，但他會脫身'] : VERDICT_TXT[a.verdict];
+  const nem = v.nemesisId ? nemOf(v) : null;
   const L = CONFIG.endure.loss;
   const lossOn = s.settings.loss;
   const endureText = `偽裝值 +${CONFIG.endure.disguiseGain}，記入復仇簿（保留連鎖與大獎勵）`
@@ -69,11 +71,12 @@ function visitorCard(s) {
   const showText = {
     beat: `${a.winText}（對方不入簿、不加偽裝值）`,
     rash: `<b class="red">⚠ 逞強</b>：打不過還亮，損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,
+    nemesis: `<b class="red">⚠ 宿敵不能當場打倒</b>：損失 ×${a.showMult}，對方入簿（留到引爆再算帳，要碾壓才算擊敗）`,
     offend: `<b class="red">⚠ 長老得罪不起</b>：損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,
   }[a.showKind];
-  return `<div class="visitor-card">
-    <div class="vhead"><span class="vemoji">${t.emoji}</span>
-      <div><b>${esc(v.name)}</b> <span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
+  return `<div class="visitor-card ${nem ? 'nemesis' : ''}">
+    <div class="vhead"><span class="vemoji">${nem ? nem.emoji : t.emoji}</span>
+      <div><b>${esc(v.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
       <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small></div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">

@@ -9,6 +9,7 @@ import { ratioOf, verdictOf } from './conceal.js';
 import { DISCIPLES } from '../data/disciples.js';
 import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { quote, toast, cue } from './events.js';
+import { pickNemesis, makeNemesisVisitor } from './nemesis.js';
 
 const scheduleNext = s => {
   s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000;
@@ -36,8 +37,9 @@ export function tick(s) {
   if (s.burstActive || s.visitor.current) return;
   if (s.t < s.visitor.nextAt) return;
   if (s.grudges.length >= CONFIG.visitor.maxGrudges) { scheduleNext(s); return; }
-  s.visitor.current = makeVisitor(s);
-  cue('visitor');
+  const nem = pickNemesis(s);
+  if (nem && chance(CONFIG.nemesis.chance)) { s.visitor.current = makeNemesisVisitor(s, nem); toast(`宿敵現身：${nem.name}（${nem.title}）`, 'warn'); cue('nemesis'); }
+  else { s.visitor.current = makeVisitor(s); cue('visitor'); }
 }
 
 // 憋屈值：連續忍氣吞聲越多次，下一次的損失越重（亮一手／引爆後歸零）
@@ -49,10 +51,12 @@ export function assess(s, v) {
   const verdict = verdictOf(ratioOf(s, v));
   const T = VISITOR_TYPES[v.type];
   let showKind, showMult = 1;
-  if (T.showOff.offends) { showKind = 'offend'; showMult = CONFIG.endure.elderLossMult; }
+  if (v.nemesisId) { showKind = 'nemesis'; showMult = CONFIG.endure.elderLossMult; }   // 宿敵不能當場打倒，留到引爆
+  else if (T.showOff.offends) { showKind = 'offend'; showMult = CONFIG.endure.elderLossMult; }
   else if (verdict === 'fail') { showKind = 'rash'; showMult = CONFIG.endure.rashLossMult; }
   else showKind = 'beat';
-  return { verdict, showKind, showMult, endureMult: streakMult(s), winText: T.showOff.winText };
+  const escape = !!v.nemesisId && verdict === 'narrow';          // 宿敵險勝時會脫身
+  return { verdict, escape, showKind, showMult, endureMult: streakMult(s), winText: T.showOff.winText };
 }
 
 // 「承受損失」：約 N 秒靈石產出 或 隨機一棟建築暫停 5 分鐘；mult 為倍率。回傳說明文字（無損失則 null）
@@ -79,7 +83,7 @@ export { applyLoss };
 function toBook(s, v) {
   s.visitor.current = null;
   s.grudges.push({ id: v.id, name: v.name, type: v.type, sect: v.sect, role: v.role,
-                   personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt });
+                   personality: v.personality, lvl: v.lvl, alert: v.alert, taunt: v.taunt, nemesisId: v.nemesisId });
   scheduleNext(s);
 }
 
@@ -130,7 +134,7 @@ export function showOff(s) {
     toast(`${v.name} 被打臉離開` + (got.surrender ? `，並拜入門下候選：${got.surrender.name}` : ''), 'good');
     return { outcome: 'beat', line, got };
   }
-  v.alert = true;
+  v.alert = a.showKind !== 'nemesis';              // 宿敵不套用警覺（獎勵是固定的）
   const loss = applyLoss(s, a.showMult);
   toBook(s, v);
   quote(pickLine(LINES.show));

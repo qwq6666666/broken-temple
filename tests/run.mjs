@@ -15,6 +15,10 @@ import * as X from '../src/core/burst.js';
 import * as M from '../src/core/meditate.js';
 import * as Goals from '../src/core/goals.js';
 import * as Inc from '../src/core/incidents.js';
+import * as Nem from '../src/core/nemesis.js';
+import { NEMESES, NEMESES_BY_ID } from '../src/data/nemeses.js';
+import { ARTIFACTS_BY_ID } from '../src/data/artifacts.js';
+import { GOALS_BY_ID } from '../src/data/goals.js';
 import { INCIDENTS_BY_ID } from '../src/data/incidents.js';
 import { sfx, unlock, applyVolume, SFX_NAMES } from '../src/ui/audio.js';
 import { getPrefs, setPref } from '../src/ui/prefs.js';
@@ -460,6 +464,74 @@ t('離線回來不會立刻彈事件，也不算逾時', () => {
   applyOffline(s, 3600 * 1000);
   assert.ok(s.incident.current.expiresAt > s.t);
   Inc.tick(s); assert.ok(s.incident.current);
+});
+
+// ── R8 宿敵 ──
+const nemVisitor = (id, lvl) => ({ id: 500 + lvl, nemesisId: id, name: NEMESES_BY_ID[id].name, type: NEMESES_BY_ID[id].type, sect: 's', role: 'r', personality: '傲慢', lvl, alert: false, taunt: 't' });
+
+t('宿敵：條件（境界、前一位）決定誰能登場，且不重複在場', () => {
+  const s = createState();
+  assert.equal(Nem.pickNemesis(s), null);                        // 凡人：還沒到
+  s.realmIdx = 1; assert.equal(Nem.pickNemesis(s).id, 'qian');
+  s.realmIdx = 13; assert.equal(Nem.pickNemesis(s).id, 'qian'); // 沒擊敗前一位，後面的不會出現
+  s.visitor.current = nemVisitor('qian', 2); assert.equal(Nem.pickNemesis(s), null);   // 已在場
+  s.visitor.current = null; s.nemeses.qian = { met: 1, defeated: true };
+  assert.equal(Nem.pickNemesis(s).id, 'xiao');
+});
+
+t('宿敵登場：取代一次訪客，嘲諷依見面次數推進', () => {
+  setRng(() => 0);                                              // chance(0.5) 必中
+  const s = createState(); s.realmIdx = 1; s.t = 1e7;
+  E.tick(s); assert.equal(s.visitor.current.nemesisId, 'qian');
+  assert.equal(s.visitor.current.taunt, NEMESES_BY_ID.qian.intro[0]);
+  E.endure(s); assert.equal(s.grudges[0].nemesisId, 'qian');
+  s.grudges = []; s.t += 1e7; E.tick(s);
+  assert.equal(s.visitor.current.taunt, NEMESES_BY_ID.qian.intro[1]);
+  setRng(Math.random);
+});
+
+t('宿敵不能當場打臉：亮一手 = 入簿、不警覺、損失 ×3', () => {
+  const s = withVisitor(createState(), nemVisitor('qian', 0)); s.realmIdx = 10;
+  const a = E.assess(s, s.visitor.current); assert.equal(a.showKind, 'nemesis');
+  assert.equal(E.showOff(s).outcome, 'nemesis');
+  assert.equal(s.grudges.length, 1); assert.equal(s.grudges[0].alert, false); assert.equal(s.grudges[0].nemesisId, 'qian');
+});
+
+t('引爆宿敵：碾壓才擊敗並給專屬法寶、解鎖下一位；險勝則脫身', () => {
+  const run = (realm) => {
+    const s = createState(); s.realmIdx = realm; s.disguise.value = 99;
+    s.grudges = [{ ...nemVisitor('qian', 2.0) }, visitor('former', 0, { id: 1 })];
+    return { s, r: X.burst(s) };
+  };
+  const win = run(8);
+  assert.equal(win.r.entries.at(-1).g.nemesisId, 'qian');           // 宿敵壓軸
+  assert.equal(win.r.entries.at(-1).verdict, 'crush');
+  assert.ok(Nem.isDefeated(win.s, 'qian')); assert.ok(win.s.artifacts.includes('qian_abacus'));
+  assert.equal(win.r.nemesesDefeated.length, 1); assert.equal(win.s.stats.nemesisDefeated, 1);
+  assert.equal(win.s.grudges.length, 0);
+  // 戰力略勝（險勝）→ 脫身：留在簿內
+  const s2 = createState(); s2.disguise.value = 99; s2.realmIdx = 3;
+  s2.grudges = [nemVisitor('qian', 3.1)];
+  const r2 = X.burst(s2); assert.equal(r2.entries[0].verdict, 'fail'); assert.equal(r2.entries[0].escaped, true);
+  assert.equal(s2.grudges.length, 1); assert.equal(Nem.isDefeated(s2, 'qian'), false);
+});
+
+t('專屬法寶不會從一般掉落／事件取得；一般法寶目標不含專屬', () => {
+  setRng(() => 0);
+  const s = createState(); s.realmIdx = 5; s.disguise.value = 99;
+  s.grudges = [visitor('elder', 0, { id: 1 })];
+  X.burst(s);
+  assert.ok(s.artifacts.every(id => !ARTIFACTS_BY_ID[id].unique));
+  setRng(Math.random);
+  const s2 = createState(); s2.artifacts = ['qian_abacus', 'xiao_sword'];
+  assert.equal(GOALS_BY_ID.art9.cur(s2), 0);
+});
+
+t('宿敵存檔往返、完成全部後觸發大事', () => {
+  const s = createState(); NEMESES.forEach(n => { s.nemeses[n.id] = { met: 2, defeated: true }; }); s.stats.nemesisDefeated = NEMESES.length;
+  const st = fakeStorage(); S.save(s, st); const r = S.load(st);
+  assert.equal(Nem.isDefeated(r.state, 'xuan'), true);
+  Goals.tick(r.state); assert.ok(r.state.goalsDone.includes('nemAll'));
 });
 
 console.log(`\n${n} 項測試通過`);

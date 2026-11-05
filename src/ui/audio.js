@@ -49,6 +49,7 @@ const SFX = {
   upgrade: c => { tone(c, { f: note(2), type: 'triangle', dur: 0.12 }); tone(c, { f: note(5), type: 'triangle', dur: 0.2, at: 0.09 }); },
   coin:   c => { tone(c, { f: 1200, type: 'square', dur: 0.06, vol: 0.1 }); tone(c, { f: 1700, type: 'square', dur: 0.12, vol: 0.1, at: 0.05 }); },
   visitor: c => { tone(c, { f: 196, type: 'sine', dur: 0.5, vol: 0.2 }); tone(c, { f: 147, type: 'sine', dur: 0.7, vol: 0.18, at: 0.12 }); },   // 低沉鐘聲
+  nemesis: c => { tone(c, { f: 98, type: 'sawtooth', dur: 0.9, vol: 0.22, slide: 70 }); tone(c, { f: 147, type: 'sine', dur: 0.9, vol: 0.18, at: 0.15 }); noise(c, { dur: 0.4, vol: 0.12, f: 250 }); },
   endure: c => { tone(c, { f: 110, type: 'sine', dur: 0.35, vol: 0.3, slide: 60 }); noise(c, { dur: 0.12, vol: 0.12, f: 300 }); },
   show:   c => { tone(c, { f: 400, type: 'sawtooth', dur: 0.25, vol: 0.12, slide: 1600 }); noise(c, { dur: 0.2, vol: 0.1, f: 3000 }); },
   breakthrough: c => { for (let i = 0; i < 5; i++) tone(c, { f: note(i * 2), type: 'triangle', dur: 0.5, vol: 0.18, at: i * 0.12 }); noise(c, { dur: 0.8, vol: 0.08, f: 800, at: 0.1 }); },

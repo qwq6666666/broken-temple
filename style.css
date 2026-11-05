@@ -227,3 +227,10 @@ button.meditate .mlabel { position: relative; }
 .incident-card { background: rgba(18,28,34,.94); border: 1px solid var(--blue); border-radius: 10px; padding: 10px 12px; animation: popIn .35s ease-out; }
 .incbtn { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 8px 10px; border-color: var(--blue); }
 .incbtn small { font-size: .72em; line-height: 1.35; white-space: normal; color: var(--dim); }
+
+/* 宿敵 */
+.visitor-card.nemesis, .card.nemesis, .enemy.nemesis { border-color: var(--gold); box-shadow: 0 0 16px rgba(217,182,74,.35); }
+.enemy.nemesis { padding: 14px 18px; }
+.enemy.nemesis .eemoji { font-size: 44px; }
+.card.nem.locked { opacity: .45; } .card.nem.done { border-color: var(--jade); }
+.nemstory { background: rgba(217,182,74,.08); border-left: 3px solid var(--gold); padding: 6px 10px; margin: 6px 0; border-radius: 4px; }
