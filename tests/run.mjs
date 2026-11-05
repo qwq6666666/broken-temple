@@ -1107,4 +1107,18 @@ t('法寶裝備欄：裝備者效果 +50%、未裝備照常、上限 3 件、轉
   assert.deepEqual(sanitize(raw).equipped, ['tuna', 'danhuo', 'yinqi']);   // 只留擁有的、去重、不超過上限
 });
 
+t('弟子進階：Lv10 才能選、只能選一次、專精／悍勇各有效果、轉生重置', () => {
+  const s = createState(); s.realmIdx = 6; s.buildings.alchemy.lv = 1;
+  const d = D.addDisciple(s, 'shenyao').disciple; D.assign(s, d.uid, 'alchemy');   // 丹修在煉丹房：專長相符
+  assert.equal(D.setBranch(s, d.uid, 'focus'), false);                              // Lv1 不行
+  d.lv = 10; const c0 = eco.buildingMult(s, 'alchemy'), p0 = eco.combatPower(s);
+  assert.ok(D.setBranch(s, d.uid, 'focus')); assert.equal(D.setBranch(s, d.uid, 'might'), false);
+  assert.ok(eco.buildingMult(s, 'alchemy') > c0);                                   // 專精：貢獻上升
+  assert.ok(Math.abs(eco.combatPower(s) - p0) < 1e-9);                               // 專精不影響戰力
+  const s2 = createState(); s2.realmIdx = 6; const e = D.addDisciple(s2, 'shenyao').disciple; e.lv = 10;
+  const q0 = eco.combatPower(s2); D.setBranch(s2, e.uid, 'might'); assert.ok(eco.combatPower(s2) > q0);
+  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.disciples[0].branch, null);
+  const raw = JSON.parse(JSON.stringify(s)); raw.disciples[0].branch = 'zzz'; assert.equal(sanitize(raw).disciples[0].branch, null);
+});
+
 console.log(`\n${n} 項測試通過`);

@@ -7,7 +7,7 @@ import { goalPerm } from './goals.js';
 import { bondSum } from './bonds.js';
 import { STORY_RULES } from '../data/stories.js';
 import { perm as daoPerm } from './dao.js';
-import { contribution, stat, traitOf, traitValue } from './discipleMath.js';
+import { contribution, stat, powerStat, traitOf, traitValue } from './discipleMath.js';
 
 export const realmOf = s => REALMS[s.realmIdx];
 
@@ -70,7 +70,7 @@ export const rareChance = s =>
 export function combatPower(s) {
   const arena = (1 + s.buildings.arena.lv * CONFIG.building_effect.arenaPowerPerLevel * buildingMult(s, 'arena'))
     * (1 + s.buildings.tower.lv * 0.06 * buildingMult(s, 'tower'));                     // 鎮魔塔
-  const owned = 1 + CONFIG.disciple.ownedPowerFactor * s.disciples.reduce((a, d) => a + stat(d), 0);
+  const owned = 1 + CONFIG.disciple.ownedPowerFactor * s.disciples.reduce((a, d) => a + powerStat(d), 0);
   return realmOf(s).power * arena * owned * (1 + artifactSum(s, 'powerMult') + traitSum(s, 'power'));
 }
 

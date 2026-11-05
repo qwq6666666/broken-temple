@@ -3,7 +3,7 @@ import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R } from '../data/expediti
 import { ARTIFACTS } from '../data/artifacts.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { chance, pick } from './rng.js';
-import { stat, isSpecialtyMatch } from './discipleMath.js';
+import { stat, isSpecialtyMatch, expStat } from './discipleMath.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { rollSurrender } from './endure.js';
 import { toast, cue } from './events.js';
@@ -16,7 +16,7 @@ export const freeDisciples = s => s.disciples.filter(d => !away(s, d.uid));
 // 單人貢獻：屬性 ×（專長相合 ×1.3）×（五行相合 ×1.15）
 function contrib(d, e) {
   const df = DISCIPLES_BY_ID[d.defId];
-  let v = stat(d);
+  let v = expStat(d);
   if (e.want.specialty && df.specialty === e.want.specialty) v *= R.specialtyMult;
   if (e.want.element && df.element === e.want.element) v *= R.elementMult;
   return v;

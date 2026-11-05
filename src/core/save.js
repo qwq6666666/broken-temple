@@ -13,6 +13,7 @@ import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { BRANCH_KEYS } from '../data/branches.js';
 import { ACHIEVEMENTS_BY_ID } from '../data/achievements.js';
 import { COMMISSION_BY_KIND } from '../data/commissions.js';
 import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
@@ -54,7 +55,7 @@ function sanitizeGrudge(g) {
 export function sanitize(s) {
   const dedupe = a => [...new Set(a)];
   s.disciples = (Array.isArray(s.disciples) ? s.disciples : []).filter(d => isPlain(d) && DISCIPLES_BY_ID[d.defId]).map(d => ({
-    ...d, lv: Math.max(1, Math.floor(num(Number(d.lv), 1))), star: Math.max(0, Math.min(3, Math.floor(num(Number(d.star), 0)))),
+    ...d, branch: BRANCH_KEYS.includes(d.branch) ? d.branch : null, lv: Math.max(1, Math.floor(num(Number(d.lv), 1))), star: Math.max(0, Math.min(3, Math.floor(num(Number(d.star), 0)))),
     at: BUILDINGS_BY_ID[d.at] ? d.at : null }));
   s.recruits = (Array.isArray(s.recruits) ? s.recruits : []).filter(r => isPlain(r) && DISCIPLES_BY_ID[r.defId]);
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));

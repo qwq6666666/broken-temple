@@ -12,7 +12,11 @@ const starMult = d => 1 + CONFIG.disciple.starBonus * starOf(d);
 export const stat = d => RARITIES[defOf(d).rarity].stat * (1 + CONFIG.disciple.statGrowth * (d.lv - 1)) * starMult(d);
 // 特性效果（受星級加成）
 export const traitOf = d => defOf(d).trait;
-export const traitValue = d => traitOf(d).value * starMult(d);
+export const branchOf = d => d.branch || null;
+export const traitValue = d => traitOf(d).value * starMult(d) * (branchOf(d) === 'focus' ? 1.2 : 1);
+// 計入宗門戰力的屬性（悍勇 ×2）與探索用屬性（悍勇 ×1.3）
+export const powerStat = d => stat(d) * (branchOf(d) === 'might' ? 2 : 1);
+export const expStat = d => stat(d) * (branchOf(d) === 'might' ? 1.3 : 1);
 
 export const isSpecialtyMatch = (d, bid) => defOf(d).specialty === BUILDINGS_BY_ID[bid].specialty;
 export const isElementMatch = (d, bid) => defOf(d).element === BUILDINGS_BY_ID[bid].element;
@@ -20,7 +24,7 @@ export const isElementMatch = (d, bid) => defOf(d).element === BUILDINGS_BY_ID[b
 // 派駐在建築 bid 時，對該建築倍率的貢獻（專長匹配 ×2、五行相合 ×1.25）
 export function contribution(d, bid) {
   let m = stat(d) * CONFIG.disciple.assignFactor;
-  if (isSpecialtyMatch(d, bid)) m *= CONFIG.disciple.specialtyMult;
+  if (isSpecialtyMatch(d, bid)) m *= CONFIG.disciple.specialtyMult * (branchOf(d) === 'focus' ? 1.25 : 1);
   if (isElementMatch(d, bid)) m *= CONFIG.disciple.elementMult;
   return m;
 }

@@ -2,7 +2,7 @@
 import { BUILDINGS, BUILDINGS_BY_ID } from '../data/buildings.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES, RARITY_ORDER } from '../data/gachaRates.js';
-import { levelCapOf, levelCost, canLevel, assignedTo, starCost, canStar } from '../core/disciples.js';
+import { levelCapOf, levelCost, canLevel, assignedTo, starCost, canStar, canBranch } from '../core/disciples.js';
 import { traitText } from '../data/traits.js';
 import { slots } from '../core/buildings.js';
 import { stat, isSpecialtyMatch, isElementMatch, starOf, contribution } from '../core/discipleMath.js';
@@ -11,6 +11,7 @@ import { nextChapter, chaptersRead, chapterCount, lockedHint } from '../core/sto
 import { BONDS } from '../data/bonds.js';
 import { bondStatus } from '../core/bonds.js';
 import { fmt } from '../core/format.js';
+import { BRANCHES, BRANCH_LEVEL } from '../data/branches.js';
 import { esc, costChips } from './dom.js';
 
 const SORTS = [['rarity', '稀有度'], ['lv', '等級'], ['at', '派駐']];
@@ -79,7 +80,7 @@ function card(s, ui, d, away) {
   const df = DISCIPLES_BY_ID[d.defId], r = RARITIES[df.rarity];
   const can = canLevel(s, d), atMax = d.lv >= levelCapOf(s, d), sc = starCost(d), star = starOf(d);
   const open = !!(ui.dOpen && ui.dOpen[d.uid]);
-  const ch = nextChapter(s, d);
+  const ch = nextChapter(s, d), br = d.branch ? BRANCHES[d.branch] : null;
   const loc = away.has(d.uid) ? '<span class="loc away">🧭 探索中</span>'
     : d.at ? `<span class="loc ${isSpecialtyMatch(d, d.at) ? 'match' : ''}">📍 ${esc(BUILDINGS_BY_ID[d.at].name)}${isSpecialtyMatch(d, d.at) ? ' ×2' : ''}</span>` : '<span class="loc idle">未派駐</span>';
   const lvBtn = atMax ? '<span class="tag">已達上限</span>'
@@ -95,19 +96,27 @@ function card(s, ui, d, away) {
       <small class="dim" title="${esc(df.quote)}">${esc(df.element)}・${esc(df.specialty)}・${esc(df.personality)}　屬性 ${fmt(stat(d))}</small>
       <small class="trait ${d.at ? 'on' : ''}">✦ ${esc(traitText(df.trait.key, traitValueS(s, d)))}${d.at ? '（生效中）' : '（派駐後生效）'}</small>
       ${storyRow(s, d)}
+      ${branchRow(d)}
       <select class="assign" data-change="assign" data-uid="${d.uid}"><option value="">— 未派駐 —</option>${opts}</select>
       ${sc ? `<button class="btn ${canStar(s, d) ? 'primary' : ''}" data-act="starUp" data-uid="${d.uid}" ${canStar(s, d) ? '' : 'disabled'}>升星 ${costChips(s, sc)}</button>` : '<span class="tag gold">滿星</span>'}
     </div>`;
   }
   return `<div class="dcard ${open ? 'open' : ''}" style="--rc:${r.color}">
     <div class="dhead"><span class="de">${df.emoji}</span>
-      <div class="dname"><b>${esc(df.name)}</b> <span class="rar">${df.rarity}</span>
+      <div class="dname"><b>${esc(df.name)}</b> <span class="rar">${df.rarity}</span>${br ? ` <span class="tag gold">${br.icon}${br.name}</span>` : ''}
         <small>Lv ${d.lv}/${levelCapOf(s, d)} <span class="gold">${'★'.repeat(star)}${'☆'.repeat(3 - star)}</span></small></div></div>
-    ${loc}${ch ? `<button class="btn mini primary" data-act="readStory" data-uid="${d.uid}">📖 讀故事</button>` : ''}
+    ${loc}${ch ? `<button class="btn mini primary" data-act="readStory" data-uid="${d.uid}">📖 讀故事</button>` : ''}${canBranch(d) ? `<button class="btn mini primary" data-act="toggleD" data-uid="${d.uid}">⬆ 可進階</button>` : ''}
     ${lvBtn}
     <button class="dmore" data-act="toggleD" data-uid="${d.uid}" aria-expanded="${open}">${open ? '收合 ▴' : '詳情 ▾'}</button>
     ${detail}
   </div>`;
+}
+
+// 進階：Lv10 時二選一，選後顯示結果
+function branchRow(d) {
+  if (d.branch) { const b = BRANCHES[d.branch]; return `<small class="gold">${b.icon} 進階：${b.name}——${esc(b.desc)}</small>`; }
+  if (d.lv < BRANCH_LEVEL) return `<small class="dim">升到 Lv${BRANCH_LEVEL} 可二選一進階</small>`;
+  return `<div class="branchrow">${Object.entries(BRANCHES).map(([k, b]) => `<button class="btn" data-act="branch" data-uid="${d.uid}" data-b="${k}" title="${esc(b.desc)}">${b.icon} ${b.name}<small>${esc(b.desc)}</small></button>`).join('')}</div>`;
 }
 
 // 故事：可讀時亮起；已讀可回憶；未達成顯示解鎖條件

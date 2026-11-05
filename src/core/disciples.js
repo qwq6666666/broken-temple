@@ -1,4 +1,5 @@
 // 弟子：取得、升級（花靈氣）、派駐。
+import { BRANCHES, BRANCH_LEVEL } from '../data/branches.js';
 import { CONFIG } from '../config.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { defOf, starOf } from './discipleMath.js';
@@ -62,4 +63,12 @@ export function starUp(s, uid) {
   if (!d || !canStar(s, d)) return false;
   pay(s, starCost(d)); d.star = starOf(d) + 1;
   return true;
+}
+
+// 進階：Lv10 以上、尚未選過才能選；只能二選一（轉生後等級重置會一併重選）
+export const canBranch = d => d.lv >= BRANCH_LEVEL && !d.branch;
+export function setBranch(s, uid, key) {
+  const d = s.disciples.find(x => x.uid === uid);
+  if (!d || !BRANCHES[key] || !canBranch(d)) return false;
+  d.branch = key; return true;
 }

@@ -152,6 +152,7 @@ export function bindActions(s, ui, rerender) {
       if (r) { box.dataset.done = '1'; showOfflineResult(r.text, r.got); sfx('coin'); }
     },
     toggleEquip: el => { if (!Eq.toggleEquip(s, el.dataset.id)) toast('裝備欄已滿，先卸下一件', 'warn'); },
+    branch: el => { if (D.setBranch(s, +el.dataset.uid, el.dataset.b)) { sfx('goal'); toast('進階完成', 'good'); } },
     toggleTip: () => { ui.tipOpen = !ui.tipOpen; },
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },
     resetTips: () => { setPref('tipsSeen', {}); setPref('tips', true); toast('分頁說明已重設，切換分頁就會再看到', 'good'); },

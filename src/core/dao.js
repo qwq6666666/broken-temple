@@ -44,7 +44,7 @@ export function rebirth(s, mutatorId = null) {
   const fresh = createState();
   const keep = {
     // 重置等級與派駐，但保留弟子本身與星級
-    disciples: s.disciples.map(d => ({ ...d, lv: 1, at: null })),
+    disciples: s.disciples.map(d => ({ ...d, lv: 1, at: null, branch: null })),
     nextUid: s.nextUid, nextGid: s.nextGid, recruits: s.recruits,
     artifacts: s.artifacts, goalsDone: s.goalsDone, commissions: s.commissions, chronicle: s.chronicle, achv: s.achv, equipped: s.equipped, nemeses: s.nemeses,
     gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro, stories: s.stories, factions: s.factions,
