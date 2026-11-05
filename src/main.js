@@ -12,6 +12,7 @@ import * as economy from './core/economy.js';
 import * as conceal from './core/conceal.js';
 import * as endure from './core/endure.js';
 import * as goals from './core/goals.js';
+import * as incidents from './core/incidents.js';
 import { createRenderer } from './ui/render.js';
 import { bindActions } from './ui/actions.js';
 import { initToasts } from './ui/toast.js';
@@ -39,6 +40,7 @@ function onTick(dt) {
   economy.tick(state, dt);
   conceal.tick(state, dt);
   endure.tick(state);
+  incidents.tick(state);
   goals.tick(state);
 }
 startLoop(onTick, render);

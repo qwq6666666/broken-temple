@@ -221,3 +221,9 @@ button.meditate .mlabel { position: relative; }
 .etaunt.old { opacity: .55; text-decoration: line-through; text-decoration-color: rgba(209,88,76,.6); }
 .art.rare { border-color: var(--gold); box-shadow: 0 0 16px rgba(217,182,74,.7); animation: glow 1.6s infinite; }
 @media (prefers-reduced-motion: reduce) { .shaking, .particle, .banner { animation: none; } }
+
+/* 隨機事件卡 */
+.incident-slot { position: relative; z-index: 4; margin-top: 10px; }
+.incident-card { background: rgba(18,28,34,.94); border: 1px solid var(--blue); border-radius: 10px; padding: 10px 12px; animation: popIn .35s ease-out; }
+.incbtn { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 8px 10px; border-color: var(--blue); }
+.incbtn small { font-size: .72em; line-height: 1.35; white-space: normal; color: var(--dim); }

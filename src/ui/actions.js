@@ -7,6 +7,7 @@ import * as G from '../core/gacha.js';
 import * as D from '../core/disciples.js';
 import * as E from '../core/endure.js';
 import * as X from '../core/burst.js';
+import * as I from '../core/incidents.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
@@ -44,6 +45,7 @@ export function bindActions(s, ui, rerender) {
     buyToken: el => { if (G.buyTokens(s, +el.dataset.n)) sfx('coin'); },
     levelUp: el => { if (D.levelUp(s, +el.dataset.uid)) sfx('upgrade'); },
     starUp: el => { if (D.starUp(s, +el.dataset.uid)) { toast('升星成功！', 'good'); sfx('goal'); } },
+    incident: el => { if (I.resolve(s, +el.dataset.i)) sfx('coin'); },
     endure: () => { if (E.endure(s)) sfx('endure'); },
     show: () => {
       const r = E.showOff(s);

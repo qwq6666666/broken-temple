@@ -9,6 +9,8 @@ import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt, fmtTime } from '../core/format.js';
 import { cooldownLeft } from '../core/meditate.js';
 import { assess } from '../core/endure.js';
+import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
+import { costChips } from './dom.js';
 import { esc, setHTML, setText } from './dom.js';
 
 export function mountScene(root) {
@@ -18,6 +20,7 @@ export function mountScene(root) {
     <div class="ancestor"><div class="avatar">👴</div><div class="bubble" data-r="bubble"></div></div>
     <div class="tiles" data-r="tiles"></div>
     <div class="visitor-slot" data-r="visitor"></div>
+    <div class="incident-slot" data-r="incident"></div>
     <div class="meditate-slot"><button class="btn meditate" data-act="meditate"><span class="cd" data-r="cd"></span><span class="mlabel" data-r="mlabel"></span></button></div>`;
   const refs = Object.fromEntries([...root.querySelectorAll('[data-r]')].map(e => [e.dataset.r, e]));
   refs.mbtn = root.querySelector('.meditate');   // 按鈕只建一次，之後只改屬性，避免連點時被重建
@@ -45,6 +48,7 @@ export function updateScene(root, refs, s, ui) {
   }).join(''));
 
   setHTML(refs.visitor, visitorCard(s));
+  setHTML(refs.incident, incidentCard(s));
   // 打坐按鈕：冷卻中灰化並顯示進度
   const left = cooldownLeft(s), ready = left <= 0;
   refs.mbtn.disabled = !ready;
@@ -75,5 +79,20 @@ function visitorCard(s) {
     <div class="vbtns">
       <button class="btn endure" data-act="endure"><b>😤 忍氣吞聲</b><small>${endureText}</small></button>
       <button class="btn show ${a.showKind === 'beat' ? 'good' : 'bad'}" data-act="show"><b>😏 亮一手</b><small>${showText}</small></button>
+    </div></div>`;
+}
+
+// 隨機事件卡：不顯示倒數數字（避免每秒重繪害按鈕點不到），逾時視為「無視」
+function incidentCard(s) {
+  const d = incidentDef(s); if (!d) return '';
+  return `<div class="incident-card">
+    <div class="vhead"><span class="vemoji">${d.emoji}</span><div><b>${esc(d.title)}</b> <span class="tag">突發事件</span> <small class="dim">（限時，逾時視為無視）</small></div></div>
+    <p class="taunt">${esc(d.text)}</p>
+    <div class="vbtns" style="grid-template-columns:repeat(${d.choices.length},1fr)">
+      ${d.choices.map((c, i) => {
+        const cost = costOf(s, c), ok = canChoose(s, i);
+        return `<button class="btn incbtn ${ok ? '' : 'nope'}" data-act="incident" data-i="${i}" ${ok ? '' : 'disabled'}>
+          <b>${esc(c.label)}</b> ${Object.keys(cost).length ? costChips(s, cost) : ''}<small>${esc(c.desc)}</small></button>`;
+      }).join('')}
     </div></div>`;
 }

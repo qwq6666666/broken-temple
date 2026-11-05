@@ -21,6 +21,8 @@ export function applyOffline(s, elapsedMs) {
   }
   // 回來時別立刻被訪客蓋住歡迎畫面
   s.visitor.nextAt = Math.max(s.visitor.nextAt, s.t + 20000);
+  s.incident.nextAt = Math.max(s.incident.nextAt, s.t + 60000);
+  if (s.incident.current) s.incident.current.expiresAt = Math.max(s.incident.current.expiresAt, s.t + 60000);   // 離線不算逾時
 
   return {
     elapsedMs, usedMs: used, capped: elapsedMs > O.capMs, efficiency: O.efficiency,

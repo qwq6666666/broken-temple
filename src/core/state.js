@@ -18,6 +18,7 @@ export function createState() {
     grudges: [],                            // 復仇簿
     nextGid: 1,
     visitor: { current: null, nextAt: CONFIG.visitor.firstSec * 1000 },
+    incident: { current: null, nextAt: 300000 },   // 隨機事件
     artifacts: [],                          // 已獲得的功法法寶 id
     settings: { loss: true },               // 承受損失開關
     tokenAcc: 0,
@@ -25,6 +26,6 @@ export function createState() {
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）
     goalsDone: [],                          // 已完成的宗門大事
     burstActive: false,
-    stats: { meditations: 0, bursts: 0, maxChain: 0 },
+    stats: { meditations: 0, bursts: 0, maxChain: 0, incidents: 0 },
   };
 }

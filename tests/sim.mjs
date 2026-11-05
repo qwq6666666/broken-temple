@@ -10,6 +10,7 @@ import * as R from '../src/core/realm.js';
 import * as G from '../src/core/gacha.js';
 import * as D from '../src/core/disciples.js';
 import * as X from '../src/core/burst.js';
+import * as Inc from '../src/core/incidents.js';
 import { meditate } from '../src/core/meditate.js';
 import { BUILDINGS } from '../src/data/buildings.js';
 import { REALMS } from '../src/data/realms.js';
@@ -29,7 +30,8 @@ const once = (k, cond) => { if (!seen.has(k) && cond) { seen.add(k); mark(k); } 
 
 const STEP = 1000;                       // 每步 1 秒
 for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
-  eco.tick(s, STEP); conceal.tick(s, STEP); endure.tick(s);
+  eco.tick(s, STEP); conceal.tick(s, STEP); endure.tick(s); Inc.tick(s);
+  if (s.incident.current) { const i = [0, 1, 2].find(k => Inc.canChoose(s, k)); Inc.resolve(s, i ?? 0, i === undefined); }   // 機器人：選第一個負擔得起的
   if (!PASSIVE) meditate(s);
   // 突破
   while (R.canBreak(s)) { R.breakthrough(s); once('境界 ' + REALMS[s.realmIdx].name, true); }

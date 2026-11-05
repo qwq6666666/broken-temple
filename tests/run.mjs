@@ -14,6 +14,7 @@ import * as C from '../src/core/conceal.js';
 import * as X from '../src/core/burst.js';
 import * as M from '../src/core/meditate.js';
 import * as Goals from '../src/core/goals.js';
+import * as Inc from '../src/core/incidents.js';
 import { sfx, unlock, applyVolume, SFX_NAMES } from '../src/ui/audio.js';
 import { getPrefs, setPref } from '../src/ui/prefs.js';
 import { stat, traitValue } from '../src/core/discipleMath.js';
@@ -399,6 +400,65 @@ t('仇人記住當初的嘲諷，引爆時可兩段式重播', () => {
   const s2 = createState(); s2.realmIdx = 8; s2.disguise.value = 99;
   s2.grudges = [visitor('former', 0, { id: 7 })];
   delete s2.grudges[0].taunt; assert.ok(X.burst(s2).entries[0].taunt);
+});
+
+// ── R7 隨機事件 ──
+const forceIncident = (s, id) => { s.incident.current = { id, expiresAt: s.t + 150000 }; return s; };
+
+t('事件：到時間彈出、不與訪客重疊、尊重最低境界', () => {
+  const s = createState(); s.t = 1e7;
+  Inc.tick(s); assert.ok(s.incident.current);
+  const s2 = createState(); s2.t = 1e7; s2.visitor.current = visitor('former', 1);
+  Inc.tick(s2); assert.equal(s2.incident.current, null); assert.ok(s2.incident.nextAt > s2.t);
+  for (let i = 0; i < 50; i++) {                         // 凡人不會抽到需要金丹的事件
+    const s3 = createState(); s3.t = 1e7; Inc.tick(s3);
+    assert.ok(!['elder', 'meteor'].includes(s3.incident.current.id));
+  }
+});
+
+t('事件：付費選項需負擔得起；護山大陣選項需有建築', () => {
+  const s = forceIncident(createState(), 'caravan'); s.buildings.alchemy.lv = 1; s.res.stone = 0;
+  assert.equal(Inc.canChoose(s, 0), false); assert.equal(Inc.resolve(s, 0), null);
+  s.res.stone = 100; assert.equal(Inc.canChoose(s, 0), true);
+  const st = forceIncident(createState(), 'storm');
+  assert.equal(Inc.canChoose(st, 0), false); assert.equal(Inc.canChoose(st, 1), true);
+  st.buildings.array.lv = 1; assert.equal(Inc.canChoose(st, 0), true);
+});
+
+t('事件：賭局依機率分勝敗（確定性 rng）', () => {
+  const run = r => { setRng(() => r); const s = forceIncident(createState(), 'fortune'); s.buildings.field.lv = 2; const q = s.res.qi; Inc.resolve(s, 1); setRng(Math.random); return { s, gained: s.res.qi - q }; };
+  const win = run(0.1), lose = run(0.9);
+  assert.ok(win.gained > 0);
+  assert.ok(Object.values(lose.s.buildings).some(b => b.pausedUntil > lose.s.t));      // 失敗：建築暫停
+});
+
+t('事件：效果結算（資源、碎片、偽裝、招賢令、降服、法寶）', () => {
+  setRng(() => 0);                                       // 機率類全中
+  const s = createState(); s.buildings.field.lv = 3;
+  forceIncident(s, 'lost'); Inc.resolve(s, 0);
+  assert.equal(s.recruits.length, 1);
+  forceIncident(s, 'rats'); const dg = s.disguise.value; Inc.resolve(s, 1);
+  assert.equal(s.disguise.value, dg + 1);
+  forceIncident(s, 'meteor'); s.realmIdx = 5; Inc.resolve(s, 0);
+  assert.equal(s.artifacts.length, 1);
+  forceIncident(s, 'stele'); const sh = s.res.shard; Inc.resolve(s, 1);
+  assert.equal(s.res.shard, sh + 5);
+  setRng(Math.random);
+  assert.equal(s.stats.incidents, 4);
+});
+
+t('事件：護山大陣降低損失；逾時自動採預設並計入統計', () => {
+  const loss = lv => { const s = forceIncident(createState(), 'storm'); s.buildings.field.lv = 3; s.buildings.array.lv = lv; s.res.qi = 1e6; Inc.resolve(s, 1); return 1e6 - s.res.qi; };
+  assert.ok(loss(5) < loss(0));
+  const s = forceIncident(createState(), 'rats'); s.t += 200000;
+  Inc.tick(s); assert.equal(s.incident.current, null); assert.equal(s.stats.incidents, 1);
+});
+
+t('離線回來不會立刻彈事件，也不算逾時', () => {
+  const s = forceIncident(createState(), 'fortune'); s.incident.nextAt = 0;
+  applyOffline(s, 3600 * 1000);
+  assert.ok(s.incident.current.expiresAt > s.t);
+  Inc.tick(s); assert.ok(s.incident.current);
 });
 
 console.log(`\n${n} 項測試通過`);
