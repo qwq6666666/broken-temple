@@ -237,3 +237,7 @@ button.meditate .mlabel { position: relative; }
 
 /* 轉生 */
 .card.rebirth { border-color: var(--gold); box-shadow: 0 0 18px rgba(217,182,74,.3); margin-top: 12px; }
+
+/* 多分頁提示橫幅 */
+#banner { display: none; position: fixed; left: 0; right: 0; top: 0; z-index: 150; background: #3a1d19; border-bottom: 1px solid var(--red); padding: 8px 14px; text-align: center; }
+#banner.on { display: block; }

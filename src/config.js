@@ -95,6 +95,7 @@ export const CONFIG = {
     efficiency: 0.5,           // 離線產出效率（資源與招賢令）；偽裝蓄力與仇人成長照常進行
     minMs: 60 * 1000,          // 離開不到 1 分鐘不結算
     stepMs: 60 * 1000,         // 結算步長
+    gapMs: 5 * 60 * 1000,      // 分頁被凍結／電腦休眠超過 5 分鐘 → 視為離線，與關閉分頁行為一致
   },
   // 轉生：化神後可轉生，依本輪表現換取道心。道心 = base + 引爆(上限) + 連鎖×2 + 擊敗宿敵×5 + 完成大事×2
   reincarnation: { minRealm: 13, daoBase: 10, burstCap: 40, perBurst: 1, perChain: 2, perNemesis: 5, perGoal: 2, autoBonusPerCount: 0.10 },

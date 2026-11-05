@@ -2,12 +2,22 @@
 // 讀檔時以「預設狀態 + 存檔」遞迴合併，之後新增欄位／建築不會讓舊檔壞掉。
 import { CONFIG } from '../config.js';
 import { createState } from './state.js';
+import { DISCIPLES_BY_ID } from '../data/disciples.js';
+import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
+import { GOALS_BY_ID } from '../data/goals.js';
+import { NEMESES_BY_ID } from '../data/nemeses.js';
+import { INCIDENTS_BY_ID } from '../data/incidents.js';
+import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
+import { PERSONALITIES, VISITOR_TYPES } from '../data/visitors.js';
 
 export const SAVE_VERSION = 2;
 
 const isPlain = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(base, saved) {
-  if (!isPlain(base) || !isPlain(saved)) return saved === undefined ? base : saved;
+  if (saved === undefined || saved === null) return base;                       // 缺欄位或 null → 用預設
+  if (typeof base === 'number') { const n = Number(saved); return Number.isFinite(n) ? n : base; }   // 型別錯誤的數字
+  if (!isPlain(base) || !isPlain(saved)) return saved;
   const out = { ...base };
   for (const k of Object.keys(saved)) out[k] = k in base ? merge(base[k], saved[k]) : saved[k];
   return out;
@@ -20,6 +30,47 @@ function migrate(data) {
   return data;
 }
 
+// 清理存檔：移除資料裡已不存在的 id、修正壞值，避免改版後舊存檔讓畫面崩潰或事件卡住
+const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
+function sanitizeGrudge(g) {
+  if (!isPlain(g)) return null;
+  const out = { ...g };
+  if (!VISITOR_TYPES[out.type]) out.type = 'former';
+  if (!PERSONALITIES[out.personality]) out.personality = '傲慢';
+  if (out.nemesisId && !NEMESES_BY_ID[out.nemesisId]) delete out.nemesisId;
+  out.lvl = Math.max(0, num(Number(out.lvl)));
+  out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');
+  out.alert = !!out.alert;
+  return out;
+}
+export function sanitize(s) {
+  const dedupe = a => [...new Set(a)];
+  s.disciples = (Array.isArray(s.disciples) ? s.disciples : []).filter(d => isPlain(d) && DISCIPLES_BY_ID[d.defId]).map(d => ({
+    ...d, lv: Math.max(1, Math.floor(num(Number(d.lv), 1))), star: Math.max(0, Math.min(3, Math.floor(num(Number(d.star), 0)))),
+    at: BUILDINGS_BY_ID[d.at] ? d.at : null }));
+  s.recruits = (Array.isArray(s.recruits) ? s.recruits : []).filter(r => isPlain(r) && DISCIPLES_BY_ID[r.defId]);
+  s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
+  s.goalsDone = dedupe((Array.isArray(s.goalsDone) ? s.goalsDone : []).filter(id => GOALS_BY_ID[id]));
+  s.grudges = (Array.isArray(s.grudges) ? s.grudges : []).map(sanitizeGrudge).filter(Boolean);
+  for (const id of Object.keys(s.buildings)) {
+    if (!BUILDINGS_BY_ID[id]) { delete s.buildings[id]; continue; }
+    s.buildings[id].lv = Math.max(0, Math.min(10, Math.floor(num(s.buildings[id].lv))));
+  }
+  for (const id of Object.keys(s.nemeses)) if (!NEMESES_BY_ID[id]) delete s.nemeses[id];
+  for (const id of Object.keys(s.reincarnation.shop)) {
+    const it = DAO_SHOP_BY_ID[id];
+    if (!it) delete s.reincarnation.shop[id]; else s.reincarnation.shop[id] = Math.max(0, Math.min(it.maxLv, Math.floor(num(s.reincarnation.shop[id]))));
+  }
+  // 事件／訪客：id 已不存在就清掉，否則事件會永遠卡住
+  if (!isPlain(s.incident)) s.incident = { current: null, nextAt: s.t };
+  if (s.incident.current && !INCIDENTS_BY_ID[s.incident.current.id]) s.incident.current = null;
+  if (!isPlain(s.visitor)) s.visitor = { current: null, nextAt: s.t };
+  if (s.visitor.current) s.visitor.current = sanitizeGrudge(s.visitor.current);
+  s.disguise.value = Math.max(0, Math.min(20, num(s.disguise.value)));
+  for (const k of Object.keys(s.res)) s.res[k] = Math.max(0, num(s.res[k]));
+  return s;
+}
+
 export const serialize = s => JSON.stringify({ version: SAVE_VERSION, savedAt: Date.now(), state: s });
 
 // 解析存檔文字；壞檔丟出 Error
@@ -30,7 +81,7 @@ export function parse(text) {
     throw new Error('存檔內容不完整');
   if (typeof data.version !== 'number' || data.version > SAVE_VERSION) throw new Error('存檔版本不相容');
   data = migrate(data);
-  const state = merge(createState(), data.state);
+  const state = sanitize(merge(createState(), data.state));
   state.burstActive = false;               // 演出中途關閉頁面：不要卡在演出狀態
   return { state, savedAt: Number(data.savedAt) || Date.now() };
 }

@@ -606,4 +606,46 @@ t('本輪統計會累計：引爆、連鎖、宿敵、大事', () => {
   s.stats.bursts = 1; Goals.tick(s); assert.ok(s.run.goals >= 1);
 });
 
+// ── A 批：存檔異常資料與格式 ──
+const loadPatched = patch => { const d = JSON.parse(S.serialize(createState())); patch(d.state); return S.parse(JSON.stringify(d)).state; };
+const tickAllCore = s => { eco.tick(s, 1000); C.tick(s, 1000); E.tick(s); Inc.tick(s); Goals.tick(s); };
+
+t('存檔含已不存在的弟子／法寶／大事／建築／宿敵／商店 id：清掉而不崩潰', () => {
+  const s = loadPatched(st => {
+    st.disciples = [{ uid: 1, defId: 'gone', lv: 1, at: null }, { uid: 2, defId: 'afu', lv: 0, at: 'ghost', star: 99 }];
+    st.artifacts = ['gone', 'yinqi', 'yinqi']; st.goalsDone = ['gone', 'burst1'];
+    st.buildings.ghost = { lv: 3, pausedUntil: 0 }; st.nemeses = { gone: { met: 1, defeated: true } };
+    st.reincarnation = { count: 1, shop: { ghost: 5, qi: 999 } };
+    st.grudges = [{ id: 1, name: 'x', type: '?', personality: '怪', lvl: 'abc', nemesisId: 'gone' }];
+  });
+  assert.equal(s.disciples.length, 1); assert.equal(s.disciples[0].lv, 1); assert.equal(s.disciples[0].at, null); assert.equal(s.disciples[0].star, 3);
+  assert.deepEqual(s.artifacts, ['yinqi']); assert.deepEqual(s.goalsDone, ['burst1']);
+  assert.equal(s.buildings.ghost, undefined); assert.equal(s.nemeses.gone, undefined);
+  assert.equal(s.reincarnation.shop.ghost, undefined); assert.equal(s.reincarnation.shop.qi, 20);
+  assert.equal(s.grudges[0].type, 'former'); assert.equal(s.grudges[0].personality, '傲慢'); assert.equal(s.grudges[0].lvl, 0); assert.equal(s.grudges[0].nemesisId, undefined);
+  tickAllCore(s); s.disguise.value = 20; assert.ok(X.burst(s));
+});
+
+t('存檔事件 id 已不存在：事件被清掉，之後仍會正常彈出新事件', () => {
+  const s = loadPatched(st => { st.incident = { current: { id: 'gone', expiresAt: 1e9 }, nextAt: 0 }; });
+  assert.equal(s.incident.current, null);
+  s.t = 1e7; Inc.tick(s); assert.ok(s.incident.current);
+});
+
+t('存檔型別錯誤／null 欄位：以預設值或轉型修正', () => {
+  const s = loadPatched(st => { st.res.qi = '123'; st.res.stone = 'abc'; st.visitor = null; st.disguise = null; st.settings = null; });
+  assert.equal(s.res.qi, 123); assert.equal(s.res.stone, CONFIG.start.stone);
+  assert.ok(s.visitor && s.disguise && s.settings);
+  tickAllCore(s); assert.ok(Number.isFinite(s.res.qi));
+});
+
+t('存檔資源負數／偽裝值越界會被拉回合理範圍', () => {
+  const s = loadPatched(st => { st.res.qi = -50; st.disguise.value = 999; });
+  assert.equal(s.res.qi, 0); assert.equal(s.disguise.value, 20);
+});
+
+t('大數字格式：超過字尾表改用科學記號，NaN 不顯示成無限大', async () => {
+  assert.equal(fmt(1e33), '1Dc'); assert.equal(fmt(1.5e67), '1.50e67'); assert.equal(fmt(NaN), '—'); assert.equal(fmt(Infinity), '∞');
+});
+
 console.log(`\n${n} 項測試通過`);

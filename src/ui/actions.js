@@ -36,8 +36,9 @@ export function bindActions(s, ui, rerender) {
       const res = R.breakthrough(s);
       if (!res) return;
       ui.busy = true; rerender();
-      await playBreakthrough(res);
-      ui.busy = false;
+      try { await playBreakthrough(res); }
+      catch (e) { console.error(e); closeOverlay(); }      // 演出出錯也不能卡住遊戲（突破本身已結算）
+      finally { ui.busy = false; }
     },
     pull: el => {
       const r = G.pull(s, +el.dataset.n);
@@ -76,9 +77,9 @@ export function bindActions(s, ui, rerender) {
       const result = X.burst(s);
       if (!result) return;
       ui.busy = true; rerender();
-      await playBurst(result);
-      X.endBurst(s);
-      ui.tab = 'avenge'; ui.busy = false;
+      try { await playBurst(result); }
+      catch (e) { console.error(e); closeOverlay(); toast('演出發生錯誤，已跳過（獎勵已結算）', 'warn'); }
+      finally { X.endBurst(s); ui.tab = 'avenge'; ui.busy = false; }    // 一定要解除封鎖，否則訪客與引爆都會卡死
     },
     closeSettle: () => closeOverlay(),
     toggleSound: () => { setPref('muted', !getPrefs().muted); if (!getPrefs().muted) sfx('click'); updateMenu(); },

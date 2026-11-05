@@ -43,7 +43,13 @@ function onTick(dt) {
   incidents.tick(state);
   goals.tick(state);
 }
-startLoop(onTick, render);
+// 分頁被凍結或電腦休眠超過 5 分鐘：以離線收益結算（演出中只顯示提示，避免蓋掉演出）
+function onGap(ms) {
+  const r = applyOffline(state, ms);
+  if (!r) return;
+  if (ui.busy) toast('剛才離開了一陣子，已補算離線收益', 'good'); else showWelcome(r);
+}
+startLoop(onTick, render, onGap);
 render();
 
 // 自動存檔：定時、切到背景、關閉頁面
@@ -51,6 +57,14 @@ const autosave = () => { if (!guard.noSave) save(state); };
 setInterval(autosave, CONFIG.save.autosaveMs);
 document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
 addEventListener('beforeunload', autosave);
+// 偵測其他分頁寫入存檔：這個分頁停止自動存檔，避免互相覆蓋
+addEventListener('storage', e => {
+  if (e.key !== CONFIG.save.key || guard.noSave) return;
+  guard.noSave = true;
+  const b = document.getElementById('banner');
+  b.innerHTML = '⚠ 偵測到另一個分頁也在玩這款遊戲，這個分頁已<b>暫停存檔</b>以免互相覆蓋。 <button class="btn mini" onclick="location.reload()">載入最新進度</button>';
+  b.classList.add('on');
+});
 if (loaded && loaded.error) toast('存檔損壞，已開始新遊戲：' + loaded.error, 'warn');
 if (welcome) showWelcome(welcome);
 

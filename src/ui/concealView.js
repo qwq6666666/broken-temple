@@ -31,5 +31,7 @@ export function updateConceal(r, s) {
   r.btn.classList.toggle('ready', ok);
   r.loss.checked = s.settings.loss;
   setText(r.note, !full ? '蓄力中……忍得越多、藏得越久，爆的時候越響。'
-    : s.grudges.length ? '蓄力已滿！隨時可以引爆。' : '蓄力已滿，但復仇簿是空的——先等人來嘲諷。');
+    : !s.grudges.length ? '蓄力已滿，但復仇簿是空的——先等人來嘲諷。'
+    : s.visitor.current ? '蓄力已滿！先處理眼前的訪客（忍或亮一手），才能引爆。'
+    : '蓄力已滿！隨時可以引爆。');
 }
