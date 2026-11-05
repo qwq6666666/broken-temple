@@ -13,6 +13,7 @@ import { toast, cue } from './events.js';
 import { nextChapter } from './stories.js';
 import { canChoose as canSpec } from './spec.js';
 import { SPECS } from '../data/specs.js';
+import { readyCount } from './commissions.js';
 import { slotCount, freeDisciples } from './expeditions.js';
 
 // 各分頁的解鎖條件（建築、境界一開始就有）
@@ -72,6 +73,7 @@ export function nextStep(s) {
   if (nx && cap && !canBreak(s) && s.res.stone < breakCost(s).stone)
     return { text: `建築被境界限制，累積 ${Math.ceil(breakCost(s).stone)} 靈石突破至 ${nx.name}。` };
   if (s.grudges.length >= 1 && s.disguise.value < 20) return { text: '蓄力中：人越多、越久，引爆獎勵越高。先升建築、抽弟子。' };
+  if (readyCount(s)) return { text: '有委託可領取，到「大事」領獎勵。', tab: 'goals' };
   const g = GOALS.find(x => !isDone(s, x.id));
   return g ? { text: `宗門大事：${g.name} — ${g.desc}`, tab: 'goals' } : null;
 }

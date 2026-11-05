@@ -22,6 +22,8 @@ import * as Bond from '../src/core/bonds.js';
 import * as Sp from '../src/core/spec.js';
 import * as Fac from '../src/core/factions.js';
 import { TAB_TIPS, HELP } from '../src/data/help.js';
+import { sanitize } from '../src/core/save.js';
+import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS } from '../src/data/expeditions.js';
 import { MUTATORS } from '../src/data/mutators.js';
@@ -982,6 +984,53 @@ t('下一步提示：新系統（故事、專精、秘境）在適當時機提�
   s.buildings.field.lv = 5; assert.match(Prog.nextStep(s).text, /專精/);
   Sp.choose(s, 'field', 'rice'); assert.match(Prog.nextStep(s).text, /秘境/);
   s.visitor.current = visitor('former', 1); assert.match(Prog.nextStep(s).text, /來訪/);          // 訪客仍然優先
+});
+
+// ── 宗門委託 ──
+t('宗門委託：解鎖後補滿 3 張、題型不重複、進度為差值、領取發獎', () => {
+  const s = createState();
+  for (let i = 0; i < 5; i++) Cm.tick(s);
+  assert.equal(s.commissions.list.length, 0);                       // 「大事」分頁未解鎖前不出題
+  s.unlocked.goals = true;
+  for (let i = 0; i < 5; i++) Cm.tick(s);
+  assert.equal(s.commissions.list.length, 3);
+  assert.equal(new Set(s.commissions.list.map(c => c.kind)).size, 3);
+  const c = s.commissions.list[0];
+  assert.equal(Cm.progressOf(s, c), 0);
+  assert.equal(Cm.claim(s, 0), null);                               // 未完成不能領
+  const before = { ...s.res };
+  s.stats.meditations += 1000; s.stats.endures += 1000; s.stats.upgrades += 1000; s.stats.incidents += 1000; s.stats.bursts += 1000;
+  s.gacha.total += 1000; s.stats.expeditions += 1000;
+  assert.ok(Cm.isReady(s, c));
+  const r = Cm.claim(s, 0);
+  assert.ok(r && Object.keys(r.reward).length);
+  assert.equal(s.commissions.list.length, 2); assert.equal(s.commissions.done, 1);
+  const k = Object.keys(r.reward)[0]; assert.equal(s.res[k], before[k] + r.reward[k]);
+  Cm.tick(s); assert.equal(s.commissions.list.length, 2);           // 領取後要等冷卻才補
+  s.t += 200000; Cm.tick(s); assert.equal(s.commissions.list.length, 3);
+});
+
+t('宗門委託：放棄、每 5 張額外獎勵、轉生保留、題型依解鎖過濾', () => {
+  const s = createState(); s.unlocked.goals = true;
+  for (let i = 0; i < 5; i++) Cm.tick(s);
+  assert.ok(s.commissions.list.every(c => !['pull', 'expedition', 'burst'].includes(c.kind)));   // 系統未解鎖不出題
+  assert.ok(Cm.abandon(s, 0)); assert.equal(s.commissions.list.length, 2); assert.equal(s.commissions.done, 0);
+  s.commissions.done = 4; s.stats.meditations += 1000; s.stats.endures += 1000; s.stats.upgrades += 1000; s.stats.incidents += 1000;
+  const tok = s.res.token;
+  const idx = s.commissions.list.findIndex(c => Cm.isReady(s, c));
+  const r = Cm.claim(s, idx);
+  assert.ok(r.bonus && s.res.token >= tok + 3);
+  s.realmIdx = 13; s.res.qi = 1e12; s.res.stone = 1e12; s.disguise.value = 0; s.grudges = [];
+  const keep = s.commissions.list.length;
+  Dao.rebirth(s); assert.equal(s.commissions.list.length, keep); assert.equal(s.commissions.done, 5);
+});
+
+t('宗門委託：舊存檔補預設、壞資料被清掉', () => {
+  const s = createState(); s.unlocked.goals = true; Cm.tick(s);
+  const raw = JSON.parse(JSON.stringify(s)); raw.commissions.list.push({ kind: 'nope', target: 3, base: 0, reward: {} });
+  const back = sanitize(raw); assert.ok(back.commissions.list.every(c => c.kind !== 'nope'));
+  const old = JSON.parse(JSON.stringify(s)); delete old.commissions;
+  assert.deepEqual(sanitize(old).commissions.list, []);
 });
 
 console.log(`\n${n} 項測試通過`);

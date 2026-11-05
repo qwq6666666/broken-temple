@@ -16,6 +16,7 @@ import { nemesisPanel } from './nemesisPanel.js';
 import { daoPanel } from './daoPanel.js';
 import { factionPanel } from './factionPanel.js';
 import { expeditionPanel } from './expeditionPanel.js';
+import { readyCount } from '../core/commissions.js';
 import { isUnlocked, nextStep } from '../core/progress.js';
 import { getPrefs } from './prefs.js';
 import { initParticles, setAmbientIntensity } from './particles.js';
@@ -88,7 +89,7 @@ export function createRenderer(s, ui) {
     setHTML(tabsEl, groups.map(g => {
       const m = id => g.members.includes(id) && isUnlocked(s, id);
       const badge = m('avenge') && s.grudges.length ? ` <i>${s.grudges.length}</i>` : '';
-      const alert = (m('disciples') && s.recruits.length) ? ' <i class="new">新</i>' : (g.id === 'goals' ? ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>` : '');
+      const alert = (m('disciples') && s.recruits.length) ? ' <i class="new">新</i>' : (g.id === 'goals' ? (readyCount(s) ? ` <i class="new">${readyCount(s)}</i>` : ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>`) : '');
       const [ico, ...txt] = g.label.split(' ');       // 手機版：圖示在上、文字在下
       return `<button class="tab ${ui.tab === g.id ? 'on' : ''}" data-act="tab" data-tab="${g.id}"><span class="ti">${ico}</span> <span class="tl">${txt.join(' ')}</span>${badge}${alert}</button>`;
     }).join(''));

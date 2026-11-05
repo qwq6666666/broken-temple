@@ -13,6 +13,7 @@ import { GOALS_BY_ID } from '../data/goals.js';
 import { NEMESES_BY_ID } from '../data/nemeses.js';
 import { INCIDENTS_BY_ID } from '../data/incidents.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
+import { COMMISSION_BY_KIND } from '../data/commissions.js';
 import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { PERSONALITIES, VISITOR_TYPES } from '../data/visitors.js';
 
@@ -56,6 +57,10 @@ export function sanitize(s) {
     at: BUILDINGS_BY_ID[d.at] ? d.at : null }));
   s.recruits = (Array.isArray(s.recruits) ? s.recruits : []).filter(r => isPlain(r) && DISCIPLES_BY_ID[r.defId]);
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
+  const cm = isPlain(s.commissions) ? s.commissions : {};
+  s.commissions = { list: (Array.isArray(cm.list) ? cm.list : []).filter(c => isPlain(c) && COMMISSION_BY_KIND[c.kind] && isPlain(c.reward))
+    .map(c => ({ kind: c.kind, target: Math.max(1, Math.floor(num(c.target, 1))), base: Math.max(0, num(c.base)), reward: c.reward })).slice(0, 3),
+    nextAt: num(cm.nextAt), done: Math.max(0, Math.floor(num(cm.done))) };
   s.goalsDone = dedupe((Array.isArray(s.goalsDone) ? s.goalsDone : []).filter(id => GOALS_BY_ID[id]));
   s.grudges = (Array.isArray(s.grudges) ? s.grudges : []).map(sanitizeGrudge).filter(Boolean);
   for (const id of Object.keys(s.buildings)) {

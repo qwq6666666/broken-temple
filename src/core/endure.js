@@ -108,7 +108,7 @@ export function endure(s) {
   const v = s.visitor.current; if (!v) return null;
   const mult = streakMult(s);
   toBook(s, v);
-  s.endureStreak++;
+  s.endureStreak++; s.stats.endures = (s.stats.endures || 0) + 1;
   s.disguise.value = Math.min(CONFIG.conceal.max, s.disguise.value + CONFIG.endure.disguiseGain);
   const loss = applyLoss(s, mult);
   quote(pickLine(LINES.endure));

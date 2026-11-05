@@ -35,8 +35,9 @@ export function createState() {
     unlocked: {},                           // 已解鎖的分頁（新手引導）
     seenIntro: false,                       // 是否看過開場說明
     nemeses: {},                            // 宿敵進度 {id: {met, defeated}}
+    commissions: { list: [], nextAt: 0, done: 0 },   // 宗門委託（跨轉生保留）
     goalsDone: [],                          // 已完成的宗門大事
     burstActive: false,
-    stats: { meditations: 0, bursts: 0, maxChain: 0, incidents: 0, nemesisDefeated: 0, expeditions: 0 },
+    stats: { meditations: 0, bursts: 0, maxChain: 0, incidents: 0, nemesisDefeated: 0, expeditions: 0, endures: 0, upgrades: 0 },
   };
 }

@@ -11,6 +11,7 @@ import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
 import * as St from '../core/stories.js';
 import * as Sp from '../core/spec.js';
+import * as Cm from '../core/commissions.js';
 import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
@@ -127,6 +128,8 @@ export function bindActions(s, ui, rerender) {
     closeSettle: () => closeOverlay(),
     readStory: el => { const r = St.read(s, +el.dataset.uid); if (r) { sfx('goal'); showStory(r); } },
     viewStory: el => { const df = DISCIPLES_BY_ID[el.dataset.def]; showStoryLog(df.name, df.emoji, St.reread(s, df.id)); },
+    claimCommission: el => { const r = Cm.claim(s, +el.dataset.i); if (r) { sfx('goal'); toast(`📋 委託完成：${Cm.rewardText(r.reward)}`, 'good'); } },
+    abandonCommission: el => { Cm.abandon(s, +el.dataset.i); },
     menuToggle: () => setMenu(document.getElementById('menuMore')?.hidden),
     help: () => showHelp(false),
     dismissTip: el => { setPref('tipsSeen', { ...getPrefs().tipsSeen, [el.dataset.tab]: true }); },

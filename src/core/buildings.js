@@ -43,7 +43,7 @@ export function upgrade(s, id) {
   if (!canUpgrade(s, id)) return false;
   const before = stageIndex(id, s.buildings[id].lv);
   pay(s, upgradeCost(s, id));
-  s.buildings[id].lv++;
+  s.buildings[id].lv++; s.stats.upgrades = (s.stats.upgrades || 0) + 1;
   const after = stageIndex(id, s.buildings[id].lv);
   quote(pickLine(after > before ? LINES.stageUp : LINES.upgrade));
   cue('buildingUp', { id, stage: after > before });          // 供 ui 播放升級動畫

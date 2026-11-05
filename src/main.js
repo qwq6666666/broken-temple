@@ -14,6 +14,7 @@ import * as economy from './core/economy.js';
 import * as conceal from './core/conceal.js';
 import * as endure from './core/endure.js';
 import * as goals from './core/goals.js';
+import * as commissions from './core/commissions.js';
 import * as progress from './core/progress.js';
 import * as incidents from './core/incidents.js';
 import * as expeditions from './core/expeditions.js';
@@ -54,6 +55,7 @@ function onTick(dt) {
   incidents.tick(state);
   expeditions.tick(state);
   goals.tick(state);
+  commissions.tick(state);
   progress.tick(state);
 }
 // 分頁被凍結或電腦休眠超過 5 分鐘：以離線收益結算（演出中只顯示提示，避免蓋掉演出）
