@@ -1,6 +1,6 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
 // 新增（量測元嬰・化神高階秘境與輪迴詞條）：nohi＝機器人不派祖庭遺墟／地底封印／虛空裂隙（對照組）；hiexp＝缺材料時優先派高階秘境；
-//   EXTRA=N＝直接給擴建 +N 級；linger＝化神後等秘境回來才轉生（LINGER 分鐘上限）；farm＝沒有材料缺口時，空的探索位也去刷（挑成功率 ≥ FARM_MIN%（預設 30）裡獎勵最大的）；MUT=詞條id＝每次轉生都選該詞條；JSON=1＝最後印出一行機器可讀的摘要。
+//   TOKSRC=1＝統計招賢令來源與每次引爆的招賢令（依呼叫的檔案歸類）；EXTRA=N＝直接給擴建 +N 級；linger＝化神後等秘境回來才轉生（LINGER 分鐘上限）；farm＝沒有材料缺口時，空的探索位也去刷（挑成功率 ≥ FARM_MIN%（預設 30）裡獎勵最大的）；MUT=詞條id＝每次轉生都選該詞條；JSON=1＝最後印出一行機器可讀的摘要。
 // 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [ascend] [squad] [noexp]
 //   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission/insight = 開啟對應新功能的最佳化行為
 //   smart = 用「補滿空位」依專長五行派駐；環境變數 ELEMENT=0 關閉五行效果（比較基準）
@@ -62,12 +62,22 @@ const mark = (name) => log.push([name, s.t / 1000]);
 const seen = new Set();
 const once = (k, cond) => { if (!seen.has(k) && cond) { seen.add(k); mark(k); } };
 
+// TOKSRC=1：統計招賢令的來源（依呼叫來源的檔案歸類；轉生後 res 物件被換掉時會重新掛上）
+const tokSrc = {};
+function instrumentToken(st) {
+  const d = Object.getOwnPropertyDescriptor(st.res, 'token'); if (d && d.get) return;
+  let v = st.res.token;
+  Object.defineProperty(st.res, 'token', { enumerable: true, configurable: true, get: () => v, set: nv => {
+    if (nv > v) { const fr = (new Error().stack.split('\n').slice(2).find(l => l.includes('/src/')) || '').match(/src\/([\w/]+)\.js/); const k = fr ? fr[1] : '?'; tokSrc[k] = (tokSrc[k] || 0) + (nv - v); }
+    v = nv; } });
+}
 const lives = []; let lifeStart = 0;
 const RS = k => s.stats[k] - (s.run.base?.[k] || 0);      // 本輪統計（天劫條件用；RUNSTATS=1 時印出，調天劫門檻用）
 const SHOP_PRIORITY = ['stone', 'qi', 'power', 'token', 'disguise', 'burst', 'cd', 'startS', 'startT', 'offcap', 'offeff'];
 const FRUIT = ['fruitQi', 'fruitStone', 'fruitPower'];     // ascend 旗標：機器人也會買道果（便宜的先買）
 const STEP = 1000;                       // 每步 1 秒
 for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
+  if (process.env.TOKSRC) instrumentToken(s);
   eco.tick(s, STEP); conceal.tick(s, STEP); endure.tick(s); Inc.tick(s);
   if (s.incident.current) { const i = [0, 1, 2].find(k => Inc.canChoose(s, k)); Inc.resolve(s, i ?? 0, i === undefined); }   // 機器人：選第一個負擔得起的
   if (!PASSIVE) meditate(s);
@@ -149,7 +159,8 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   // 引爆：偽裝滿且仇人 ≥3
   if (X.canBurst(s) && s.grudges.length >= 3) {
     if (FLAG('squad')) s.squad = X.recommendSquad(s);      // squad = 引爆前用推薦陣容出戰
-    const res = X.burst(s); X.endBurst(s);
+    const tk0 = s.res.token, nFoe = s.grudges.length; const res = X.burst(s); X.endBurst(s);
+    if (process.env.TOKSRC) { const r = s.realmIdx, b = (tokSrc.byRealm ||= {}); (b[r] ||= { n: 0, tok: 0, foes: 0 }); b[r].n++; b[r].tok += s.res.token - tk0; b[r].foes += nFoe; }
     once('首次引爆', true);
     s.simBursts = (s.simBursts || 0) + 1;
     s.simMaxChain = Math.max(s.simMaxChain || 0, res.chain);
@@ -165,4 +176,5 @@ if (process.env.DEBUG_EXP) console.log('材料', JSON.stringify(Object.fromEntri
 console.log('建築：', BUILDINGS.map(d => `${d.name}${s.buildings[d.id].lv}`).join(' '));
 const bc = R.breakCost(s);
 if (bc) console.log('下一境界成本', JSON.stringify(bc), '｜持有', JSON.stringify(Object.fromEntries(Object.entries(s.res).map(([k, v]) => [k, Math.round(v)]))), '｜每秒 靈氣', eco.qiPerSec(s).toFixed(1), '靈石', eco.stonePerSec(s).toFixed(3));
+if (process.env.TOKSRC) console.log('TOKSRC ' + JSON.stringify({ hours: HOURS, pulls: s.gacha.total, src: tokSrc }));
 if (process.env.JSON) console.log('SUMMARY ' + JSON.stringify({ mut: process.env.MUT || null, hours: HOURS, reb: s.reincarnation.count, lives, art: s.artifacts.length, disciples: s.disciples.length, expBy: s.simExpBy || {}, expOK: s.simOK || {}, simArt: s.simArt || 0, simRec: s.simRec || 0, ascDone: s.ascend.done.length, qi: eco.qiPerSec(s), stone: eco.stonePerSec(s), log: log.slice(0, 40) }));
