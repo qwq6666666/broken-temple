@@ -1085,11 +1085,10 @@ t('高稀有度弟子：數量、五行與專長涵蓋、特性值依稀有度�
   assert.ok(by('SSR').length >= 8 && by('UR').length >= 6, `SSR ${by('SSR').length} / UR ${by('UR').length}`);
   for (const r of ['SSR', 'UR']) { assert.ok(new Set(by(r).map(d => d.element)).size >= (r === 'SSR' ? 5 : 4), r + ' 五行涵蓋'); assert.ok(new Set(by(r).map(d => d.specialty)).size >= (r === 'SSR' ? 5 : 4), r + ' 專長涵蓋'); }
   for (const d of DISCIPLES) assert.ok(TRAITS[d.trait.key] && d.trait.value > 0, d.id + ' 特性');
-  // 同一種特性：UR 的數值高於 SSR，SSR 高於 SR（可比較時）
+  // 同一種特性：稀有度越高數值越高（N < R < SR < SSR < UR；只比較「該稀有度有這種特性」的各級，取各級最高值）
   for (const key of new Set(DISCIPLES.map(d => d.trait.key))) {
-    const best = r => Math.max(0, ...by(r).filter(d => d.trait.key === key).map(d => d.trait.value));
-    if (best('UR') && best('SSR')) assert.ok(best('UR') > best('SSR'), key + ' UR > SSR');
-    if (best('SSR') && best('SR')) assert.ok(best('SSR') > best('SR'), key + ' SSR > SR');
+    const seq = ['N', 'R', 'SR', 'SSR', 'UR'].map(r => [r, Math.max(0, ...by(r).filter(d => d.trait.key === key).map(d => d.trait.value))]).filter(x => x[1] > 0);
+    for (let i = 1; i < seq.length; i++) assert.ok(seq[i][1] > seq[i - 1][1], `${key}：${seq[i][0]} ${seq[i][1]} 應高於 ${seq[i - 1][0]} ${seq[i - 1][1]}`);
   }
   assert.equal(new Set(DISCIPLES.map(d => d.id)).size, DISCIPLES.length, '弟子 id 重複');
   for (const id of ['mulinyin', 'tiebuyu', 'moxiaotian', 'cangwu', 'zhenyue', 'guixu']) assert.ok(STORIES3[id] && BONDS.some(b => b.a === id || b.b === id), id + ' 缺終章或緣分');

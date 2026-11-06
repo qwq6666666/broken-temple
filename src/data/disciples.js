@@ -44,7 +44,7 @@ export const DISCIPLES = [
   // ── 第二批高稀有度（補齊木系農修、金系體修、火系劍修，以及 UR 的木／土／水）──
   { id: 'mulinyin',  name: '沐林音', emoji: '🌿', rarity: 'SSR', element: '木', specialty: '農修', personality: '悠然', quote: '一粒種子，也是一座山。', trait: { key: 'qiMult', value: 0.16 } },
   { id: 'tiebuyu',   name: '鐵不語', emoji: '🛡️', rarity: 'SSR', element: '金', specialty: '體修', personality: '寡言', quote: '……（點頭）', trait: { key: 'pauseCut', value: 0.5 } },
-  { id: 'moxiaotian',name: '莫笑天', emoji: '😎', rarity: 'SSR', element: '火', specialty: '劍修', personality: '狂放', quote: '打臉？我最擅長了！', trait: { key: 'showOffReward', value: 0.35 } },
+  { id: 'moxiaotian',name: '莫笑天', emoji: '😎', rarity: 'SSR', element: '火', specialty: '劍修', personality: '狂放', quote: '打臉？我最擅長了！', trait: { key: 'showOffReward', value: 0.5 } },
   { id: 'cangwu',    name: '蒼梧',   emoji: '🌳', rarity: 'UR',  element: '木', specialty: '農修', personality: '渾厚', quote: '我栽的樹，比你們的宗門都老。', trait: { key: 'stoneMult', value: 0.3 } },
   { id: 'zhenyue',   name: '鎮嶽',   emoji: '⛰️', rarity: 'UR',  element: '土', specialty: '體修', personality: '沉穩', quote: '山不動，是因為我站在後面。', trait: { key: 'burstReward', value: 0.3 } },
   { id: 'guixu',     name: '歸墟',   emoji: '🌊', rarity: 'UR',  element: '水', specialty: '丹修', personality: '寂然', quote: '一滴水，也有潮汐。', trait: { key: 'rare', value: 0.4 } },
