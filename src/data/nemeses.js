@@ -1,4 +1,5 @@
-// 宿敵劇情線：6 位固定角色，依序解鎖（擊敗上一位 + 境界門檻）。
+// 宿敵劇情線：主線 5 位依序解鎖（擊敗上一位 + 境界門檻）→ 後日談 3 位（epilogue）→ 勢力宿敵 6 位（side，看勢力威望，各自獨立）。
+// cond：prev 前一位、minRealm 境界、faction＋tier 勢力威望階級（2＝聞風喪膽）。awakenTaunts 為 3 階覺醒的專屬登場詞（沒寫則用共用的 AWAKEN.taunts）。
 // 規則：宿敵取代一次隨機訪客登場；不能「當場打臉」；引爆時最後出場，只有「碾壓」才算擊敗。
 // intro：依第幾次見面（met）依序使用；kneel/narrow/fail 為引爆時的結果台詞。
 // story.defeat：擊敗時老祖旁白；reward：固定獎勵 + 專屬法寶（見 data/artifacts.js 的 unique）。
@@ -91,6 +92,55 @@ export const NEMESES = [
     fail: ['你還在裝。等你真的不裝了，我們再談。'],
     story: { defeat: '無相摘下了最後一張面具，鏡中卻是一張疲憊而平靜的臉。老祖輕聲說：「你看，連他也想不裝了。」' },
     reward: { token: 30, stone: 260, artifact: 'wu_mirror' } },
+  // ── 勢力宿敵（side：不計入「舊債還清」）：各派的「面子」。該勢力威望達「聞風喪膽」（第 2 階）且境界夠了才現身，各自獨立、不看前一位。──
+  { id: 'jiao', name: '焦烈', title: '煉爐長老', sect: '赤焰谷', emoji: '🧑‍🏭', type: 'elder', personality: '暴躁', element: '火', side: true,
+    cond: { faction: 'chiyan', tier: 2, minRealm: 6 }, offset: [1, 2],
+    intro: ['聽說有人把我赤焰谷的弟子打趴了？誰給你的膽子！', '我煉了六十年的爐，沒見過哪座廟敢把火氣當笑話！', '今天我不煉器，煉你。'],
+    kneel: ['……爐火滅了。我認輸，你這座廟的火氣，比我的爐還旺。', '好、好！我賠你一爐上好的丹火，這事別再提了！'],
+    narrow: ['哼！爐還沒涼，下次你就沒這麼走運！'], fail: ['火氣不夠！回去再煉三十年！'],
+    awakenTaunts: ['上一世的爐火，我還留著餘溫。', '這一次，我把爐火燒到了極致。', '你擊敗我三次？那是因為我的爐，還沒真正開過。'],
+    story: { defeat: '煉爐長老焦烈被你按在爐邊，臉被爐火映得通紅。老祖悠悠道：「火氣大的人，最怕被人當眾澆水。」他留下了半塊焦黑的爐片。' },
+    reward: { token: 6, stone: 30, artifact: 'jiao_furnace' } },
+  { id: 'mowen', name: '莫問鋒', title: '劍痴', sect: '萬劍山莊', emoji: '🧑‍🦱', type: 'rival', personality: '狂妄', element: '金', side: true,
+    cond: { faction: 'wanjian', tier: 2, minRealm: 7 }, offset: [1, 2],
+    intro: ['聽說你的劍從不出鞘？有意思。我的劍也不出鞘，因為我嫌別人不配。', '萬把劍裡，我最鋒利的是那把沒開過刃的——你猜為什麼？', '拔劍。不拔劍的對手，我不屑打。'],
+    kneel: ['你……沒拔劍就贏了我？我輸了，輸在境界上。', '這一劍我接不住。記著，我叫莫問鋒——不用問了。'],
+    narrow: ['險勝？下次我讓你拔劍。'], fail: ['你連劍都沒拔，我怎麼可能輸？'],
+    awakenTaunts: ['上一世，我輸在沒拔劍。這一世，我拔了。', '我把那把沒開過刃的劍，磨了整整一世。', '三次？不，這一次，我讓你親眼看看什麼叫出鞘。'],
+    story: { defeat: '劍痴莫問鋒收劍入鞘，沉默了很久。老祖說：「劍修最怕的不是輸，是輸給一個不拔劍的人。」他把那把沒開過刃的劍，留在了廟門口。' },
+    reward: { token: 6, stone: 36, artifact: 'mowen_blade' } },
+  { id: 'song', name: '宋清歡', title: '詩會魁首', sect: '落霞宗', emoji: '🧑‍🎨', type: 'rival', personality: '虛偽', element: '水', side: true,
+    cond: { faction: 'luoxia', tier: 2, minRealm: 8 }, offset: [1, 2],
+    intro: ['聽聞破廟有位宗主，詩作不通、道行不深，卻是江湖上最能忍的人。', '「忍」字入詩，平仄不調。不如我送你一首：《破廟吟》——「破廟一座，漏雨三處」。', '今夜落霞宗詩會，主題是：「如何體面地羞辱一位破廟宗主」。'],
+    kneel: ['……這首詩我寫不下去了。你贏了，我認。', '詩不如拳頭，我今天才懂。'],
+    narrow: ['險勝也是勝……這句我記下來入詩。'], fail: ['你的拳頭，不押韻。'],
+    awakenTaunts: ['那首沒寫完的詩，我替你補完了。', '這一世，我的詩裡，每一句都有你的名字。', '三次？詩有三章，你剛好看完了第三章。'],
+    story: { defeat: '詩會魁首宋清歡把寫了一半的詩稿撕了，又默默撿起來疊好。老祖：「風雅這種東西，沒人打臉之前是風雅，打完就是笑話。」她留下了一卷未完成的落霞詩卷。' },
+    reward: { token: 6, stone: 44, artifact: 'song_scroll' } },
+  { id: 'han', name: '寒千山', title: '玄冰首座', sect: '玄冰門', emoji: '🥶', type: 'elder', personality: '傲慢', element: '水', side: true,
+    cond: { faction: 'xuanbing', tier: 2, minRealm: 9 }, offset: [1, 2],
+    intro: ['你就是那個破廟宗主？本座以為會更……高一點。', '玄冰門千年不下山，今日為你破例。別高興，是因為你太吵。', '你配讓本座低頭看你？抬頭，看我。'],
+    kneel: ['……脖子，有點酸。罷了，我低頭了。', '這一次，我低頭看你，不是因為你矮，是因為你贏了。'],
+    narrow: ['哼，今天風大，我沒站穩。'], fail: ['抬頭。看清楚什麼叫高度。'],
+    awakenTaunts: ['我練了一世，只為了不再低頭。', '這一次，我連頭都不用抬，你自己就矮下去了。', '三次低頭？我記得很清楚，這是最後一次。'],
+    story: { defeat: '玄冰首座寒千山第一次低下了頭，頸骨咯咯作響。老祖笑得直不起腰：「千年的脖子，終於彎了一次。」他留下一塊冰魄寒玉，說是「給你的廟降降火氣」。' },
+    reward: { token: 8, stone: 52, artifact: 'han_ice' } },
+  { id: 'tie', name: '鐵無歸', title: '百煉閣主', sect: '百煉閣', emoji: '🧑‍🔧', type: 'elder', personality: '勢利', element: '金', side: true,
+    cond: { faction: 'bailian', tier: 2, minRealm: 10 }, offset: [1, 2],
+    intro: ['百煉閣有句行規：硬的才值錢。你的廟，值幾兩？', '我這錘子，砸過三座山門。你這破廟，是第四座。', '報價吧。你的命值多少靈石？我好決定要不要付錢砸你。'],
+    kneel: ['這座廟……錘不爛。我服，這句話我會刻在閣裡。', '好硬。比我煉過的任何鐵都硬。'],
+    narrow: ['險勝？下次報價，我加碼。'], fail: ['不夠硬。回爐再煉。'],
+    awakenTaunts: ['上一世你贏了我一錘，這一世我要連本帶利砸回來。', '我把錘子又加重了三成，你的廟，加固了嗎？', '三次？百煉成鋼，我今天才真正煉成。'],
+    story: { defeat: '百煉閣主鐵無歸放下巨錘，用袖子擦了擦額頭的汗。老祖：「只認一個字的人，輸了也只服一個字。」他在廟門口釘下一枚百煉釘，說是「以後這扇門，我罩」。' },
+    reward: { token: 8, stone: 60, artifact: 'tie_nail' } },
+  { id: 'meng', name: '孟百川', title: '黑市大掌櫃', sect: '黑市商會', emoji: '🧑‍💼', type: 'trader', personality: '陰險', element: '土', side: true,
+    cond: { faction: 'trade', tier: 2, minRealm: 8 }, offset: [1, 2],
+    intro: ['聽說有人在到處「討債」？巧了，我手上正好有一批舊帳，想找買家。', '黑市有個規矩：誰欠的，誰還。你欠我一個人情，我來收。', '別緊張，我只是來談生意。……順便看看你的底。'],
+    kneel: ['生意不成仁義在！這批舊帳，白送您！', '我……我什麼都沒說，什麼都沒看見。'],
+    narrow: ['這單虧了。下回，我多帶點籌碼。'], fail: ['看來我們談不成。你還嫩了點。'],
+    awakenTaunts: ['上一世的人情，這一世連本帶利。', '我把你的底細，賣了三家。你猜，買主是誰？', '三次？生意人最怕的，就是一直做虧本生意。'],
+    story: { defeat: '黑市大掌櫃孟百川把一整箱舊帳推到你面前：「算我輸了。這些，都是別人欠你的。」老祖挑眉：「他知道的，比他說的多。」你翻開第一頁，發現第一筆帳，寫的是青雲宗。' },
+    reward: { token: 8, stone: 68, artifact: 'meng_scale' } },
 ];
 export const NEMESES_BY_ID = Object.fromEntries(NEMESES.map(n => [n.id, n]));
 

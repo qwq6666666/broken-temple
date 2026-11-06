@@ -52,7 +52,8 @@ import { drawBuilding, POS, DRAW_ORDER, BACKDROP } from '../src/ui/sceneArt.js';
 import { BUILDINGS } from '../src/data/buildings.js';
 import { topRarity, playPull } from '../src/ui/pullFx.js';
 import { bus } from '../src/core/events.js';
-import { NEMESES, NEMESES_BY_ID } from '../src/data/nemeses.js';
+import { NEMESES, NEMESES_BY_ID, AWAKEN } from '../src/data/nemeses.js';
+import { ACHIEVEMENTS_BY_ID } from '../src/data/achievements.js';
 import { ARTIFACTS_BY_ID } from '../src/data/artifacts.js';
 import { GOALS_BY_ID } from '../src/data/goals.js';
 import { INCIDENTS_BY_ID } from '../src/data/incidents.js';
@@ -1337,11 +1338,13 @@ t('擴充內容：每則事件的每個選項都能結算；宿敵鏈串到後�
     assert.doesNotThrow(() => Inc.resolve(s, i, false), `${inc.id}[${i}]`);
     assert.equal(s.incident.current, null, `${inc.id}[${i}] 結算後事件應清除`);
   }
-  // 宿敵鏈：qian → xiao → liu → yun → xuan → mo → ling → wu，每位有五行與專屬法寶
+  // 宿敵鏈：主線 qian → xiao → liu → yun → xuan，接後日談 mo → ling → wu，再接 6 位勢力宿敵（side，各自獨立）
   const chain = ['qian', 'xiao', 'liu', 'yun', 'xuan', 'mo', 'ling', 'wu'];
-  assert.deepEqual(NEMESES.map(n => n.id), chain);
-  NEMESES.forEach((n, i) => { assert.equal(n.cond.prev || null, i ? chain[i - 1] : null); assert.ok(n.intro.length >= 3 && n.kneel.length && n.narrow.length && n.fail.length && n.story.defeat); assert.ok(ARTIFACTS_BY_ID[n.reward.artifact]?.unique, n.id + ' 專屬法寶'); });
-  assert.equal(NEMESES.filter(n => !n.epilogue).length, 5); assert.ok(NEMESES.slice(5).every(n => n.epilogue));
+  assert.deepEqual(NEMESES.slice(0, 8).map(n => n.id), chain);
+  NEMESES.slice(0, 8).forEach((n, i) => { assert.equal(n.cond.prev || null, i ? chain[i - 1] : null); });
+  NEMESES.forEach(n => { assert.ok(n.intro.length >= 3 && n.kneel.length && n.narrow.length && n.fail.length && n.story.defeat); assert.ok(ARTIFACTS_BY_ID[n.reward.artifact]?.unique, n.id + ' 專屬法寶'); });
+  assert.equal(NEMESES.filter(n => !n.epilogue && !n.side).length, 5); assert.ok(NEMESES.slice(5, 8).every(n => n.epilogue));
+  assert.equal(NEMESES.filter(n => n.side).length, 6); assert.ok(NEMESES.slice(8).every(n => n.side && !n.epilogue && !n.cond.prev && n.cond.faction));
   // 「舊債還清」只看主線 5 位；全部 8 位才算成就「宿敵剋星」
   const s = createState(); s.stats.nemesisDefeated = 5; Goals.tick(s); assert.ok(s.goalsDone.includes('nemAll'));
   assert.ok(!(s.achv.done.includes('nemall')));
@@ -1658,6 +1661,45 @@ t('勢力背景：每個勢力有背景與三階升階描述；升階時寫進�
   Fac.addRep(s, '青雲宗', 10);                                   // 第一階
   assert.equal(s.chronicle.length, before + 1); assert.ok(s.chronicle.at(-1).text.includes('繞路'));
   Fac.addRep(s, '青雲宗', 1); assert.equal(s.chronicle.length, before + 1, '沒升階不寫年表');
+});
+
+// ── 勢力宿敵（side）：看勢力威望解鎖，不計入舊債還清 ──
+t('勢力宿敵：威望與境界都達標才解鎖；各自獨立；不影響「舊債還清」；台詞與稱號齊全', () => {
+  const sides = NEMESES.filter(n => n.side);
+  const fid = n => n.cond.faction;
+  for (const n of sides) { assert.ok(FACTIONS.some(f => f.id === fid(n) && f.sects.includes(n.sect)), `${n.id} 的宗門要屬於其勢力`); assert.equal(n.awakenTaunts.length, 3, n.id); assert.equal(new Set(n.awakenTaunts).size, 3); }
+  assert.equal(new Set(sides.map(fid)).size, 6, '六個勢力各一位');
+  const jiao = NEMESES_BY_ID.jiao, s = createState();
+  s.realmIdx = 13; assert.ok(!Nem.unlocked(s, jiao), '威望不夠不解鎖');
+  s.factions.chiyan = 10; assert.ok(!Nem.unlocked(s, jiao), '第 1 階還不夠，要第 2 階');
+  s.factions.chiyan = 30; assert.ok(Nem.unlocked(s, jiao));
+  s.realmIdx = 5; assert.ok(!Nem.unlocked(s, jiao), '境界不夠不解鎖');
+  assert.ok(Nem.condText(s, jiao).includes('赤焰谷') && Nem.condText(s, jiao).includes('聞風喪膽'));
+  // 擊敗全部勢力宿敵不影響「舊債還清」的 5 位目標，且舊存檔不會因新增宿敵而改變已完成的大事
+  const g = createState(); g.stats.nemesisDefeated = 5; Goals.tick(g); assert.ok(g.goalsDone.includes('nemAll'));
+  // 覺醒登場詞：有專屬的用專屬，沒有的用共用
+  const a = createState(); a.nemeses.jiao = { met: 3, defeated: true, awakeLv: 1 };
+  assert.equal(Nem.makeNemesisVisitor(a, jiao).taunt, jiao.awakenTaunts[1]);
+  a.nemeses.qian = { met: 3, defeated: true, awakeLv: 0 };
+  assert.equal(Nem.makeNemesisVisitor(a, NEMESES_BY_ID.qian).taunt, NEMESES_BY_ID.qian.awakenTaunts?.[0] || AWAKEN.taunts[0]);
+  // 每位宿敵一個稱號 + 兩個總成就
+  for (const n of NEMESES) assert.ok(ACHIEVEMENTS_BY_ID['nem_' + n.id], n.id);
+  const b = createState(); NEMESES.filter(n => n.side).forEach(n => { b.nemeses[n.id] = { met: 1, defeated: true }; }); Ach.tick(b);
+  assert.ok(b.achv.done.includes('nemside') && b.achv.done.includes('nem_jiao') && !b.achv.done.includes('nem_qian'));
+});
+
+t('宿敵場上上限：同時最多 3 位；擊敗後才會再來；存檔與轉生保留新宿敵進度', () => {
+  const s = createState(); s.realmIdx = 13;
+  for (const id of ['qian', 'xiao', 'liu', 'yun', 'xuan']) s.nemeses[id] = { met: 3, defeated: true };
+  s.factions = { chiyan: 30, wanjian: 30, luoxia: 30, xuanbing: 30, bailian: 30, trade: 30 };
+  const seen = [];
+  for (let i = 0; i < 12; i++) { const n = Nem.pickNemesis(s); if (!n) break; seen.push(n.id); s.grudges.push({ id: i, nemesisId: n.id, lvl: 1 }); }
+  assert.equal(Nem.presentCount(s), 3); assert.equal(seen.length, 3, '場上最多 3 位');
+  s.grudges.pop(); assert.ok(Nem.pickNemesis(s), '少一位就能再來一位');
+  const m = createState(); m.realmIdx = 13; m.nemeses.jiao = { met: 2, defeated: true, awakeLv: 1 }; m.factions.chiyan = 40; m.artifacts.push('jiao_furnace');
+  Dao.rebirth(m); assert.deepEqual(m.nemeses.jiao, { met: 2, defeated: true, awakeLv: 1 }); assert.equal(m.factions.chiyan, 40); assert.ok(m.artifacts.includes('jiao_furnace'));
+  const back = S.parse(S.serialize(m)).state; assert.ok(back.nemeses.jiao.defeated);
+  const bad = createState(); bad.nemeses = { jiao: { met: 1, defeated: true }, nobody: { met: 1 } }; sanitize(bad); assert.ok(bad.nemeses.jiao && !bad.nemeses.nobody);
 });
 
 console.log(`\n${n} 項測試通過`);

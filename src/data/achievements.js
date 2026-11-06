@@ -19,6 +19,8 @@ export const ACHIEVEMENTS = [
   { id: 'story20', icon: '📖', name: '讀完 20 章弟子故事', title: '說書人', cur: s => sum(s.stories), target: 20 },
   { id: 'cm25', icon: '📋', name: '完成 25 張委託', title: '勤快的宗主', cur: s => s.commissions.done, target: 25 },
   { id: 'goal12', icon: '🎯', name: '完成 12 件宗門大事', title: '大事為先', cur: s => s.goalsDone.length, target: 12 },
+  { id: 'nemside', icon: '🏴', name: '擊敗全部勢力宿敵', title: '各派剋星', cur: s => NEMESES.filter(n => n.side && s.nemeses[n.id]?.defeated).length, target: NEMESES.filter(n => n.side).length },
+  { id: 'awake30', icon: '🌟', name: '宿敵覺醒階數累計 30', title: '輪迴宿敵', cur: s => Object.values(s.nemeses).reduce((a, n) => a + (n.awakeLv || 0), 0), target: 30 },
   { id: 'asc1', icon: '⚡', name: '渡過 1 道天劫', title: '初渡劫', cur: s => s.ascend.done.length, target: 1 },
   { id: 'asc9', icon: '🏯', name: '九重天劫全部渡過', title: '祖庭守廟人', cur: s => s.ascend.done.length, target: 9 },
   { id: 'fruit50', icon: '🍑', name: '道果累計升級 50 次', title: '果位圓滿', cur: s => ['fruitQi', 'fruitStone', 'fruitPower'].reduce((a, id) => a + (s.reincarnation.shop[id] || 0), 0), target: 50 },
@@ -26,5 +28,7 @@ export const ACHIEVEMENTS = [
   { id: 'reb1', icon: '☯️', name: '轉生 1 次', title: '輪迴客', cur: s => s.reincarnation.count, target: 1 },
   { id: 'reb3', icon: '☯️', name: '轉生 3 次', title: '三世因果', cur: s => s.reincarnation.count, target: 3 },
   { id: 'reb10', icon: '☯️', name: '轉生 10 次', title: '萬劫不滅', cur: s => s.reincarnation.count, target: 10 },
+  // 每位宿敵一個稱號：由宿敵資料產生，新增宿敵時不必另外維護
+  ...NEMESES.map(n => ({ id: 'nem_' + n.id, icon: n.emoji, name: `擊敗${n.name}（${n.title}）`, title: `${n.name}剋星`, cur: s => (s.nemeses[n.id]?.defeated ? 1 : 0), target: 1 })),
 ];
 export const ACHIEVEMENTS_BY_ID = Object.fromEntries(ACHIEVEMENTS.map(a => [a.id, a]));
