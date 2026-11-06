@@ -25,6 +25,22 @@ export async function run(b, URL, devices, PLAT) {
   });
   await p.waitForTimeout(800); await hide();
 
+  // 建築批量升級：列表與點建築彈出的面板都能「×10」「最大」；資源每幀變動（按鈕狀態在變）時也要點得到
+  await S(() => { const s = __game.state; s.res.qi = 1e15; s.res.stone = 1e12; for (const id of ['temple', 'field', 'alchemy', 'library']) s.buildings[id].lv = 20; });
+  await go('buildings'); await hide();
+  const lvSum = () => S(() => Object.values(__game.state.buildings).reduce((a, b) => a + b.lv, 0));
+  let t0 = await lvSum(); await tap('[data-act=upgradeN][data-n="10"]:not([disabled])'); await p.waitForTimeout(200);
+  let t1 = await lvSum(); rec('upgradeN ×10 連升十級（列表）', t1 - t0 === 10, `升了 ${t1 - t0} 級`);
+  await tap('[data-act=upgradeN][data-n=max]:not([disabled])'); await p.waitForTimeout(200);
+  let t2 = await lvSum(); const capOK = await S(() => { const B = __game.state.buildings, cap = 10 + Math.floor(__game.state.realmIdx * 6.93); return Object.values(B).every(b => b.lv <= cap); });
+  rec('upgradeN 最大 升到上限（列表）', t2 - t1 > 10 && capOK, `再升 ${t2 - t1} 級`);
+  await S(() => { const s = __game.state; s.buildings.alchemy.lv = 20; s.res.qi = 1e15; s.res.stone = 1e12; __game.ui.selBuilding = 'alchemy'; window.__churn = setInterval(() => { __game.state.res.qi += 7; }, 25); }); await p.waitForTimeout(500);
+  const hasPop = await S(() => !!document.querySelector('.bpop-card [data-act=upgradeN]')); rec('點建築彈出面板有批量按鈕', hasPop);
+  t0 = await S(() => __game.state.buildings.alchemy.lv); await tap('.bpop-card [data-act=upgradeN][data-n="10"]:not([disabled])'); await p.waitForTimeout(250);
+  t1 = await S(() => __game.state.buildings.alchemy.lv); rec('彈出面板 ×10（資源每幀變動中仍點得到）', t1 - t0 === 10, `升了 ${t1 - t0} 級`);
+  await S(() => { clearInterval(window.__churn); __game.ui.selBuilding = null; });
+  await S(() => { for (const id of Object.keys(__game.state.buildings)) __game.state.buildings[id].lv = 50; });
+  await p.waitForTimeout(300);
   // 弟子頁：排序、五行篩選、派駐/取消、升星、心得
   await go('people');
   await tap('[data-act=slotPick]'); const sp = await S(() => !!document.querySelector('[data-act=slotAssign]')); rec('slotPick 開啟候選', sp);
@@ -93,5 +109,6 @@ export async function run(b, URL, devices, PLAT) {
   // 離線事件 offlineChoose 已於 targeted3 驗證
   rec('頁面錯誤', errs.length === 0, errs.slice(0, 2).join(';'));
   await c.close();
+  if (process.env.E2E_VERBOSE) console.log(R.map(x => `  ${x[1] ? '✓' : '✗'} ${PLAT} ${x[0]} ${x[2]}`).join('\n'));      // E2E_VERBOSE=1：列出每一項
   return R.filter(x => !x[1]).map(x => `${PLAT} ${x[0]} ${x[2]}`);
 }

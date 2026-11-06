@@ -14,7 +14,7 @@ npx serve .
 ```bash
 node tests/run.mjs           # 核心邏輯測試（保底、成本、連鎖、tick 線性…）；或 npm test
 node tests/invariants.mjs 1 12   # 核心壓力：機器人連續多輪轉生，檢查不變量與存檔往返（有問題時結束碼非 0）；npm run test:invariants
-node tests/e2e/run.mjs       # 瀏覽器端到端（桌面＋手機）：版面溢出掃描與全操作覆蓋；需 npm i -D playwright，未安裝會略過；npm run test:e2e
+node tests/e2e/run.mjs       # 瀏覽器端到端（桌面＋手機）：版面溢出掃描與全操作覆蓋（含建築 ×10／最大批量升級）；需 npm i -D playwright，未安裝會略過；E2E_VERBOSE=1 列出每一項；npm run test:e2e
 node tests/sim.mjs 40       # 平衡模擬器：貪婪機器人跑 40 小時，印出各里程碑時間
 node tests/sim.mjs 40 passive   # 同上但完全不打坐（純掛機）
 node tests/sim.mjs 40 active rebirth   # 化神後自動轉生並購買道心，印出每一輪耗時
