@@ -1141,6 +1141,13 @@ t('高階秘境：材料沿用雲台星砂／龍脈精華，探索度第 1 則�
   const e = createState(); e.explore.ruins = 2; EpMod.resolve(e, 'ruins', 1); assert.equal(e.res.mat_sky, 3);
 });
 
+t('資源圖示不重複：秘境材料的圖示不能和靈氣／靈石／招賢令／碎片／道心／功勳相同（否則花費晶片會被誤認）', () => {
+  const base = ['✨', '💎', '🎫', '🧩', '☯️', '🏅'];
+  const icons = Object.values(MATERIALS).map(m => m.icon);
+  assert.equal(new Set(icons).size, icons.length, '材料圖示彼此重複');
+  icons.forEach(i => assert.ok(!base.includes(i), `材料圖示 ${i} 與基礎資源相同`));
+});
+
 t('秘境與詞條資料完整', () => {
   EXPEDITIONS.forEach(e => { assert.ok(e.minutes > 0 && e.difficulty > 0 && Object.keys(e.reward).length); });
   assert.ok(EXPEDITIONS.every((e, i) => i === 0 || e.unlockRealm >= EXPEDITIONS[i - 1].unlockRealm));   // 同一境界可有多個秘境

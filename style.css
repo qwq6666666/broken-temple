@@ -173,7 +173,7 @@ select.assign { background: #0e1613; color: var(--paper); border: 1px solid var(
 .settle .arts { justify-content: center; }
 
 /* ── 提示 ── */
-#toasts { position: fixed; right: 14px; bottom: 14px; z-index: 200; display: flex; flex-direction: column; gap: 6px; max-width: 340px; }
+#toasts { position: fixed; right: 14px; bottom: 14px; z-index: 200; display: flex; flex-direction: column; gap: 6px; max-width: 340px; pointer-events: none; }   /* 提示不擋點擊 */
 .toast { background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--jade); padding: 8px 12px; border-radius: 6px; animation: popIn .3s; transition: opacity .5s; }
 .toast.warn { border-left-color: var(--red); } .toast.good { border-left-color: var(--gold); } .toast.out { opacity: 0; }
 
@@ -296,7 +296,7 @@ button.meditate .mlabel { position: relative; }
 
   /* 提示訊息：只留 2 則，放在導覽列上方 */
   #toasts { left: 8px; right: 8px; bottom: 76px; max-width: none; }
-  .toast { font-size: .85em; padding: 6px 10px; }
+  .toast { font-size: .85em; padding: 6px 10px; line-height: 1.35; }
   .toast:nth-last-child(n+3) { display: none; }
   #banner { font-size: .85em; }
 
@@ -608,6 +608,13 @@ h3.sub:first-child { margin-top: 0; }
 @media (max-width: 860px) {
   .cdetail { padding-left: 12px; } .crow .ci { font-size: 22px; width: 28px; }
   .cmain { gap: 8px; padding: 8px; } .crow .ca { max-width: 55%; } .crow .ca .costs { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
+  /* 建築列：名稱一整行、花費與按鈕換到下一行（避免名稱被擠成三行、等級數字斷開） */
+  .crow .ct .lv { white-space: nowrap; }
+  .crow.brow .cmain { flex-wrap: wrap; row-gap: 6px; }
+  .crow.brow .cx { order: 2; }
+  .crow.brow .ca { order: 3; flex: 1 1 100%; max-width: none; justify-content: space-between; padding-left: 36px; }
+  .crow.brow .ca .costs { justify-content: flex-start; }
+  .crow.brow .bulk { margin-left: auto; flex-wrap: nowrap; justify-content: flex-end; }
   .scene .land { max-height: 34vh; }
 }
 @media (min-width: 861px) { #tabs { gap: 3px; } .tab { padding: 7px 9px; font-size: .94em; } }

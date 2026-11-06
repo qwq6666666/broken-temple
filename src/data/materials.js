@@ -7,7 +7,7 @@ export const MATERIALS = {
   swamp:  { name: '瘴靈草',   icon: '🍄' },
   valley: { name: '藥王花',   icon: '🌺' },
   maze:   { name: '陣紋玉',   icon: '🔶' },
-  sky:    { name: '雲台星砂', icon: '✨' },
+  sky:    { name: '雲台星砂', icon: '🌠' },
   abyss:  { name: '龍脈精華', icon: '🐲' },
 };
 export const matKey = id => 'mat_' + id;

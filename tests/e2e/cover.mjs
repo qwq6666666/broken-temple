@@ -41,6 +41,15 @@ export async function run(b, URL, devices, PLAT) {
   await S(() => { clearInterval(window.__churn); __game.ui.selBuilding = null; });
   await S(() => { for (const id of Object.keys(__game.state.buildings)) __game.state.buildings[id].lv = 50; });
   await p.waitForTimeout(300);
+  // 提示訊息：解鎖提示合併成一則、不擋點擊；建築列（手機）名稱不被擠成多行
+  await S(async () => { const E = await import('/src/core/events.js'); document.getElementById('toasts').innerHTML = ''; E.toast('🔓 新功能解鎖：宗門年表', 'good'); E.toast('🔓 新分頁解鎖：秘境', 'good'); E.toast('🔓 新功能解鎖：專長心得', 'good'); });
+  await p.waitForTimeout(200);
+  const tinfo = await S(() => ({ n: document.querySelectorAll('#toasts .toast').length, text: document.querySelector('#toasts .toast')?.textContent || '', pe: getComputedStyle(document.getElementById('toasts')).pointerEvents }));
+  rec('解鎖提示合併成一則', tinfo.n === 1 && /宗門年表/.test(tinfo.text) && /秘境/.test(tinfo.text) && /專長心得/.test(tinfo.text), `${tinfo.n} 則：${tinfo.text}`);
+  rec('提示不擋點擊（pointer-events: none）', tinfo.pe === 'none', tinfo.pe);
+  await go('buildings'); await hide();
+  const lay = await S(() => { const r = document.querySelector('.crow.brow'); if (!r) return null; const cm = r.querySelector('.cm').getBoundingClientRect(), ca = r.querySelector('.ca').getBoundingClientRect(), ct = r.querySelector('.ct'); const lh = parseFloat(getComputedStyle(ct).lineHeight) || 20; return { ctH: ct.getBoundingClientRect().height, lh, caBelow: ca.top >= cm.bottom - 2, caInside: ca.right <= r.getBoundingClientRect().right + 1 }; });
+  rec('建築列：名稱不超過兩行、按鈕不溢出' + (mobile ? '（手機另要求按鈕換到下一行）' : ''), !!lay && lay.ctH <= lay.lh * 2.2 && lay.caInside && (!mobile || lay.caBelow), JSON.stringify(lay));
   // 弟子頁：排序、五行篩選、派駐/取消、升星、心得
   await go('people');
   await tap('[data-act=slotPick]'); const sp = await S(() => !!document.querySelector('[data-act=slotAssign]')); rec('slotPick 開啟候選', sp);

@@ -34,7 +34,7 @@ export function buildingPanel(s, ui) {
       <div class="tags"><span class="tag">專長：${esc(d.specialty)}</span> <span class="tag elt">${esc(d.element)}</span> <span class="tag">駐守位 ${slots(s, d.id)}</span></div>
       ${spec ? `<small class="gold">🏗 專精：${esc(spec.name)}（${esc(specText(spec.effects))}）</small>` : ''}
       <small class="dim">${next ? `下一外觀 Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}</small>${milestoneText(d, lv)}`;
-    return crow(ui, { key: 'b' + d.id, cls: can ? 'affordable' : '', icon: st.emoji,
+    return crow(ui, { key: 'b' + d.id, cls: (can ? 'affordable' : '') + ' brow', icon: st.emoji,
       title: `<b>${esc(d.name)}</b> <span class="lv">Lv ${lv}/${maxLevelOf(s)}</span>`, badges: spec ? ' <span class="tag gold">專精</span>' : '',
       sub: esc(st.label), act, detail });
   }).join('');
