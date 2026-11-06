@@ -40,6 +40,18 @@ export function levelUp(s, uid) {
   return true;
 }
 
+// 全部升級：反覆挑「買得起且最便宜」的弟子升一級，直到沒有買得起的（最多 2000 次防呆）。回傳升了幾級
+export function levelUpAll(s) {
+  let n = 0;
+  for (; n < 2000; n++) {
+    const opts = s.disciples.filter(d => canLevel(s, d));
+    if (!opts.length) break;
+    opts.sort((a, b) => levelCost(s, a).qi - levelCost(s, b).qi);
+    levelUp(s, opts[0].uid);
+  }
+  return n;
+}
+
 export const assignedTo = (s, bid) => s.disciples.filter(d => d.at === bid);
 
 // 派駐：bid=null 為取消

@@ -9,7 +9,7 @@ import { mountConceal, updateConceal } from './concealView.js';
 import { buildingPanel } from './buildingPanel.js';
 import { realmPanel } from './realmPanel.js';
 import { gachaPanel } from './gachaPanel.js';
-import { disciplePanel } from './disciplePanel.js';
+import { disciplePanel, disciplePopover } from './disciplePanel.js';
 import { avengePanel } from './avengePanel.js';
 import { goalPanel } from './goalPanel.js';
 import { nemesisPanel } from './nemesisPanel.js';
@@ -46,7 +46,7 @@ export function createRenderer(s, ui) {
   const sceneRefs = mountScene(sceneEl);
   initParticles(sceneEl);
   const concealRefs = mountConceal(concealEl);
-  const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar'), hintEl = $('#hint');
+  const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar'), hintEl = $('#hint'), dmodalEl = $('#dmodal');
   // 資源列骨架
   resEl.innerHTML = [['qi', '✨ 靈氣'], ['stone', '💎 靈石'], ['realm', '境界']]
     .map(([k, l]) => `<div class="res ${k === 'realm' ? 'realm' : ''}" data-k="${k}"><span>${l}</span><b></b><small></small></div>`).join('');
@@ -106,6 +106,10 @@ export function createRenderer(s, ui) {
     const tip = tipId ? `<div class="tip ${ui.tipOpen ? 'open' : ''}"><button class="tiphead" data-act="toggleTip" aria-expanded="${!!ui.tipOpen}">💡 本頁說明 <span>${ui.tipOpen ? '▴' : '▾'}</span></button>${ui.tipOpen ? `<span class="tiptext">${TAB_TIPS[tipId]}</span>` : ''}<button class="btn mini" data-act="dismissTip" data-tab="${tipId}">知道了</button></div>` : '';
     const body = open.map(m => (open.length > 1 ? `<h3 class="sub">${SUB_TITLE[m] || ''}</h3>` : '') + PANELS[m](s, ui)).join('');
     setHTML(panelEl, tip + body);
+    // 弟子彈出面板（不在 #panel 裡，捲動與重繪互不影響）；離開弟子頁或弟子不存在就關掉
+    if (ui.tab !== 'people' || (ui.dModal && !s.disciples.some(d => d.uid === ui.dModal))) ui.dModal = null;
+    const dm = ui.dModal ? disciplePopover(s, ui) : '';
+    setHTML(dmodalEl, dm); document.body.classList.toggle('dm-open', !!dm);
   }
   return render;
 }

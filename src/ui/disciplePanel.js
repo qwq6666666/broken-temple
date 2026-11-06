@@ -17,6 +17,7 @@ import { fmt } from '../core/format.js';
 import { hasFeature } from '../core/progress.js';
 import { BRANCHES, BRANCH_LEVEL } from '../data/branches.js';
 import { esc, costChips, crow } from './dom.js';
+import { portraitHtml } from './portrait.js';
 import { canAfford } from '../core/resources.js';
 
 const SORTS = [['rarity', '稀有度'], ['lv', '等級'], ['at', '派駐']];
@@ -45,10 +46,12 @@ export function disciplePanel(s, ui) {
         <select class="assign" data-change="dElem"><option value="">五行：全部</option>${ELEMS.map(e => `<option value="${e}" ${elem === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>` : '';
   const tools = `<div class="dtools">
       ${s.disciples.length >= 2 ? autoBtn(s, away) : ''}
+      ${levelAllBtn(s)}
       ${sortBar}
     </div>`;
-  const cards = shown.map(d => card(s, ui, d, away)).join('') || '<p class="hint">沒有符合條件的弟子。</p>';
-  return `${summaryBar(s, ui)}${hasFeature(s, 'insight') ? insightBox(s, ui) : ''}${slotsView(s, ui, away)}${tools}<div class="dgrid">${cards}</div>`;
+  ui.dOrder = shown.map(d => d.uid);                                           // 彈出面板的「上一位／下一位」依目前排序與篩選的順序
+  const cards = shown.map(d => tile(s, ui, d, away)).join('') || '<p class="hint">沒有符合條件的弟子。</p>';
+  return `${summaryBar(s, ui)}${hasFeature(s, 'insight') ? insightBox(s, ui) : ''}${slotsView(s, ui, away)}${tools}<div class="dtiles">${cards}</div>`;
 }
 
 // 頁首摘要：緣分啟用數與碎片，點開看緣分清單
@@ -96,7 +99,6 @@ function slotsView(s, ui, away) {
   return `<div class="slotsbox"><b>📍 駐守</b>${rows || '<small class="dim">還沒有建築有駐守位（建築 Lv1 起）</small>'}</div>`;
 }
 
-// 精簡卡：頭像、名字、等級星級、派駐位置、升級；點「詳情」展開特性、故事、升星、手動派駐
 // 升星花費：該弟子的專屬碎片 have/need；不夠的部分用通用碎片抵（每 1 片專屬 = shardSwap 片通用）
 function starChips(s, d) {
   const p = starPay(s, d); if (!p) return '';
@@ -104,39 +106,51 @@ function starChips(s, d) {
     + (p.uni ? `<span class="chip ${p.ok ? '' : 'lack'}" title="專屬碎片不夠的部分，用通用碎片抵（每片專屬碎片 = ${CONFIG.disciple.shardSwap} 片通用碎片）">＋🧩${p.uni}</span>` : '');
 }
 
-function card(s, ui, d, away) {
-  const df = DISCIPLES_BY_ID[d.defId], r = RARITIES[df.rarity];
-  const can = canLevel(s, d), atMax = d.lv >= levelCapOf(s, d), sc = starCost(d), star = starOf(d);
-  const open = !!(ui.dOpen && ui.dOpen[d.uid]);
-  const ch = nextChapter(s, d), br = d.branch ? BRANCHES[d.branch] : null;
-  const loc = away.has(d.uid) ? '<span class="loc away">🧭 探索中</span>'
+// 方塊角色牌：大頭像（有立繪就用立繪）、名字、等級星級、派駐狀態；右上「升」可直接升一級；左上圖示表示有事可做。點整張牌開彈出面板。
+function tile(s, ui, d, away) {
+  const df = DISCIPLES_BY_ID[d.defId], r = RARITIES[df.rarity], star = starOf(d);
+  const atMax = d.lv >= levelCapOf(s, d), can = !atMax && canLevel(s, d);
+  const flags = [nextChapter(s, d) ? '📖' : '', starCost(d) && canStar(s, d) ? '⭐' : '', canBranch(d) ? '⬆' : ''].filter(Boolean).join('');
+  const loc = away.has(d.uid) ? '<span class="dloc away">🧭 探索中</span>'
+    : d.at ? `<span class="dloc ${isSpecialtyMatch(d, d.at) ? 'match' : ''}">📍 ${esc(BUILDINGS_BY_ID[d.at].name)}</span>` : '<span class="dloc idle">未派駐</span>';
+  return `<div class="dtile rar-${df.rarity} ${ui.dModal === d.uid ? 'sel' : ''}" style="--rc:${r.color}" role="button" tabindex="0" data-act="openD" data-uid="${d.uid}" aria-label="${esc(df.name)}，${df.rarity}，等級 ${d.lv}">
+    <div class="dport">${portraitHtml(df)}</div>
+    <span class="drar">${df.rarity}</span>${flags ? `<span class="dflags" title="有事可做：📖故事 ⭐升星 ⬆進階">${flags}</span>` : ''}
+    ${can ? `<button class="dquick" data-act="levelUp" data-uid="${d.uid}" title="升一級" aria-label="${esc(df.name)} 升一級">升</button>` : ''}
+    <div class="dinfo"><b>${esc(df.name)}</b><small>Lv ${d.lv}/${levelCapOf(s, d)} <span class="gold">${'★'.repeat(star)}${'☆'.repeat(3 - star)}</span></small>${loc}</div>
+  </div>`;
+}
+
+// 彈出面板：點方塊牌後出現（手機從下方滑出、桌面置中）。升級、升星、故事、進階、派駐都在這裡；可用「‹ ›」切換上一位／下一位
+export function disciplePopover(s, ui) {
+  const d = ui.dModal ? s.disciples.find(x => x.uid === ui.dModal) : null;
+  if (!d) return '';
+  const df = DISCIPLES_BY_ID[d.defId], r = RARITIES[df.rarity], star = starOf(d);
+  const away = s.expeditions.some(x => x.uids.includes(d.uid));
+  const can = canLevel(s, d), atMax = d.lv >= levelCapOf(s, d), sc = starCost(d), br = d.branch ? BRANCHES[d.branch] : null;
+  const loc = away ? '<span class="loc away">🧭 探索中</span>'
     : d.at ? `<span class="loc ${isSpecialtyMatch(d, d.at) ? 'match' : ''}">📍 ${esc(BUILDINGS_BY_ID[d.at].name)}${isSpecialtyMatch(d, d.at) ? ' ×2' : ''}</span>` : '<span class="loc idle">未派駐</span>';
-  const lvBtn = atMax ? '<span class="tag">已達上限</span>'
-    : `<button class="btn mini ${can ? 'primary' : ''}" data-act="levelUp" data-uid="${d.uid}" ${can ? '' : 'disabled'}>升級 ${costChips(s, levelCost(s, d))}</button>`;
-  let detail = '';
-  if (open) {
-    const opts = BUILDINGS.filter(b => slots(s, b.id) > 0).map(b => {
-      const full = assignedTo(s, b.id).length >= slots(s, b.id) && d.at !== b.id;
-      const tags = [isSpecialtyMatch(d, b.id) ? '專長×2' : '', isElementMatch(d, b.id) ? '五行' : ''].filter(Boolean).join('・');
-      return `<option value="${b.id}" ${d.at === b.id ? 'selected' : ''} ${full ? 'disabled' : ''}>${esc(b.name)}${tags ? `（${tags}）` : ''}${full ? '（已滿）' : ''}</option>`;
-    }).join('');
-    detail = `<div class="ddetail">
-      <small class="dim" title="${esc(df.quote)}">${esc(df.element)}・${esc(df.specialty)}・${esc(df.personality)}　屬性 ${fmt(stat(d))}</small>
-      <small class="trait ${d.at ? 'on' : ''}">✦ ${esc(traitText(df.trait.key, traitValueS(s, d)))}${d.at ? '（生效中）' : '（派駐後生效）'}</small>
-      ${storyRow(s, d)}
-      ${branchRow(s, d)}
-      <select class="assign" data-change="assign" data-uid="${d.uid}"><option value="">— 未派駐 —</option>${opts}</select>
-      ${sc ? `<button class="btn ${canStar(s, d) ? 'primary' : ''}" data-act="starUp" data-uid="${d.uid}" ${canStar(s, d) ? '' : 'disabled'}>升星 ${starChips(s, d)}</button>` : '<span class="tag gold">滿星</span>'}
-    </div>`;
-  }
-  return `<div class="dcard ${open ? 'open' : ''}" style="--rc:${r.color}">
-    <div class="dhead"><span class="de">${df.emoji}</span>
-      <div class="dname"><b>${esc(df.name)}</b> <span class="rar">${df.rarity}</span>${br ? ` <span class="tag gold">${br.icon}${br.name}</span>` : ''}
-        <small>Lv ${d.lv}/${levelCapOf(s, d)} <span class="gold">${'★'.repeat(star)}${'☆'.repeat(3 - star)}</span></small></div></div>
-    ${loc}
-    <div class="dact">${ch ? `<button class="btn mini primary" data-act="readStory" data-uid="${d.uid}">📖 故事</button>` : ''}${canBranch(d) ? `<button class="btn mini primary" data-act="toggleD" data-uid="${d.uid}">⬆ 進階</button>` : ''}${sc && canStar(s, d) ? `<button class="btn mini primary" data-act="starUp" data-uid="${d.uid}">⭐ 升星 ${starChips(s, d)}</button>` : ''}${lvBtn}</div>
-    <button class="dmore" data-act="toggleD" data-uid="${d.uid}" aria-expanded="${open}">${open ? '收合 ▴' : '詳情 ▾'}</button>
-    ${detail}
+  const opts = BUILDINGS.filter(b => slots(s, b.id) > 0).map(b => {
+    const full = assignedTo(s, b.id).length >= slots(s, b.id) && d.at !== b.id;
+    const tags = [isSpecialtyMatch(d, b.id) ? '專長×2' : '', isElementMatch(d, b.id) ? '五行' : ''].filter(Boolean).join('・');
+    return `<option value="${b.id}" ${d.at === b.id ? 'selected' : ''} ${full ? 'disabled' : ''}>${esc(b.name)}${tags ? `（${tags}）` : ''}${full ? '（已滿）' : ''}</option>`;
+  }).join('');
+  const lvBtn = atMax ? '<span class="tag">等級已達上限</span>'
+    : `<button class="btn ${can ? 'primary' : ''}" data-act="levelUp" data-uid="${d.uid}" ${can ? '' : 'disabled'}>升級 ${costChips(s, levelCost(s, d))}</button>`;
+  const starBtn = sc ? `<button class="btn ${canStar(s, d) ? 'primary' : ''}" data-act="starUp" data-uid="${d.uid}" ${canStar(s, d) ? '' : 'disabled'}>升星 ${starChips(s, d)}</button>` : '<span class="tag gold">已滿星</span>';
+  return `<div class="dm-back" data-act="closeD"></div>
+  <div class="dm-card rar-${df.rarity}" style="--rc:${r.color}" role="dialog" aria-modal="true" aria-label="${esc(df.name)}">
+    <div class="dm-bar"><button class="dm-nav" data-act="dNav" data-d="-1" aria-label="上一位">‹</button><small class="dim">${esc(df.rarity)}　${esc(df.element)}・${esc(df.specialty)}・${esc(df.personality)}</small><button class="dm-nav" data-act="dNav" data-d="1" aria-label="下一位">›</button><button class="hx" data-act="closeD" title="關閉" aria-label="關閉">✕</button></div>
+    <div class="dm-hero"><div class="dm-port">${portraitHtml(df)}</div>
+      <div class="dm-title"><b>${esc(df.name)}</b>${br ? ` <span class="tag gold">${br.icon}${br.name}</span>` : ''}
+        <span>Lv ${d.lv}/${levelCapOf(s, d)} <span class="gold">${'★'.repeat(star)}${'☆'.repeat(3 - star)}</span></span>
+        <small class="dim">屬性 ${fmt(stat(d))}</small>${loc}</div></div>
+    <small class="dm-quote">「${esc(df.quote)}」</small>
+    <small class="trait ${d.at ? 'on' : ''}">✦ ${esc(traitText(df.trait.key, traitValueS(s, d)))}${d.at ? '（生效中）' : '（派駐後生效）'}</small>
+    <div class="dm-actions">${lvBtn}${starBtn}</div>
+    ${storyRow(s, d)}
+    ${branchRow(s, d)}
+    <label class="dm-assign"><small class="dim">派駐</small><select class="assign" data-change="assign" data-uid="${d.uid}"><option value="">— 未派駐 —</option>${opts}</select></label>
   </div>`;
 }
 
@@ -171,4 +185,10 @@ function autoBtn(s, away) {
   const free = BUILDINGS.reduce((n, b) => n + Math.max(0, slots(s, b.id) - assignedTo(s, b.id).length), 0);
   const why = !idle ? '沒有未派駐的弟子' : !free ? '沒有空著的駐守位（升級建築可增加）' : '';
   return `<button class="btn ${why ? '' : 'primary'}" data-act="autoAssign" ${why ? 'disabled' : ''} title="${esc(why || '把未派駐的弟子依專長、五行與緣分放進空位（已派駐的不動）')}">⚡ 補滿空位${why ? `<small class="dim">（${esc(why)}）</small>` : ''}</button>`;
+}
+
+// 全部升級：一次把買得起的弟子都升上去（最便宜的先升）；沒有買得起的就灰掉
+function levelAllBtn(s) {
+  const any = s.disciples.some(d => canLevel(s, d));
+  return `<button class="btn ${any ? 'primary' : ''}" data-act="levelAll" ${any ? '' : 'disabled'} title="反覆升級買得起且最便宜的弟子，直到買不起">⬆ 全部升級</button>`;
 }

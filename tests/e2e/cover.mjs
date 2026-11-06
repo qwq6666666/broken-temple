@@ -7,6 +7,7 @@ export async function run(b, URL, devices, PLAT) {
   await p.goto(URL + '?speed=1'); await p.waitForTimeout(700);
   const tap = async sel => { const el = await p.$(sel); if (!el) return false; try { mobile ? await el.tap({ timeout: 2000 }) : await el.click({ timeout: 2000 }); } catch { await el.evaluate(e => e.click()); } await p.waitForTimeout(200); return true; };
   const S = (f, a) => p.evaluate(f, a);
+  const tapEl = async el => { try { mobile ? await el.tap({ timeout: 2000 }) : await el.click({ timeout: 2000 }); } catch { await el.evaluate(e => e.click()); } };
   const hide = () => S(() => document.getElementById('overlay').classList.remove('on'));
   const go = tab => S(t => { __game.ui.tab = t; }, tab).then(() => p.waitForTimeout(350));
   // 準備資料
@@ -68,10 +69,37 @@ export async function run(b, URL, devices, PLAT) {
   rec('dElem 五行篩選', await S(() => __game.ui.dElem === '金'));
   if (sel) { await p.selectOption('select[data-change=dElem]', ''); }
   await tap('[data-act=unassign]'); rec('unassign 撤下', true, '已點擊（若無駐守則略過）');
-  // 升星（需展開卡片）
-  await S(() => document.querySelectorAll('#panel [data-act=toggleD]').forEach(x => x.click())); await p.waitForTimeout(300);
-  const star0 = await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0)); await tap('[data-act=starUp]:not([disabled])');
-  rec('starUp 升星', (await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0))) > star0);
+  // 弟子方塊牌：正方形、點開彈出面板（升級／升星／派駐都在面板裡）、上一位／下一位、Esc 關閉、右上「升」直接升一級
+  await S(() => { __game.ui.dFilter = 'all'; __game.ui.dElem = ''; }); await p.waitForTimeout(300);
+  const tl = await S(() => { const t = [...document.querySelectorAll('.dtile')]; if (!t.length) return null; const r = t[0].getBoundingClientRect(); return { n: t.length, w: Math.round(r.width), h: Math.round(r.height), cols: new Set(t.map(x => Math.round(x.getBoundingClientRect().left))).size }; });
+  rec('弟子顯示為方塊牌（正方形）' + (mobile ? '、手機一排三張' : ''), !!tl && Math.abs(tl.w - tl.h) <= 2 && (!mobile || tl.cols === 3), JSON.stringify(tl));
+  const lvSum0 = await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0));
+  const qk = await p.$('.dtile .dquick'); if (qk) { await tapEl(qk); await p.waitForTimeout(250); }
+  rec('右上「升」直接升一級（不開面板）', !!qk && (await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0))) === lvSum0 + 1 && (await S(() => __game.ui.dModal || null)) === null);
+  await tap('.dtile'); await p.waitForTimeout(300);
+  const m1 = await S(() => ({ open: !!document.querySelector('.dm-card'), uid: __game.ui.dModal, hasLv: !!document.querySelector('.dm-card [data-act=levelUp]'), hasStar: !!document.querySelector('.dm-card [data-act=starUp], .dm-card .tag.gold'), hasSel: !!document.querySelector('.dm-card select[data-change=assign]') }));
+  rec('點方塊牌開彈出面板', m1.open && m1.hasLv && m1.hasStar && m1.hasSel, JSON.stringify(m1));
+  await tap('.dm-card [data-act=dNav][data-d="1"]'); await p.waitForTimeout(200);
+  rec('彈出面板「下一位」切換弟子', (await S(() => __game.ui.dModal)) !== m1.uid);
+  await tap('.dm-card [data-act=dNav][data-d="-1"]'); await p.waitForTimeout(200);
+  rec('彈出面板「上一位」回到原本那位', (await S(() => __game.ui.dModal)) === m1.uid);
+  // 升星：挑一位付得起的，開他的面板按升星
+  const sid = await S(async () => { const D = await import('/src/core/disciples.js'); return __game.state.disciples.find(d => D.canStar(__game.state, d))?.uid ?? null; });
+  const star0 = await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0));
+  if (sid) { await S(u => { __game.ui.dModal = u; }, sid); await p.waitForTimeout(300); await tap('.dm-card [data-act=starUp]:not([disabled])'); await p.waitForTimeout(250); }
+  rec('starUp 升星（彈出面板）', !!sid && (await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0))) > star0);
+  // 資源每幀變動時，面板上的按鈕仍點得到（面板不會被重繪吃掉點擊）
+  await S(() => { const s = __game.state; s.res.qi = 1e15; window.__churn2 = setInterval(() => { __game.state.res.qi += 5; }, 25); }); await p.waitForTimeout(300);
+  const lv0 = await S(() => __game.state.disciples.find(d => d.uid === __game.ui.dModal)?.lv);
+  await tap('.dm-card [data-act=levelUp]:not([disabled])'); await p.waitForTimeout(250);
+  rec('彈出面板升級（資源每幀變動中仍點得到）', (await S(() => __game.state.disciples.find(d => d.uid === __game.ui.dModal)?.lv)) === lv0 + 1);
+  await S(() => clearInterval(window.__churn2));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(250);
+  rec('Esc 關閉彈出面板', !(await S(() => !!document.querySelector('.dm-card'))) && (await S(() => __game.ui.dModal || null)) === null);
+  await tap('.dtile'); await p.waitForTimeout(200); await tap('.dm-back'); await p.waitForTimeout(200);
+  rec('點背景關閉彈出面板', !(await S(() => !!document.querySelector('.dm-card'))));
+  const la0 = await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0)); await tap('[data-act=levelAll]:not([disabled])'); await p.waitForTimeout(250);
+  rec('levelAll 全部升級', (await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0))) > la0);
   // 專長心得
   await S(() => { __game.state.unlocked.f_insight = true; }); await p.waitForTimeout(300);
   await S(() => { document.querySelector('#panel [data-key="insight"]')?.click(); }); await p.waitForTimeout(200);
@@ -95,7 +123,8 @@ export async function run(b, URL, devices, PLAT) {
   await hide();
   // 求和：rejectPlea
   await S(() => { __game.state.visitor.current = { id: 950, name: '求和者', type: 'rival', sect: '赤焰谷', role: '弟子', personality: '虛偽', lvl: 9, alert: false, element: '火', returning: 'plead', taunt: '求您手下留情。' }; __game.ui.tab = 'buildings'; }); await p.waitForTimeout(500);
-  const g0 = await S(() => __game.state.grudges.length); await tap('[data-act=rejectPlea]'); rec('rejectPlea 讓他滾', (await S(() => __game.state.grudges.length)) === g0 + 1);
+  const g0 = await S(() => __game.state.grudges.length); await tap('[data-act=rejectPlea]'); await p.waitForTimeout(300);      // 點擊後狀態有延遲，等一下再判斷（手機偶發競態）
+  rec('rejectPlea 讓他滾', (await S(() => __game.state.grudges.length)) === g0 + 1);
   // 法寶稱號：equipTitle（需成就）
   await S(async () => { const A = await import('/src/data/achievements.js'); const s = __game.state; s.achv.done = A.ACHIEVEMENTS.slice(0, 3).map(a => a.id); });
   await S(() => { __game.state.unlocked.f_achv = true; }); await go('goals'); await S(() => { const r = [...document.querySelectorAll('#panel .cmain')].find(x => /成就/.test(x.textContent)); r && r.click(); }); await p.waitForTimeout(400);

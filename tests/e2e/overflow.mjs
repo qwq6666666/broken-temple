@@ -27,6 +27,12 @@ export async function run(b, URL, devices) {
           return { sw: de.scrollWidth, bad: [...new Set(bad)].slice(0, 5) };
         }, W);
         if (r.sw > W + 1 || r.bad.length) issues.push(`W${W} ${stage} ${t}: scrollWidth=${r.sw} 溢出元素=${r.bad.join(' | ')}`);
+        if (t === 'people' && stage !== 'early') {                    // 弟子彈出面板（手機從下方滑出）也要不溢出、卡片不超出視窗高度
+          await p.evaluate(() => { __game.ui.dModal = __game.state.disciples.sort((a, b) => a.uid - b.uid)[0]?.uid; }); await p.waitForTimeout(400);
+          const m = await p.evaluate(W => { const c = document.querySelector('.dm-card'); if (!c) return { none: true }; const r = c.getBoundingClientRect(); const bad = []; c.querySelectorAll('*').forEach(el => { const q = el.getBoundingClientRect(); if (q.width && q.right > W + 1) bad.push(el.tagName + '.' + el.className); }); return { sw: document.documentElement.scrollWidth, r: Math.round(r.right), h: Math.round(r.height), vh: innerHeight, bad: [...new Set(bad)].slice(0, 4) }; }, W);
+          if (m.none || m.sw > W + 1 || m.r > W + 1 || m.h > m.vh + 1 || m.bad.length) issues.push(`W${W} ${stage} 弟子彈出面板: ${JSON.stringify(m)}`);
+          await p.evaluate(() => { __game.ui.dModal = null; }); await p.waitForTimeout(200);
+        }
       }
     }
     await c.close();

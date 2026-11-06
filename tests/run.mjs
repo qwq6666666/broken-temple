@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { CONFIG } from '../src/config.js';
 import { lvEff } from '../src/core/buildingMath.js';
 import { REALMS } from '../src/data/realms.js';
+import { portraitHtml } from '../src/ui/portrait.js';
+import { PORTRAITS } from '../src/data/portraits.js';
 import { createState } from '../src/core/state.js';
 import { fmt } from '../src/core/format.js';
 import { setRng } from '../src/core/rng.js';
@@ -492,6 +494,23 @@ t('升星：先花該弟子的專屬碎片，不夠的用通用碎片 2 換 1 �
   assert.equal(d.star, 3); assert.equal(D.starCost(d), null); assert.equal(D.starUp(s, d.uid), false);
   const old = { uid: 9, defId: 'afu', lv: 1, at: null };       // 舊存檔沒有 star
   assert.equal(stat(old), 1);
+});
+
+t('弟子全部升級：最便宜的先升、買不起就停、不超過等級上限；立繪登記後頭像疊上圖片', () => {
+  const s = createState(); s.res.qi = 1e6;
+  const a = D.addDisciple(s, 'afu').disciple, b = D.addDisciple(s, 'luoshen').disciple;     // N（便宜）與 UR（貴）
+  const n = D.levelUpAll(s);
+  assert.ok(n > 0 && a.lv > 1 && b.lv >= 1);
+  assert.ok(a.lv >= b.lv, '便宜的先升');
+  assert.ok(a.lv <= D.levelCapOf(s, a) && b.lv <= D.levelCapOf(s, b), '不超過上限');
+  assert.ok(!s.disciples.some(d => D.canLevel(s, d)), '升到沒有買得起的為止');
+  const q = s.res.qi; assert.equal(D.levelUpAll(s), 0); assert.equal(s.res.qi, q);          // 再按一次什麼都不做
+  assert.equal(D.levelUpAll(createState()), 0);                                             // 沒有弟子
+  const df = DISCIPLES_BY_ID.afu;
+  assert.ok(portraitHtml(df).includes(df.emoji) && !portraitHtml(df).includes('<img'));      // 沒有立繪：只有 emoji
+  PORTRAITS.afu = 'assets/portraits/afu.png';
+  const h = portraitHtml(df); delete PORTRAITS.afu;
+  assert.ok(h.includes(df.emoji) && h.includes('<img') && h.includes('assets/portraits/afu.png') && h.includes('onerror'), '有立繪：疊上圖片，載入失敗退回 emoji');
 });
 
 t('弟子專屬碎片：混合支付、只能給自己升星、存檔清理、轉生保留', () => {
