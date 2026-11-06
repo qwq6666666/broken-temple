@@ -997,6 +997,11 @@ t('秘境與詞條資料完整', () => {
   EXPEDITIONS.forEach(e => { assert.ok(e.minutes > 0 && e.difficulty > 0 && Object.keys(e.reward).length); });
   assert.ok(EXPEDITIONS.every((e, i) => i === 0 || e.unlockRealm > EXPEDITIONS[i - 1].unlockRealm));
   MUTATORS.forEach(m => assert.ok(m.effects.dao > 0 && m.desc));
+  const KEYS = new Set(['qiMult', 'stoneMult', 'powerMult', 'burstReward', 'disguiseRate', 'tokenRate', 'cdCut', 'offlineEff', 'offlineCap', 'discipleCap', 'visitFreq', 'startStone', 'startToken', 'dao']);
+  MUTATORS.forEach(m => { assert.ok(m.name && m.flavor, m.id); Object.keys(m.effects).forEach(k => assert.ok(KEYS.has(k), `${m.id} 用了不支援的效果鍵 ${k}`)); });
+  assert.equal(new Set(MUTATORS.map(m => m.id)).size, MUTATORS.length, '詞條 id 重複');
+  assert.ok(MUTATORS.length >= 12, '輪迴詞條數量');
+  MUTATORS.forEach(m => { const x = createState(); x.mutator = m.id; assert.ok(eco.qiPerSec(x) > 0 && eco.stonePerSec(x) >= 0 && Number.isFinite(eco.combatPower(x)), m.id); });   // 每個詞條都不會把產出算成負數或 NaN
 });
 
 // ── 使用導引 ──
@@ -1634,6 +1639,7 @@ t('事件資料：id 不重複、每則 2~3 個選項、文字夠長；中期（
   for (const i of INCIDENTS) { assert.ok(i.choices.length >= 2 && i.choices.length <= 3, i.id); assert.ok(i.text.length > 12 && i.title && i.emoji, i.id); assert.ok(i.choices.every(c => c.label && c.desc), i.id); assert.ok(i.timeoutChoice >= 0 && i.timeoutChoice < i.choices.length, i.id); }
   const at = r => INCIDENTS.filter(i => i.minRealm <= r && !i.minReb).length;
   assert.ok(at(6) >= 20 && at(10) >= 28 && at(12) >= 33, `中期事件池太小：${at(6)}/${at(10)}/${at(12)}`);
+  for (let r = 4; r <= 12; r++) assert.ok(INCIDENTS.filter(i => i.minRealm === r).length >= 3, `境界 ${r} 專屬事件太少`);   // 中段不再每境只有 1~2 則
   const good = INCIDENTS.filter(i => i.good).length; assert.ok(good >= 20 && INCIDENTS.length - good >= 12, '好壞事件比例失衡');
 });
 
