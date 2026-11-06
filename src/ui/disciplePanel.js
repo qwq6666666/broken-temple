@@ -1,8 +1,9 @@
 // 弟子名單：名字卡、升級、派駐（專長匹配標示 ×2）。
+import { CONFIG } from '../config.js';
 import { BUILDINGS, BUILDINGS_BY_ID } from '../data/buildings.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES, RARITY_ORDER } from '../data/gachaRates.js';
-import { levelCapOf, levelCost, canLevel, assignedTo, starCost, canStar, canBranch } from '../core/disciples.js';
+import { levelCapOf, levelCost, canLevel, assignedTo, starCost, canStar, canBranch, starPay, dshardsOf } from '../core/disciples.js';
 import { traitText } from '../data/traits.js';
 import { slots } from '../core/buildings.js';
 import { stat, isSpecialtyMatch, isElementMatch, starOf, contribution, elementEffect } from '../core/discipleMath.js';
@@ -96,6 +97,13 @@ function slotsView(s, ui, away) {
 }
 
 // 精簡卡：頭像、名字、等級星級、派駐位置、升級；點「詳情」展開特性、故事、升星、手動派駐
+// 升星花費：該弟子的專屬碎片 have/need；不夠的部分用通用碎片抵（每 1 片專屬 = shardSwap 片通用）
+function starChips(s, d) {
+  const p = starPay(s, d); if (!p) return '';
+  return `<span class="chip ${p.own >= p.need ? '' : 'lack'}" title="${esc(DISCIPLES_BY_ID[d.defId].name)}的專屬碎片（抽到重複時獲得）">🧬${dshardsOf(s, d.defId)}/${p.need}</span>`
+    + (p.uni ? `<span class="chip ${p.ok ? '' : 'lack'}" title="專屬碎片不夠的部分，用通用碎片抵（每片專屬碎片 = ${CONFIG.disciple.shardSwap} 片通用碎片）">＋🧩${p.uni}</span>` : '');
+}
+
 function card(s, ui, d, away) {
   const df = DISCIPLES_BY_ID[d.defId], r = RARITIES[df.rarity];
   const can = canLevel(s, d), atMax = d.lv >= levelCapOf(s, d), sc = starCost(d), star = starOf(d);
@@ -118,14 +126,14 @@ function card(s, ui, d, away) {
       ${storyRow(s, d)}
       ${branchRow(s, d)}
       <select class="assign" data-change="assign" data-uid="${d.uid}"><option value="">— 未派駐 —</option>${opts}</select>
-      ${sc ? `<button class="btn ${canStar(s, d) ? 'primary' : ''}" data-act="starUp" data-uid="${d.uid}" ${canStar(s, d) ? '' : 'disabled'}>升星 ${costChips(s, sc)}</button>` : '<span class="tag gold">滿星</span>'}
+      ${sc ? `<button class="btn ${canStar(s, d) ? 'primary' : ''}" data-act="starUp" data-uid="${d.uid}" ${canStar(s, d) ? '' : 'disabled'}>升星 ${starChips(s, d)}</button>` : '<span class="tag gold">滿星</span>'}
     </div>`;
   }
   return `<div class="dcard ${open ? 'open' : ''}" style="--rc:${r.color}">
     <div class="dhead"><span class="de">${df.emoji}</span>
       <div class="dname"><b>${esc(df.name)}</b> <span class="rar">${df.rarity}</span>${br ? ` <span class="tag gold">${br.icon}${br.name}</span>` : ''}
         <small>Lv ${d.lv}/${levelCapOf(s, d)} <span class="gold">${'★'.repeat(star)}${'☆'.repeat(3 - star)}</span></small></div></div>
-    ${loc}${ch ? `<button class="btn mini primary" data-act="readStory" data-uid="${d.uid}">📖 讀故事</button>` : ''}${canBranch(d) ? `<button class="btn mini primary" data-act="toggleD" data-uid="${d.uid}">⬆ 可進階</button>` : ''}${sc && canStar(s, d) ? `<button class="btn mini primary" data-act="starUp" data-uid="${d.uid}">⭐ 升星 ${costChips(s, sc)}</button>` : ''}
+    ${loc}${ch ? `<button class="btn mini primary" data-act="readStory" data-uid="${d.uid}">📖 讀故事</button>` : ''}${canBranch(d) ? `<button class="btn mini primary" data-act="toggleD" data-uid="${d.uid}">⬆ 可進階</button>` : ''}${sc && canStar(s, d) ? `<button class="btn mini primary" data-act="starUp" data-uid="${d.uid}">⭐ 升星 ${starChips(s, d)}</button>` : ''}
     ${lvBtn}
     <button class="dmore" data-act="toggleD" data-uid="${d.uid}" aria-expanded="${open}">${open ? '收合 ▴' : '詳情 ▾'}</button>
     ${detail}

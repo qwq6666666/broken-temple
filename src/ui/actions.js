@@ -125,7 +125,7 @@ export function bindActions(s, ui, rerender) {
     },
     recruit: el => {
       const r = X.recruit(s, +el.dataset.uid);
-      if (r) { toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧩${r.shards}`, 'good'); sfx('coin'); }
+      if (r) { toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧬專屬碎片 +${r.shards}`, 'good'); sfx('coin'); }
     },
     // 第一步：先看預覽（可以反悔）
     burst: () => {

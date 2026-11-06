@@ -32,6 +32,7 @@ export function createState() {
     factions: {},                           // 勢力威望 {factionId: rep}（跨轉生保留）
     returners: [],                          // 日後可能回頭的仇人（本輪）
     specs: {},                              // 建築專精 {buildingId: optionId}（本輪）
+    dshards: {},                            // 弟子專屬碎片 {defId: n}：抽到重複弟子時獲得，只能用來替該弟子升星（跨轉生保留）
     stories: {},                            // 已讀弟子故事章數 {defId: n}
     unlocked: {},                           // 已解鎖的分頁（新手引導）
     seenIntro: false,                       // 是否看過開場說明

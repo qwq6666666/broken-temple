@@ -229,12 +229,14 @@ t('抽卡保底：50 抽 SR、90 抽 SSR', () => {
   setRng(Math.random);
 });
 
-t('重複弟子轉碎片', () => {
+t('重複弟子轉「該弟子的專屬碎片」，不進通用碎片', () => {
   const s = createState();
   D.addDisciple(s, 'afu');
   const r = D.addDisciple(s, 'afu');
-  assert.equal(r.isNew, false); assert.ok(s.res.shard >= 1);
+  assert.equal(r.isNew, false); assert.equal(r.shards, 1); assert.equal(D.dshardsOf(s, 'afu'), 1);
+  assert.equal(s.res.shard, 0); assert.equal(D.dshardsOf(s, 'shenyao'), 0);       // 通用碎片不變、別的弟子沒有
   assert.equal(s.disciples.length, 1);
+  D.addDisciple(s, 'luoshen'); D.addDisciple(s, 'luoshen'); assert.equal(D.dshardsOf(s, 'luoshen'), 80);   // UR 重複 80
 });
 
 t('專長匹配 ×2：農修派駐靈田 > 體修派駐靈田', () => {
@@ -475,19 +477,39 @@ t('特性：偽裝增速、亮一手獎勵、爆擊獎勵、靈石產出', () =>
   assert.ok(br(true) > br(false));
 });
 
-t('升星：花碎片，屬性與特性 +25%、等級上限 +2，滿星為止', () => {
+t('升星：先花該弟子的專屬碎片，不夠的用通用碎片 2 換 1 抵；屬性與特性 +25%、等級上限 +2，滿星為止', () => {
   const s = createState(); s.res.shard = 1000;
   const d = D.addDisciple(s, 'afu').disciple;
   const st0 = stat(d), tv0 = traitValue(d), cap0 = D.levelCapOf(s, d);
   assert.deepEqual(D.starCost(d), { shard: 5 });
+  // 沒有專屬碎片：全部用通用碎片，5 × 2 = 10
+  assert.deepEqual(D.starPay(s, d), { need: 5, own: 0, uni: 10, ok: true });
   assert.equal(D.starUp(s, d.uid), true);
-  assert.equal(s.res.shard, 995); assert.equal(d.star, 1);
+  assert.equal(s.res.shard, 990); assert.equal(d.star, 1);
   assert.ok(Math.abs(stat(d) / st0 - 1.25) < 1e-9 && Math.abs(traitValue(d) / tv0 - 1.25) < 1e-9);
   assert.equal(D.levelCapOf(s, d), cap0 + 2);
   D.starUp(s, d.uid); D.starUp(s, d.uid);
   assert.equal(d.star, 3); assert.equal(D.starCost(d), null); assert.equal(D.starUp(s, d.uid), false);
   const old = { uid: 9, defId: 'afu', lv: 1, at: null };       // 舊存檔沒有 star
   assert.equal(stat(old), 1);
+});
+
+t('弟子專屬碎片：混合支付、只能給自己升星、存檔清理、轉生保留', () => {
+  const s = createState(); const d = D.addDisciple(s, 'baihe').disciple;            // SSR：升 1 星需 20
+  s.dshards.baihe = 12; s.res.shard = 10;
+  assert.deepEqual(D.starPay(s, d), { need: 20, own: 12, uni: 16, ok: false });     // 缺 8 片 × 2 = 16 通用，只有 10
+  assert.equal(D.canStar(s, d), false); assert.equal(D.starUp(s, d.uid), false); assert.equal(s.dshards.baihe, 12); assert.equal(s.res.shard, 10);   // 失敗不扣
+  s.res.shard = 16; assert.equal(D.starUp(s, d.uid), true);
+  assert.equal(s.dshards.baihe, 0); assert.equal(s.res.shard, 0); assert.equal(d.star, 1);
+  // 別人的專屬碎片幫不上忙
+  const e = D.addDisciple(s, 'afu').disciple; s.dshards.baihe = 999; assert.deepEqual(D.starPay(s, e).own, 0);
+  // 專屬碎片足夠時完全不動通用碎片
+  s.dshards.afu = 5; s.res.shard = 7; assert.equal(D.starUp(s, e.uid), true); assert.equal(s.res.shard, 7); assert.equal(s.dshards.afu, 0);
+  // 存檔：未知弟子、非數字、負數被清掉
+  const bad = createState(); bad.dshards = { afu: 3.7, nobody: 5, baihe: -2, shenyao: 'x' }; sanitize(bad); assert.deepEqual(bad.dshards, { afu: 3 });
+  assert.deepEqual(S.parse(JSON.stringify({ version: 3, savedAt: 1, state: { res: { qi: 1 }, buildings: {} } })).state.dshards, {});    // 舊存檔沒有欄位 → 空
+  // 轉生保留（弟子收藏也保留）
+  const k = createState(); D.addDisciple(k, 'afu'); k.dshards.afu = 9; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.dshards.afu, 9);
 });
 
 t('宗門大事：達成一次、只發一次獎勵、永久加成生效', () => {

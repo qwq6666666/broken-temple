@@ -9,12 +9,13 @@ import { slots } from './buildings.js';
 import { lvEff } from './buildingMath.js';
 import { canAfford, pay } from './resources.js';
 
-// 新增弟子；已擁有同一位 → 轉為碎片
+export const dshardsOf = (s, defId) => s.dshards?.[defId] || 0;
+// 新增弟子；已擁有同一位 → 轉為「該弟子的專屬碎片」（只能替他升星；通用碎片另有來源）
 export function addDisciple(s, defId) {
   const exist = s.disciples.find(d => d.defId === defId);
   if (exist) {
     const rar = RARITIES[defOf(exist).rarity];
-    s.res.shard += rar.shard;
+    (s.dshards ||= {})[defId] = dshardsOf(s, defId) + rar.shard;
     return { isNew: false, shards: rar.shard, disciple: exist };
   }
   const d = { uid: s.nextUid++, defId, lv: 1, at: null, star: 0 };
@@ -53,16 +54,24 @@ export function assign(s, uid, bid) {
   return true;
 }
 
-// 升星：花碎片，屬性與特性 +25%、等級上限 +2；滿星回傳 null
+// 升星：屬性與特性 +25%、等級上限 +2；滿星回傳 null。
+// starCost 是需要的「弟子專屬碎片」數；不夠的部分可用通用碎片抵（每 1 片專屬碎片 = CONFIG.disciple.shardSwap 片通用碎片）
 export function starCost(d) {
   const tbl = CONFIG.disciple.starCost[defOf(d).rarity];
   return starOf(d) >= CONFIG.disciple.starMax ? null : { shard: tbl[starOf(d)] };
 }
-export const canStar = (s, d) => { const c = starCost(d); return !!c && canAfford(s, c); };
+// 實際支付方式：{ need 需要, own 用掉的專屬碎片, uni 要付的通用碎片, ok 付得起 }
+export function starPay(s, d) {
+  const c = starCost(d); if (!c) return null;
+  const own = Math.min(dshardsOf(s, d.defId), c.shard), uni = (c.shard - own) * CONFIG.disciple.shardSwap;
+  return { need: c.shard, own, uni, ok: s.res.shard >= uni };
+}
+export const canStar = (s, d) => !!starPay(s, d)?.ok;
 export function starUp(s, uid) {
   const d = s.disciples.find(x => x.uid === uid);
   if (!d || !canStar(s, d)) return false;
-  pay(s, starCost(d)); d.star = starOf(d) + 1;
+  const p = starPay(s, d);
+  s.dshards[d.defId] = dshardsOf(s, d.defId) - p.own; s.res.shard -= p.uni; d.star = starOf(d) + 1;
   return true;
 }
 

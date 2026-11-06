@@ -97,7 +97,7 @@ export function nextStep(s) {
     const can = Object.values(BRANCHES).some(b => canAfford(s, b.cost));
     return can ? { text: '有弟子 Lv10 了，可以二選一進階。', tab: 'disciples' } : { text: '有弟子 Lv10 了，進階需要秘境材料（洞府殘玉或靈泉露），派隊伍去探索。', tab: 'expedition' };
   }
-  if (hasFeature(s, 'insight') && INSIGHTS.some(i => canLearn(s, i.spec) && insightActive(s, i.spec))) return { text: '有專長心得可以領悟（用碎片，該專長弟子要派駐中）。', tab: 'disciples' };
+  if (hasFeature(s, 'insight') && INSIGHTS.some(i => canLearn(s, i.spec) && insightActive(s, i.spec))) return { text: '有專長心得可以領悟（用通用碎片，該專長弟子要派駐中）。', tab: 'disciples' };
   if (s.artifacts.length && s.equipped.length < Math.min(EQUIP_SLOTS, s.artifacts.length)) return { text: '裝備欄還有空位：裝上法寶可獲得共鳴加成。', tab: 'goals' };
   const g = GOALS.find(x => !isDone(s, x.id));
   return g ? { text: `宗門大事：${g.name} — ${g.desc}`, tab: 'goals' } : null;

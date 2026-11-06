@@ -77,6 +77,7 @@ export function sanitize(s) {
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   if (!OFFLINE_EVENTS_BY_ID[s.offlineLast]) s.offlineLast = null;
+  s.dshards = Object.fromEntries(Object.entries(isPlain(s.dshards) ? s.dshards : {}).filter(([id, n]) => DISCIPLES_BY_ID[id] && Number.isFinite(n) && n > 0).map(([id, n]) => [id, Math.floor(n)]));
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };
   s.foes = Object.fromEntries(Object.entries(isPlain(s.foes) ? s.foes : {}).filter(([k, v]) => isPlain(v)).slice(0, 300).map(([k, v]) => [k, { beaten: Math.max(0, Math.min(99, Math.floor(num(Number(v.beaten))))) }]));

@@ -1,7 +1,7 @@
 // 轉生：哪些會重置、哪些會保留。確認視窗的文字與 dao.rebirth 的行為都由這裡產生，避免新增功能後文案過時。
 // keys 是頂層狀態欄位（直接帶到下一輪）；res 是保留的資源（符合其一即保留）。
 export const REBIRTH_KEEP = [
-  { label: '弟子收藏與星級（等級與派駐、進階會重置）', keys: ['disciples', 'nextUid', 'nextGid', 'recruits'] },
+  { label: '弟子收藏與星級（等級與派駐、進階會重置）', keys: ['disciples', 'dshards', 'nextUid', 'nextGid', 'recruits'] },
   { label: '碎片、功勳、秘境材料', res: k => k === 'shard' || k === 'merit' || k.startsWith('mat_') },
   { label: '功法法寶與裝備', keys: ['artifacts', 'equipped'] },
   { label: '宗門大事、成就與稱號、年表、委託進度、宗門榮耀', keys: ['goalsDone', 'achv', 'chronicle', 'commissions', 'glory', 'weekly'] },

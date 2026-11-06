@@ -85,7 +85,7 @@ export function buy(s, id) {
 // 道心兌換：商店買滿後的出口，固定價格可重複兌換（不影響進度速度，只補收藏與升星需求）
 export const EXCHANGES = [
   { id: 'exToken', name: '兌換招賢令', icon: '🎫', cost: 6, give: { token: 6 }, desc: '6 道心 → 6 招賢令' },
-  { id: 'exShard', name: '兌換碎片',   icon: '🧩', cost: 6, give: { shard: 12 }, desc: '6 道心 → 12 碎片（升星、築基後突破）' },
+  { id: 'exShard', name: '兌換碎片',   icon: '🧩', cost: 6, give: { shard: 12 }, desc: '6 道心 → 12 通用碎片（專長心得；也能替弟子升星，每片專屬碎片換 2 片）' },
 ];
 export function exchange(s, id) {
   const e = EXCHANGES.find(x => x.id === id);
