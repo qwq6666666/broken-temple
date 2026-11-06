@@ -19,6 +19,7 @@ node tests/sim.mjs 40       # 平衡模擬器：貪婪機器人跑 40 小時，�
 node tests/sim.mjs 40 passive   # 同上但完全不打坐（純掛機）
 node tests/sim.mjs 40 active rebirth   # 化神後自動轉生並購買道心，印出每一輪耗時
 node tests/sim.mjs 12 equip branch commission insight smart   # 開啟新功能的最佳化機器人（裝備法寶、弟子進階、領委託、領悟專長心得、用「補滿空位」派駐）
+node tests/sim.mjs 40 equip branch commission insight smart rebirth ascend   # 再加 ascend：機器人順勢渡劫並買道果，印出各天劫在第幾世達成；RUNSTATS=1 會印出每輪的連鎖／事件／忍／秘境（調天劫門檻用）
 ELEMENT=0 node tests/sim.mjs 12   # 關閉五行相生相剋／克制當比較基準；SHENG/KE/ENEMY_BEAT 可覆寫數值；SEED 指定亂數種子
 ```
 
@@ -32,3 +33,5 @@ ELEMENT=0 node tests/sim.mjs 12   # 關閉五行相生相剋／克制當比較�
 - **道果**：九劫全渡後，道心商店開放三項沒有實際上限的永久加成（`gate: 'ascend'`）。
 - **弟子終章**：有第二章的 17 位弟子在升到 3 星後可讀第三章（`STORIES3`）。
 - **轉生後事件**：突發事件與離線事件可用 `minReb` 限定「至少轉生幾次」才會出現；化神專屬事件用 `minRealm: 13`。
+
+天劫平衡（12 種子、40 小時、`smart` 最佳化機器人且**不刻意追條件**）：開啟天劫與道果對轉生節奏幾乎沒有影響（40 小時 17.4 輪 vs 17.3 輪，在雜訊內，永久加成本來就小）。門檻依機器人每輪實際表現訂（引爆 6~13、連鎖 12~15、事件 10~19、忍 76~150、秘境 7~18、第一輪 3.2 小時、之後約 2.2 小時）：第一重天第一輪就過，後兩重要靠限時（2 小時）、連鎖 14（要拖久一點填滿復仇簿）、秘境 12 次等互相拉扯的條件，機器人約第 6~10 世才全部渡完；「轉生 8 次」是最硬的下限（約第 9 世）。調門檻請用 `RUNSTATS=1` 先量表現。

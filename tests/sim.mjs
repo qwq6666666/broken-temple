@@ -1,5 +1,5 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
-// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [squad] [noexp]
+// 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [ascend] [squad] [noexp]
 //   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission/insight = 開啟對應新功能的最佳化行為
 //   smart = 用「補滿空位」依專長五行派駐；環境變數 ELEMENT=0 關閉五行效果（比較基準）
 //   亂數種子可用環境變數 SEED=… 指定（比較設定時請多跑幾個種子取平均）
@@ -29,6 +29,7 @@ import { BUILDINGS } from '../src/data/buildings.js';
 import { ARTIFACTS_BY_ID as ARTS, EQUIP_SLOTS } from '../src/data/artifacts.js';
 import { isSpecialtyMatch } from '../src/core/discipleMath.js';
 import { REALMS } from '../src/data/realms.js';
+import * as Asc from '../src/core/ascend.js';
 
 const HOURS = Number(process.argv[2]) || 12;
 const PASSIVE = process.argv[3] === 'passive';
@@ -52,17 +53,24 @@ const seen = new Set();
 const once = (k, cond) => { if (!seen.has(k) && cond) { seen.add(k); mark(k); } };
 
 const lives = []; let lifeStart = 0;
+const RS = k => s.stats[k] - (s.run.base?.[k] || 0);      // 本輪統計（天劫條件用；RUNSTATS=1 時印出，調天劫門檻用）
 const SHOP_PRIORITY = ['stone', 'qi', 'power', 'token', 'disguise', 'burst', 'cd', 'startS', 'startT', 'offcap', 'offeff'];
+const FRUIT = ['fruitQi', 'fruitStone', 'fruitPower'];     // ascend 旗標：機器人也會買道果（便宜的先買）
 const STEP = 1000;                       // 每步 1 秒
 for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   eco.tick(s, STEP); conceal.tick(s, STEP); endure.tick(s); Inc.tick(s);
   if (s.incident.current) { const i = [0, 1, 2].find(k => Inc.canChoose(s, k)); Inc.resolve(s, i ?? 0, i === undefined); }   // 機器人：選第一個負擔得起的
   if (!PASSIVE) meditate(s);
+  // ascend：化神後有天劫待渡就渡（機器人沒有特別追條件，只是順勢達成的才算）；渡劫道心立刻進帳
+  if (FLAG('ascend')) { Asc.tick(s); for (const id of [...s.ascend.ready]) { Asc.claim(s, id); once('天劫 ' + id + '（第 ' + (s.reincarnation.count + 1) + ' 世）', true); } }
   // 化神後轉生，並把道心花在商店
   if (REBIRTH && Dao.canRebirth(s)) {
-    lives.push({ min: (s.t - lifeStart) / 60000, dao: Dao.daoGain(s), bursts: s.run.bursts });
+    lives.push({ min: (s.t - lifeStart) / 60000, dao: Dao.daoGain(s), bursts: s.run.bursts, chain: s.run.maxChain, inc: RS('incidents'), endure: RS('endures'), exp: RS('expeditions') });
     Dao.rebirth(s); lifeStart = s.t;
-    for (let again = true; again;) { again = false; for (const id of SHOP_PRIORITY) if (Dao.buy(s, id)) { again = true; break; } }
+    for (let again = true; again;) {
+      again = false; for (const id of SHOP_PRIORITY) if (Dao.buy(s, id)) { again = true; break; }
+      if (!again && FLAG('ascend')) { const f = FRUIT.filter(id => Dao.canBuy(s, id)).sort((a, b) => Dao.shopCost(s, a).daoHeart - Dao.shopCost(s, b).daoHeart)[0]; if (f && Dao.buy(s, f)) again = true; }
+    }
   }
   // 新功能（可用旗標開關，量化對成長曲線的影響）
   if (FLAG('commission')) {
@@ -130,7 +138,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   }
 }
 
-if (REBIRTH) { console.log('各輪耗時（分鐘）與道心：'); lives.forEach((l, i) => console.log(`  第 ${i + 1} 輪 ${l.min.toFixed(0).padStart(5)} 分（${(l.min / 60).toFixed(2)} 小時）  道心 +${l.dao}  引爆 ${l.bursts} 次  ${i ? `= 第 1 輪的 ${(l.min / lives[0].min * 100).toFixed(0)}%` : ''}`)); }
+if (REBIRTH) { console.log('各輪耗時（分鐘）與道心：'); lives.forEach((l, i) => console.log(`  第 ${i + 1} 輪 ${l.min.toFixed(0).padStart(5)} 分（${(l.min / 60).toFixed(2)} 小時）  道心 +${l.dao}  引爆 ${l.bursts} 次  ${i ? `= 第 1 輪的 ${(l.min / lives[0].min * 100).toFixed(0)}%` : ''}${process.env.RUNSTATS ? `  ｜連鎖 ${l.chain} 事件 ${l.inc} 忍 ${l.endure} 秘境 ${l.exp}` : ''}`)); }
 const f = sec => sec >= 3600 ? (sec / 3600).toFixed(2) + ' 小時' : (sec / 60).toFixed(1) + ' 分';
 console.log(`模擬 ${HOURS} 小時（${PASSIVE ? '純掛機' : '含打坐'}）`);
 for (const [n, t] of log) console.log(String(f(t)).padStart(10), ' ', n);
