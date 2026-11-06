@@ -1,1 +1,9 @@
-{"type":"module"}
+{
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run.mjs",
+    "test:invariants": "node tests/invariants.mjs 1 12",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "sim": "node tests/sim.mjs"
+  }
+}
