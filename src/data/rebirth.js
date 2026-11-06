@@ -9,6 +9,7 @@ export const REBIRTH_KEEP = [
   { label: '秘境探索度與發現事件', keys: ['explore', 'exMile'] },
   { label: '宿敵進度、仇人記憶與老對頭、勢力威望', keys: ['nemeses', 'foes', 'factions'] },
   { label: '抽卡保底、弟子故事、統計與設定', keys: ['gacha', 'stories', 'stats', 'settings', 'unlocked', 'seenIntro'] },
+  { label: '九重天劫進度與道果', keys: ['ascend'] },
   { label: '道心與商店加成', keys: ['reincarnation'] },
 ];
 export const REBIRTH_RESET = ['靈氣、靈石、招賢令', '境界與建築（含專精）', '弟子等級、派駐與進階', '復仇簿、回頭客與偽裝／蓄力', '進行中的秘境探索與突發事件'];

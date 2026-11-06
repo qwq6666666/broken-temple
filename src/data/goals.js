@@ -5,6 +5,7 @@ import { ARTIFACTS_BY_ID } from './artifacts.js';
 import { NEMESES } from './nemeses.js';
 import { ARTIFACTS } from './artifacts.js';
 import { DISCIPLES } from './disciples.js';
+const FRUIT_IDS = ['fruitQi', 'fruitStone', 'fruitPower'];
 const NORMAL_ARTS = ARTIFACTS.filter(a => !a.unique).length;
 const normalArts = s => s.artifacts.filter(id => !ARTIFACTS_BY_ID[id].unique).length;
 const BASE6 = ['temple', 'field', 'alchemy', 'library', 'arena', 'array'];     // 後期建築不計入「全建築」目標
@@ -44,5 +45,11 @@ export const GOALS = [
   { id: 'insall',  name: '心得大成', desc: '五種專長心得全部領悟（15 層）', cur: s => Object.values(s.insight || {}).reduce((a, n) => a + n, 0), target: 15, reward: { token: 25, perm: { qiMult: 0.04 } } },
   { id: 'artall',  name: '藏寶閣圓滿', desc: '收集全部功法法寶', cur: s => s.artifacts.length, target: ARTIFACTS.length, reward: { token: 30, perm: { burstReward: 0.08 } } },
   { id: 'reb10',   name: '十世修行', desc: '轉生 10 次', cur: s => s.reincarnation.count, target: 10, reward: { token: 40, perm: { stoneMult: 0.05, qiMult: 0.05 } } },
+  // ── 化神之後：天劫與道果 ──
+  { id: 'asc3',    name: '雷劫已過', desc: '渡過 3 道天劫', cur: s => s.ascend.done.length, target: 3, reward: { token: 20, perm: { qiMult: 0.03 } } },
+  { id: 'asc6',    name: '心魔已斬', desc: '渡過 6 道天劫', cur: s => s.ascend.done.length, target: 6, reward: { token: 30, perm: { stoneMult: 0.03 } } },
+  { id: 'asc9',    name: '破廟飛升', desc: '九重天劫全部渡過', cur: s => s.ascend.done.length, target: 9, reward: { token: 50, perm: { powerMult: 0.05 } } },
+  { id: 'fruit20', name: '道果初成', desc: '道果累計升級 20 次', cur: s => FRUIT_IDS.reduce((a, id) => a + (s.reincarnation.shop[id] || 0), 0), target: 20, reward: { token: 40, perm: { burstReward: 0.05 } } },
+  { id: 'fruit100', name: '道果纍纍', desc: '道果累計升級 100 次', cur: s => FRUIT_IDS.reduce((a, id) => a + (s.reincarnation.shop[id] || 0), 0), target: 100, reward: { token: 80, perm: { qiMult: 0.05, stoneMult: 0.05 } } },
 ];
 export const GOALS_BY_ID = Object.fromEntries(GOALS.map(g => [g.id, g]));

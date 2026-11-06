@@ -5,6 +5,7 @@
 //   disguise          偽裝值加減              artifact / recruit  獲得功法法寶／降服弟子的機率
 //   gamble {p, win, lose}                     以機率 p 套用 win，否則 lose（各為 effects）
 //   armorByArray      損失依護山大陣等級減免
+// def.minRealm 為境界序號下限（13＝化神）；def.minReb（選填）為至少轉生幾次。
 // choice.cost {stoneSec|qiSec}：先付費才能選；choice.requires {building}：需該建築 ≥1 級。
 export const INCIDENT_INTERVAL = { firstSec: 300, minSec: 420, maxSec: 840, expireSec: 150 };
 const min = n => n * 60 * 1000;
@@ -156,6 +157,56 @@ export const INCIDENTS = [
     choices: [
       { label: '傾囊相授', cost: { qiSec: 60 }, desc: '花約 60 秒靈氣；他心服口服，留下一枚招賢令', effects: { token: 1 } },
       { label: '教他忍字訣', desc: '偽裝值 +2', effects: { disguise: 2 } },
+    ] },
+  // ── 化神之後／轉生之後的事件（minRealm 13 = 化神；minReb = 至少轉生幾次）──
+  { id: 'cloud', emoji: '🌩️', title: '遠方劫雲', weight: 6, good: true, minRealm: 13, timeoutChoice: 0,
+    text: '天邊聚起一朵不屬於你的劫雲，雷光在雲裡翻滾。老祖瞇著眼：「別人的劫，也是你的功課。」',
+    choices: [
+      { label: '觀雲悟道', desc: '穩穩得到一大筆靈氣', effects: { qiSec: 300 } },
+      { label: '借雷淬體', desc: '五成機會大賺靈石；失敗則一棟建築暫停 4 分鐘', effects: { gamble: { p: 0.5, win: { stoneSec: 400 }, lose: { pauseBuilding: min(4) } } } },
+    ] },
+  { id: 'echo', emoji: '📣', title: '祖庭回聲', weight: 6, good: true, minRealm: 13, timeoutChoice: 0,
+    text: '山門的石階忽然傳來整齊的腳步聲，抬頭卻空無一人。老祖輕聲說：「那是三千年前的同門，回來看看這座廟。」',
+    choices: [
+      { label: '擺上香案', cost: { qiSec: 120 }, desc: '花約 120 秒靈氣；得到招賢令與碎片', effects: { token: 2, shard: 3 } },
+      { label: '靜靜站著', desc: '得到靈氣，偽裝值 +1', effects: { qiSec: 150, disguise: 1 } },
+    ] },
+  { id: 'qyhead', emoji: '🙇', title: '青雲掌門求見', weight: 5, good: true, minRealm: 13, timeoutChoice: 1,
+    text: '青雲宗現任掌門帶著一車賠禮站在山門外，深深一揖，卻不敢跨進門檻：「晚輩……是來認錯的。」',
+    choices: [
+      { label: '請進奉茶', desc: '對方感激涕零：得到招賢令與法寶的機會', effects: { token: 2, artifact: 0.25 } },
+      { label: '收下賠禮，不見', desc: '得到一筆靈石，偽裝值 +2', effects: { stoneSec: 240, disguise: 2 } },
+    ] },
+  { id: 'seal', emoji: '🔒', title: '封印震動', weight: 6, good: false, minRealm: 13, timeoutChoice: 1,
+    text: '破廟地底傳來沉悶的敲擊聲，像有誰在下面叩門。老祖臉色一沉：「三千年前封的東西，醒了半隻眼。」',
+    choices: [
+      { label: '啟動護山大陣', requires: { building: 'array' }, desc: '需要護山大陣；封印安穩，得到少量碎片', effects: { shard: 2 } },
+      { label: '親自鎮壓', cost: { qiSec: 200 }, desc: '花約 200 秒靈氣；封印穩住，得到招賢令', effects: { token: 1 } },
+      { label: '裝作沒聽見', desc: '損失較多靈氣、一棟建築暫停 5 分鐘，護山大陣可減免', effects: { loseQiSec: 150, armorByArray: true, pauseBuilding: min(5) } },
+    ] },
+  { id: 'letter', emoji: '✉️', title: '飛升者留書', weight: 5, good: true, minRealm: 13, timeoutChoice: 0,
+    text: '一封被雷火燎過邊的信從天而降，署名是某位早已飛升的前輩：「後來者，這條路不難，只是長。」',
+    choices: [
+      { label: '細讀', desc: '得到靈氣與碎片', effects: { qiSec: 200, shard: 2 } },
+      { label: '燒了祭天', desc: '三成五機會得到法寶；否則得到一點靈氣', effects: { gamble: { p: 0.35, win: { artifact: 1 }, lose: { qiSec: 60 } } } },
+    ] },
+  { id: 'pastself', emoji: '🪞', title: '前世的倒影', weight: 6, good: true, minRealm: 0, minReb: 1, timeoutChoice: 1,
+    text: '你在水缸裡看見一張熟悉的臉——是上一世的你，還在為同一件事皺眉。老祖：「別嚇他，他還不知道結局。」',
+    choices: [
+      { label: '對他點點頭', desc: '偽裝值 +2，得到少量靈氣', effects: { disguise: 2, qiSec: 60 } },
+      { label: '把這一世的經驗傳給他', cost: { qiSec: 80 }, desc: '花約 80 秒靈氣；得到招賢令', effects: { token: 2 } },
+    ] },
+  { id: 'well', emoji: '⚱️', title: '輪迴井', weight: 5, good: true, minRealm: 0, minReb: 2, timeoutChoice: 1,
+    text: '後院的枯井裡傳出隱約的鐘聲，井水映著不同時代的月亮。老祖：「喝一口，能想起一件前世的事。」',
+    choices: [
+      { label: '喝一口', desc: '四成機會想起丹方（大量碎片）；否則只是一口涼水', effects: { gamble: { p: 0.4, win: { shard: 6 }, lose: { qiSec: 40 } } } },
+      { label: '往井裡投一枚靈石', cost: { stoneSec: 60 }, desc: '花約 60 秒靈石；井水回敬招賢令', effects: { token: 2 } },
+    ] },
+  { id: 'oldfriend', emoji: '🧑‍🤝‍🧑', title: '某一世的舊友', weight: 5, good: true, minRealm: 0, minReb: 3, timeoutChoice: 1,
+    text: '山下來了個陌生人，笑著喊你的名字，說是「上一世欠你一頓飯」。你沒有這段記憶，老祖卻點了點頭。',
+    choices: [
+      { label: '請他吃飯', cost: { stoneSec: 90 }, desc: '花約 90 秒靈石；他留下招賢令與碎片', effects: { token: 2, shard: 3 } },
+      { label: '收下欠的飯錢', desc: '得到一筆靈石', effects: { stoneSec: 150 } },
     ] },
 ];
 export const INCIDENTS_BY_ID = Object.fromEntries(INCIDENTS.map(i => [i.id, i]));

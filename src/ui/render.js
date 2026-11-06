@@ -14,6 +14,8 @@ import { avengePanel } from './avengePanel.js';
 import { goalPanel } from './goalPanel.js';
 import { nemesisPanel } from './nemesisPanel.js';
 import { daoPanel } from './daoPanel.js';
+import { ascendPanel } from './ascendPanel.js';
+import { readyCount as ascendReady } from '../core/ascend.js';
 import { factionPanel } from './factionPanel.js';
 import { expeditionPanel } from './expeditionPanel.js';
 import { titleOf } from '../core/achievements.js';
@@ -28,15 +30,15 @@ import { TAB_TIPS } from '../data/help.js';
 // 分頁精簡：10 個功能分頁收成 6 組（組內依解鎖進度由上而下堆疊）。內部分頁 id 不變（解鎖旗標、說明、提示都沿用）。
 const GROUPS = [
   { id: 'buildings', label: '🏯 建築', members: ['buildings'] },
-  { id: 'realm',     label: '🧘 境界', members: ['realm', 'dao'] },
+  { id: 'realm',     label: '🧘 境界', members: ['realm', 'dao', 'ascend'] },
   { id: 'people',    label: '👥 弟子', members: ['gacha', 'disciples'] },
   { id: 'grudge',    label: '📖 仇怨', members: ['avenge', 'nemesis'] },
   { id: 'world',     label: '🧭 江湖', members: ['expedition', 'factions'] },
   { id: 'goals',     label: '🎯 大事', members: ['goals'] },
 ];
-const SUB_TITLE = { dao: '☯️ 道心', gacha: '🎫 招賢', disciples: '👥 弟子', avenge: '📖 復仇簿', nemesis: '⚔️ 宿敵錄', expedition: '🧭 秘境', factions: '🏴 勢力' };
+const SUB_TITLE = { dao: '☯️ 道心', ascend: '⚡ 天劫', gacha: '🎫 招賢', disciples: '👥 弟子', avenge: '📖 復仇簿', nemesis: '⚔️ 宿敵錄', expedition: '🧭 秘境', factions: '🏴 勢力' };
 const GROUP_OF = Object.fromEntries(GROUPS.flatMap(g => g.members.map(m => [m, g.id])));
-const PANELS = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel, factions: factionPanel, expedition: expeditionPanel };
+const PANELS = { buildings: buildingPanel, realm: realmPanel, gacha: gachaPanel, disciples: disciplePanel, avenge: avengePanel, goals: goalPanel, nemesis: nemesisPanel, dao: daoPanel, ascend: ascendPanel, factions: factionPanel, expedition: expeditionPanel };
 const groupOpen = (s, g) => g.members.some(m => isUnlocked(s, m));
 
 export function createRenderer(s, ui) {
@@ -92,7 +94,7 @@ export function createRenderer(s, ui) {
     setHTML(tabsEl, groups.map(g => {
       const m = id => g.members.includes(id) && isUnlocked(s, id);
       const badge = m('avenge') && s.grudges.length ? ` <i>${s.grudges.length}</i>` : '';
-      const alert = (m('disciples') && s.recruits.length) ? ' <i class="new">新</i>' : (g.id === 'goals' ? (readyCount(s) ? ` <i class="new">${readyCount(s)}</i>` : ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>`) : '');
+      const alert = (m('disciples') && s.recruits.length) ? ' <i class="new">新</i>' : (g.id === 'realm' && ascendReady(s) ? ` <i class="new">${ascendReady(s)}</i>` : g.id === 'goals' ? (readyCount(s) ? ` <i class="new">${readyCount(s)}</i>` : ` <i class="prog">${s.goalsDone.length}/${GOALS.length}</i>`) : '');
       const [ico, ...txt] = g.label.split(' ');       // 手機版：圖示在上、文字在下
       return `<button class="tab ${ui.tab === g.id ? 'on' : ''}" data-act="tab" data-tab="${g.id}"><span class="ti">${ico}</span> <span class="tl">${txt.join(' ')}</span>${badge}${alert}</button>`;
     }).join(''));

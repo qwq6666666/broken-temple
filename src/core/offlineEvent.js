@@ -3,7 +3,8 @@ import { OFFLINE_EVENTS, OFFLINE_EVENTS_BY_ID, OFFLINE_EVENT_MIN_MS } from '../d
 import { pick } from './rng.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 
-export const rollOfflineEvent = (s, elapsedMs) => (elapsedMs >= OFFLINE_EVENT_MIN_MS ? pick(OFFLINE_EVENTS).id : null);
+// minReb（選填）：至少轉生幾次才會遇到
+export const rollOfflineEvent = (s, elapsedMs) => (elapsedMs >= OFFLINE_EVENT_MIN_MS ? pick(OFFLINE_EVENTS.filter(e => (e.minReb || 0) <= s.reincarnation.count)).id : null);
 
 // 回傳 {text, got}；事件或選項不存在回傳 null
 export function resolveOffline(s, id, i) {
