@@ -764,3 +764,14 @@ body.dm-open { overflow: hidden; }
   @keyframes dmUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 }
 @media (prefers-reduced-motion: reduce) { .dm-card { animation: none; } .dtile { transition: none; } }
+
+/* 弟子頁：碎片說明、稀有度對比 */
+.shardnote { margin: 4px 0 8px; font-size: .78em; color: var(--dim); line-height: 1.5; } .shardnote b { color: var(--paper); font-weight: normal; }
+.dtile.rar-N { border-color: color-mix(in srgb, var(--rc) 55%, var(--line)); }
+.dtile.rar-SR { border-width: 3px; } .dtile.rar-SSR, .dtile.rar-UR { border-width: 3px; }
+.dtile.rar-SR .drar, .dtile.rar-SSR .drar, .dtile.rar-UR .drar { background: var(--rc); color: #111; }
+.dtile.rar-UR { box-shadow: 0 0 14px var(--rc), inset 0 0 12px color-mix(in srgb, var(--rc) 35%, transparent); }
+@media (max-width: 860px) {
+  .tab i.prog { display: none; }                       /* 手機：進度數字會壓到圖示，改看大事頁內的進度 */
+  .stages { gap: 4px; margin-top: 8px; } .stage { flex: 1 1 30%; padding: 4px 6px; gap: 2px; }
+}

@@ -7,6 +7,15 @@ import { esc, costChips, crow } from './dom.js';
 
 const fmtVal = (it, v) => it.unit === '%' ? `+${Math.round(v * 100)}%` : it.unit === '秒' ? `-${v}秒` : `+${v}${it.unit === '小時' ? ' 小時' : it.unit === '級' ? ' 級' : ''}`;
 
+// 商店分組（未列入的非道果項目會補在「其他」，避免新增項目漏顯示）
+const GROUPS = [
+  ['✨ 修行加成', ['qi', 'stone', 'power']],
+  ['💥 戰鬥與招賢', ['burst', 'disguise', 'token', 'cd']],
+  ['🌙 離線與開局', ['offcap', 'offeff', 'startS', 'startT']],
+  ['🏗️ 建築', ['expand']],
+];
+const KNOWN = new Set(GROUPS.flatMap(g => g[1]));
+
 export function daoPanel(s, ui) {
   const n = s.reincarnation.count;
   const mk = it => {
@@ -17,7 +26,9 @@ export function daoPanel(s, ui) {
       act: max ? '<span class="tag gold">已滿級</span>' : `<div class="costs">${costChips(s, shopCost(s, it.id))}</div><button class="btn ${can ? 'primary' : ''}" data-act="daoBuy" data-id="${it.id}" ${can ? '' : 'disabled'}>修習</button>`,
       detail: `<small>${esc(it.desc)}</small><small class="dim">每級 ${esc(fmtVal(it, it.perLevel))}　目前 <b class="gold">${esc(fmtVal(it, lv * it.perLevel))}</b></small>` });
   };
-  const rows = DAO_SHOP.filter(it => !it.gate).map(mk).join(''), fruit = DAO_SHOP.filter(it => it.gate).map(mk).join('');
+  const grp = ids => DAO_SHOP.filter(it => ids.includes(it.id)).map(mk).join('');
+  const extra = DAO_SHOP.filter(it => !it.gate && !KNOWN.has(it.id)).map(it => it.id);
+  const rows = [...GROUPS, ...(extra.length ? [['其他', extra]] : [])].map(([title, ids]) => `<h3 class="sub">${title}</h3>${grp(ids)}`).join(''), fruit = DAO_SHOP.filter(it => it.gate).map(mk).join('');
   const ex = EXCHANGES.map(e => {
     const can = canAfford(s, { daoHeart: e.cost });
     return crow(ui, { key: 'dx' + e.id, cls: can ? 'affordable' : '', icon: e.icon, title: `<b>${esc(e.name)}</b>`, sub: esc(e.desc),

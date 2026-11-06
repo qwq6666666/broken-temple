@@ -59,7 +59,8 @@ function summaryBar(s, ui) {
   const rows = BONDS.map(b => ({ b, st: bondStatus(s, b) })).filter(x => x.st !== 'none');
   const act = rows.filter(x => x.st === 'active').length;
   return `<div class="dsum"><button class="dsumhead" data-act="toggleBonds" aria-expanded="${!!ui.bondsOpen}">🔗 緣分 ${act}/${rows.length} 已啟用 <span>${ui.bondsOpen ? '▴' : '▾'}</span></button>
-    <span class="chip">🧩 ${fmt(s.res.shard)}</span></div>${ui.bondsOpen ? bondsBox(s) : ''}`;
+    <span class="chip" title="通用碎片：可替任何弟子升星（每片專屬碎片 = ${CONFIG.disciple.shardSwap} 片通用），也用於專長心得">🧩 ${fmt(s.res.shard)}</span></div>
+    <p class="shardnote">🧬 專屬碎片：抽到重複弟子時獲得，只能替<b>該弟子</b>升星　🧩 通用碎片：任何弟子都能用（1 專屬 = ${CONFIG.disciple.shardSwap} 通用）</p>${ui.bondsOpen ? bondsBox(s) : ''}`;
 }
 
 // 專長心得：5 種專長各 3 層，用碎片領悟；該專長弟子派駐中才生效
