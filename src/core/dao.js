@@ -7,6 +7,7 @@ import { canAfford, pay } from './resources.js';
 import { note } from './chronicle.js';
 import { weeklyEligible, weeklyBonusFor, weekIndex } from './weekly.js';
 import { toast, quote, cue } from './events.js';
+import { LINES, pickLine } from '../data/lines.js';
 import { specSum } from './spec.js';
 import { factionPerm } from './factions.js';
 import { mutSum } from './mutators.js';
@@ -62,7 +63,7 @@ export function rebirth(s, mutatorId = null, now = Date.now()) {
   s.incident.nextAt = s.t + 300000;
   note(s, '☯️', `第${wasNo}世結束：引爆 ${wasRun.bursts} 次、最大連鎖 ${wasRun.maxChain}、擊敗宿敵 ${wasRun.nemeses}、完成大事 ${wasRun.goals}，獲得道心 ${gain}${bonus ? `（含每週挑戰 +${bonus}）` : ''}`);
   toast(`☯️ 轉生成功！獲得道心 ${gain}${bonus ? `（含每週挑戰 +${bonus}）` : ''}`, 'good'); cue('goal');
-  quote('輪迴一遭，這座破廟又換了新顏。……別急，這一次，你知道路了。');
+  quote(pickLine(LINES.rebirth));
   return gain;
 }
 

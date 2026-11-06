@@ -1,6 +1,7 @@
 // 勢力威望：打臉越多，威望越高；三階效果見 data/factions.js。
 import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_RULES as R, FACTION_TIERS } from '../data/factions.js';
 import { toast, cue } from './events.js';
+import { note } from './chronicle.js';
 
 export const factionOf = sect => FACTION_OF_SECT[sect] || null;
 export const repOf = (s, id) => s.factions[id] || 0;
@@ -13,7 +14,7 @@ export function addRep(s, sect, n) {
   const before = tierOf(s, id);
   s.factions[id] = repOf(s, id) + n;
   const after = tierOf(s, id);
-  if (after > before) { toast(`${FACTIONS_BY_ID[id].emoji} ${FACTIONS_BY_ID[id].name}威望提升：「${FACTION_TIERS[after]}」`, 'good'); cue('goal'); }
+  if (after > before) { toast(`${FACTIONS_BY_ID[id].emoji} ${FACTIONS_BY_ID[id].name}威望提升：「${FACTION_TIERS[after]}」`, 'good'); cue('goal'); const l = FACTIONS_BY_ID[id].tierLines?.[after]; if (l) note(s, FACTIONS_BY_ID[id].emoji, l); }
   return { id, before, after };
 }
 // 第一階起：打該勢力的人獎勵加成

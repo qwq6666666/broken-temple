@@ -8,8 +8,8 @@ export function factionPanel(s, ui) {
   const rows = FACTIONS.map(f => {
     const rep = repOf(s, f.id), tier = tierOf(s, f.id), next = R.thresholds[tier], prev = tier ? R.thresholds[tier - 1] : 0;
     const pct = next ? Math.floor((rep - prev) / (next - prev) * 100) : 100;
-    const step = (n, txt) => `<small class="${tier >= n ? 'gold' : 'dim'}">${tier >= n ? '✔' : '○'} ${esc(FACTION_TIERS[n])}（${R.thresholds[n - 1]}）：${esc(txt)}</small>`;
-    const detail = `<small class="dim">${esc(f.desc)}　來訪者多為：${esc((f.lean || []).join('、'))}</small>
+    const step = (n, txt) => `<small class="${tier >= n ? 'gold' : 'dim'}">${tier >= n ? '✔' : '○'} ${esc(FACTION_TIERS[n])}（${R.thresholds[n - 1]}）：${esc(txt)}</small>${tier >= n && f.tierLines?.[n] ? `<small class="dim storytext">「${esc(f.tierLines[n])}」</small>` : ''}`;
+    const detail = `${f.lore ? `<small class="storytext">${esc(f.lore)}</small>` : ''}<small class="dim">${esc(f.desc)}　來訪者多為：${esc((f.lean || []).join('、'))}</small>
         ${step(1, `打他們的人，獎勵 +${Math.round(R.tier1Reward * 100)}%`)}
         ${step(2, '被碾壓的人更常「求和」；並有機會派人「進貢」')}
         ${step(3, `永久加成：${specText(f.perk)}；求和賠禮 ×2`)}`;

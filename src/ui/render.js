@@ -2,7 +2,7 @@
 import { qiPerSec, stonePerSec, realmOf } from '../core/economy.js';
 import { fmt, fmtRate } from '../core/format.js';
 import { bus } from '../core/events.js';
-import { LINES, pickLine } from '../data/lines.js';
+import { LINES, pickLine, idlePool } from '../data/lines.js';
 import { $, setHTML, setText, RES } from './dom.js';
 import { mountScene, updateScene } from './sectView.js';
 import { mountConceal, updateConceal } from './concealView.js';
@@ -51,13 +51,13 @@ export function createRenderer(s, ui) {
   resEl.innerHTML = [['qi', '✨ 靈氣'], ['stone', '💎 靈石'], ['realm', '境界']]
     .map(([k, l]) => `<div class="res ${k === 'realm' ? 'realm' : ''}" data-k="${k}"><span>${l}</span><b></b><small></small></div>`).join('');
   const resRefs = Object.fromEntries([...resEl.children].map(e => [e.dataset.k, { root: e, b: e.querySelector('b'), sm: e.querySelector('small'), prev: null }]));
-  ui.quote = pickLine(LINES.idle);
+  ui.quote = pickLine(idlePool(s));
   bus.on('quote', t => { ui.quote = t; ui.quoteAt = Date.now(); });
 
   const ttlEl = document.getElementById('ttl');
   function render() {
     // 老祖閒聊：久未發言就換一句
-    if (Date.now() - (ui.quoteAt || 0) > 25000) { ui.quote = pickLine(LINES.idle); ui.quoteAt = Date.now(); }
+    if (Date.now() - (ui.quoteAt || 0) > 25000) { ui.quote = pickLine(idlePool(s)); ui.quoteAt = Date.now(); }
 
     // 資源列：節點只建一次，只更新文字；數值突然增減時閃一下並飄出變化量
     const r = realmOf(s);
