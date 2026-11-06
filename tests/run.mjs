@@ -49,6 +49,7 @@ import { MUTATORS } from '../src/data/mutators.js';
 import { SPECS, specText } from '../src/data/specs.js';
 import { STORIES, STORIES2 } from '../src/data/stories.js';
 import { BONDS } from '../src/data/bonds.js';
+import { TRAITS } from '../src/data/traits.js';
 import { DISCIPLES, DISCIPLES_BY_ID } from '../src/data/disciples.js';
 import * as Prog from '../src/core/progress.js';
 import { stepParticle, moteCount } from '../src/ui/particles.js';
@@ -1055,6 +1056,39 @@ t('離線期間秘境照常完成；轉生清空探索；存檔清理', () => {
   Dao.rebirth(m); assert.deepEqual(m.expeditions, []);
   const x = loadPatched(st => { st.disciples = [{ uid: 1, defId: 'afu', lv: 1, at: null }]; st.expeditions = [{ id: 'gone', uids: [1] }, { id: 'cave', uids: [1, 99], endAt: 'x', chance: 9, status: 'weird' }, { id: 'field', uids: [99] }]; });
   assert.equal(x.expeditions.length, 1); assert.deepEqual(x.expeditions[0].uids, [1]); assert.equal(x.expeditions[0].chance, 0.95); assert.equal(x.expeditions[0].status, 'running');
+});
+
+t('高稀有度弟子：數量、五行與專長涵蓋、特性值依稀有度遞增、故事與緣分齊全', () => {
+  const by = r => DISCIPLES.filter(d => d.rarity === r);
+  assert.ok(by('SSR').length >= 8 && by('UR').length >= 6, `SSR ${by('SSR').length} / UR ${by('UR').length}`);
+  for (const r of ['SSR', 'UR']) { assert.ok(new Set(by(r).map(d => d.element)).size >= (r === 'SSR' ? 5 : 4), r + ' 五行涵蓋'); assert.ok(new Set(by(r).map(d => d.specialty)).size >= (r === 'SSR' ? 5 : 4), r + ' 專長涵蓋'); }
+  for (const d of DISCIPLES) assert.ok(TRAITS[d.trait.key] && d.trait.value > 0, d.id + ' 特性');
+  // 同一種特性：UR 的數值高於 SSR，SSR 高於 SR（可比較時）
+  for (const key of new Set(DISCIPLES.map(d => d.trait.key))) {
+    const best = r => Math.max(0, ...by(r).filter(d => d.trait.key === key).map(d => d.trait.value));
+    if (best('UR') && best('SSR')) assert.ok(best('UR') > best('SSR'), key + ' UR > SSR');
+    if (best('SSR') && best('SR')) assert.ok(best('SSR') > best('SR'), key + ' SSR > SR');
+  }
+  assert.equal(new Set(DISCIPLES.map(d => d.id)).size, DISCIPLES.length, '弟子 id 重複');
+  for (const id of ['mulinyin', 'tiebuyu', 'moxiaotian', 'cangwu', 'zhenyue', 'guixu']) assert.ok(STORIES3[id] && BONDS.some(b => b.a === id || b.b === id), id + ' 缺終章或緣分');
+});
+
+t('離線事件權重：轉生越多越常抽到高門檻事件、同一則不連續出現、存檔清理未知 id', () => {
+  assert.ok(Off.offlineWeight({}) === 1 && Off.offlineWeight({ minReb: 8 }) === 5);
+  const s = createState(); s.reincarnation.count = 8;
+  const cnt = { low: 0, high: 0 }; let prev = null, rep = 0;
+  for (let i = 0; i < 4000; i++) {
+    const id = Off.rollOfflineEvent(s, 3600000); const e = OFFLINE_EVENTS.find(x => x.id === id);
+    if (!(e.minReb || 0)) cnt.low++; else if (e.minReb >= 3) cnt.high++;
+    if (id === prev) rep++; prev = id;
+  }
+  assert.equal(rep, 0, '不應連續出現同一則');
+  const u = OFFLINE_EVENTS.filter(e => !(e.minReb || 0)).length, h = OFFLINE_EVENTS.filter(e => (e.minReb || 0) >= 3).length;
+  assert.ok(cnt.high / 4000 > h / OFFLINE_EVENTS.length + 0.05, `高門檻事件占比 ${(cnt.high / 4000).toFixed(2)} 應高於均勻抽選 ${(h / OFFLINE_EVENTS.length).toFixed(2)}`);
+  assert.ok(cnt.low / 4000 < u / OFFLINE_EVENTS.length - 0.05, '入門事件占比應低於均勻抽選');
+  assert.equal(Off.rollOfflineEvent(s, 1000), null);                                 // 離開太短不抽
+  const z = createState(); z.offlineLast = 'no-such-event'; assert.equal(sanitize(z).offlineLast, null);
+  const k = createState(); k.offlineLast = 'dog'; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.offlineLast, 'dog');   // 轉生保留
 });
 
 t('輪迴詞條：效果、訪客頻率、本輪道心倍率、轉生選擇與存檔', () => {

@@ -43,6 +43,7 @@ export function createState() {
     foes: {},                               // 仇人記憶 {名字: {beaten: 擊敗次數}}（跨轉生保留）
     squad: [],                              // 出戰陣容（弟子 uid，最多 3 人，跨轉生保留）
     insight: {},                            // 專長心得層數 {專長: 0~3}（跨轉生保留）
+    offlineLast: null,                      // 上一次離線歸來事件的 id（避免連續重複，跨轉生保留）
     weekly: { claimed: -1 },                // 已領取每週挑戰獎勵的週序號（跨轉生保留）
     equipped: [],                           // 裝備欄中的法寶 id（跨轉生保留）
     achv: { done: [], title: null },        // 成就與裝備中的稱號（跨轉生保留）

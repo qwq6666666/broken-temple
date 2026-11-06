@@ -8,7 +8,7 @@ export const REBIRTH_KEEP = [
   { label: '專長心得、出戰陣容', keys: ['insight', 'squad'] },
   { label: '秘境探索度與發現事件', keys: ['explore', 'exMile'] },
   { label: '宿敵進度、仇人記憶與老對頭、勢力威望', keys: ['nemeses', 'foes', 'factions'] },
-  { label: '抽卡保底、弟子故事、統計與設定', keys: ['gacha', 'stories', 'stats', 'settings', 'unlocked', 'seenIntro'] },
+  { label: '抽卡保底、弟子故事、統計與設定', keys: ['gacha', 'stories', 'stats', 'settings', 'unlocked', 'seenIntro', 'offlineLast'] },
   { label: '九重天劫進度與道果', keys: ['ascend'] },
   { label: '道心與商店加成', keys: ['reincarnation'] },
 ];
