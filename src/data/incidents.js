@@ -405,5 +405,61 @@ export const INCIDENTS = [
       { label: '請他吃飯', cost: { stoneSec: 90 }, desc: '花約 90 秒靈石；他留下招賢令與碎片', effects: { token: 2, shard: 3 } },
       { label: '收下欠的飯錢', desc: '得到一筆靈石', effects: { stoneSec: 150 } },
     ] },
+  { id: 'deja', emoji: '🌀', title: '既視感', weight: 5, good: true, minRealm: 0, minReb: 1, timeoutChoice: 0,
+    text: '你走到後院，忽然覺得這一幕自己「已經看過」——連那隻從牆頭跳下的貓，都跟記憶裡一個姿勢。',
+    choices: [
+      { label: '順著直覺走', desc: '五成機會想起一條捷徑（碎片）；失敗則走岔路，損失少量靈氣', effects: { gamble: { p: 0.5, win: { shard: 3 }, lose: { loseQiSec: 20 } } } },
+      { label: '偏偏反著走', desc: '你笑著繞開，偽裝值 +1，得到少量靈氣', effects: { disguise: 1, qiSec: 60 } },
+    ] },
+  { id: 'karma', emoji: '📒', title: '前世的債主', weight: 5, good: false, minRealm: 0, minReb: 2, timeoutChoice: 1,
+    text: '一個你從沒見過的人上門，手裡拿著一張泛黃的借據：「上一世你欠我三碗粥。」老祖眯眼：「筆跡……確實是你的。」',
+    choices: [
+      { label: '認帳還錢', cost: { stoneSec: 80 }, desc: '花約 80 秒靈石；他消了債，還送你招賢令', effects: { token: 2 } },
+      { label: '賴帳', desc: '五成機會他嘆口氣走了，你賺了一筆；失敗則被追著討債，損失靈氣、一棟建築暫停 3 分鐘', effects: { gamble: { p: 0.5, win: { stoneSec: 100 }, lose: { loseQiSec: 80, pauseBuilding: min(3) } } } },
+    ] },
+  { id: 'pupilmem', emoji: '🧑‍🎓', title: '弟子的前世記憶', weight: 5, good: true, minRealm: 0, minReb: 2, timeoutChoice: 0,
+    text: '一位弟子練功時忽然停住，說自己「上輩子好像也在這座廟裡」。他又補了一句：「那時候屋頂還沒破。」老祖：「胡說，一直是破的。」',
+    choices: [
+      { label: '聽他說下去', desc: '他想起一些舊事：得到靈氣與碎片', effects: { qiSec: 120, shard: 2 } },
+      { label: '請他吃頓好的', cost: { stoneSec: 60 }, desc: '花約 60 秒靈石；他感動得把壓箱底的招賢令掏了出來', effects: { token: 2 } },
+    ] },
+  { id: 'nightbell', emoji: '🔔', title: '夜半鐘聲', weight: 5, good: false, minRealm: 0, minReb: 3, timeoutChoice: 1,
+    text: '半夜廟裡無鐘自響，三聲過後，供桌上的香一根接一根斷了。老祖壓低聲音：「別怕，它只是在數你。」',
+    choices: [
+      { label: '點新香供奉', cost: { qiSec: 80 }, desc: '花約 80 秒靈氣；鐘聲停了，得到碎片', effects: { shard: 3 } },
+      { label: '啟動護山大陣', requires: { building: 'array' }, desc: '需要護山大陣；鐘聲被擋在陣外，毫髮無傷', effects: {} },
+      { label: '蒙頭睡覺', desc: '損失靈氣，護山大陣越高損失越少', effects: { loseQiSec: 90, armorByArray: true } },
+    ] },
+  { id: 'tablet', emoji: '🪦', title: '前人題字', weight: 5, good: true, minRealm: 0, minReb: 3, timeoutChoice: 0,
+    text: '你在牆縫裡發現一行小字：「後來者，此處有水。」刻字的人你不認識，字跡卻越看越眼熟。',
+    choices: [
+      { label: '照字挖下去', desc: '五成機會挖出一眼靈泉，得到大量靈氣；失敗則挖空，什麼都沒有', effects: { gamble: { p: 0.5, win: { qiSec: 260 }, lose: {} } } },
+      { label: '在旁邊補一行', desc: '你寫下「謝謝」，牆縫裡掉出一枚招賢令', effects: { token: 1, shard: 1 } },
+    ] },
+  { id: 'crossroad', emoji: '🔀', title: '命運岔路', weight: 5, good: true, minRealm: 0, minReb: 4, timeoutChoice: 1,
+    text: '山腳下的小路在你面前分成三條，一條通往市集，一條通往古墓，一條通往不知哪裡。老祖：「這世的你，選哪條，下世的你就不選哪條。」',
+    choices: [
+      { label: '市集', desc: '穩穩賺一筆靈石', effects: { stoneSec: 180 } },
+      { label: '古墓', desc: '四成機會挖到法寶；失敗則靈氣大損', effects: { gamble: { p: 0.4, win: { artifact: 1 }, lose: { loseQiSec: 70 } } } },
+      { label: '無名小路', desc: '兩成機會遇見一位待招募的弟子；否則只是風景，得到少量靈氣', effects: { gamble: { p: 0.2, win: { recruit: 1 }, lose: { qiSec: 90 } } } },
+    ] },
+  { id: 'rollcall', emoji: '📣', title: '歷代點名', weight: 4, good: true, minRealm: 0, minReb: 5, timeoutChoice: 0,
+    text: '你在大堂裡聽見有人在念名字，一個接一個，全是這座廟的歷代宗主。念到最後，聲音停在你的名字前，等了一息。',
+    choices: [
+      { label: '大聲應「到」', desc: '祖庭回應：得到大筆靈氣與招賢令', effects: { qiSec: 300, token: 2 } },
+      { label: '安靜站著', desc: '念名聲輕輕點頭離去，留下一點碎片', effects: { shard: 4 } },
+    ] },
+  { id: 'cyclefatigue', emoji: '😮‍💨', title: '輪迴倦怠', weight: 4, good: false, minRealm: 0, minReb: 6, timeoutChoice: 1,
+    text: '你忽然覺得，這一世的每一件事都像是做過。連老祖的牢騷，你都能背著他的節奏接下去。老祖：「喂，別搶台詞。」',
+    choices: [
+      { label: '抽空歇一天', cost: { qiSec: 100 }, desc: '花約 100 秒靈氣；睡醒心境清明，得到招賢令與碎片', effects: { token: 2, shard: 2 } },
+      { label: '硬撐著幹活', desc: '損失少量靈氣，偽裝值 +1', effects: { loseQiSec: 50, disguise: 1 } },
+    ] },
+  { id: 'epilogue', emoji: '🌅', title: '回望來時路', weight: 4, good: true, minRealm: 0, minReb: 8, timeoutChoice: 0,
+    text: '黃昏時你站在山門前，往下看——那條從山腳一路蜿蜒上來的石階，每一級都有你的腳印。老祖：「走了這麼久，這廟還是破的。」你笑了：「正好。」',
+    choices: [
+      { label: '坐下來看夕陽', desc: '一整天的疲憊都散了：得到大量靈氣', effects: { qiSec: 400 } },
+      { label: '往山下喊一聲', desc: '山谷回聲裡走出一位老友：得到招賢令與法寶的機會', effects: { token: 3, artifact: 0.3 } },
+    ] },
 ];
 export const INCIDENTS_BY_ID = Object.fromEntries(INCIDENTS.map(i => [i.id, i]));

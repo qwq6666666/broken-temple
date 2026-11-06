@@ -1640,6 +1640,11 @@ t('事件資料：id 不重複、每則 2~3 個選項、文字夠長；中期（
   const at = r => INCIDENTS.filter(i => i.minRealm <= r && !i.minReb).length;
   assert.ok(at(6) >= 20 && at(10) >= 28 && at(12) >= 33, `中期事件池太小：${at(6)}/${at(10)}/${at(12)}`);
   for (let r = 4; r <= 12; r++) assert.ok(INCIDENTS.filter(i => i.minRealm === r).length >= 3, `境界 ${r} 專屬事件太少`);   // 中段不再每境只有 1~2 則
+  const rebTiers = [...new Set(INCIDENTS.filter(i => i.minReb).map(i => i.minReb))];
+  assert.ok(INCIDENTS.filter(i => i.minReb).length >= 12 && rebTiers.length >= 6, `轉生後事件：${INCIDENTS.filter(i => i.minReb).length} 則、${rebTiers.length} 個門檻`);   // 轉生多次的玩家也有新事件
+  assert.ok(INCIDENTS.every(i => !i.minReb || i.minReb <= 20), '轉生門檻不應高到打不到');
+  const offTier = n => OFFLINE_EVENTS.filter(e => (e.minReb || 0) <= n).length;
+  assert.ok(offTier(0) >= 9 && offTier(2) > offTier(0) && offTier(5) > offTier(2) && offTier(8) > offTier(5) && OFFLINE_EVENTS.length >= 24, `離線事件分層：${[0, 2, 5, 8].map(offTier)}`);
   const good = INCIDENTS.filter(i => i.good).length; assert.ok(good >= 20 && INCIDENTS.length - good >= 12, '好壞事件比例失衡');
 });
 
