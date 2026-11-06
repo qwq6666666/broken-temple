@@ -1,4 +1,6 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
+// 新增（量測元嬰・化神高階秘境與輪迴詞條）：nohi＝機器人不派祖庭遺墟／地底封印／虛空裂隙（對照組）；hiexp＝缺材料時優先派高階秘境；
+//   linger＝化神後等秘境回來才轉生（LINGER 分鐘上限）；farm＝沒有材料缺口時，空的探索位也去刷（挑成功率 ≥ FARM_MIN%（預設 30）裡獎勵最大的）；MUT=詞條id＝每次轉生都選該詞條；JSON=1＝最後印出一行機器可讀的摘要。
 // 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [ascend] [squad] [noexp]
 //   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission/insight = 開啟對應新功能的最佳化行為
 //   smart = 用「補滿空位」依專長五行派駐；環境變數 ELEMENT=0 關閉五行效果（比較基準）
@@ -14,7 +16,7 @@ import * as G from '../src/core/gacha.js';
 import * as D from '../src/core/disciples.js';
 import * as X from '../src/core/burst.js';
 import * as Ex from '../src/core/expeditions.js';
-import { EXPEDITIONS } from '../src/data/expeditions.js';
+import { EXPEDITIONS, EXPEDITIONS_BY_ID, matIdOf } from '../src/data/expeditions.js';
 import { REALM_MATS } from '../src/data/materials.js';
 import * as Inc from '../src/core/incidents.js';
 import * as Dao from '../src/core/dao.js';
@@ -43,6 +45,10 @@ if (process.env.ENEMY_BEATEN) CONFIG.element.enemyBeaten = Number(process.env.EN
 if (process.env.BV) Object.assign(CONFIG.assignValue, JSON.parse(process.env.BV));   // 覆寫建築價值權重，如 BV='{"library":0.2}'
 const HUNT_MIN = Number(process.env.HUNT_MIN) || 20;     // hunt 旗標：化神後最多多留幾遊戲分鐘等宿敵（HUNT_MIN 可覆寫）
 if (process.env.NO_SIDE) NEMESES.splice(NEMESES.findIndex(n => n.side));     // NO_SIDE=1：移除勢力宿敵，當作比較基準
+if (process.env.HI_MIN || process.env.HI_REWARD) for (const e of EXPEDITIONS) if (['ruins', 'seal', 'rift'].includes(e.id)) {     // HI_MIN=0.5 把高階秘境耗時乘 0.5；HI_REWARD=2 把靈氣／靈石獎勵乘 2（調數值用）
+  if (process.env.HI_MIN) e.minutes = Math.round(e.minutes * Number(process.env.HI_MIN));
+  if (process.env.HI_REWARD) for (const k of ['qiSec', 'stoneSec']) if (e.reward[k]) e.reward[k] *= Number(process.env.HI_REWARD);
+}
 const REBIRTH = process.argv.includes('rebirth');   // 化神後自動轉生並購買道心商店，印出每一輪耗時
 
 // 固定亂數種子，讓每次結果可比較
@@ -67,11 +73,12 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   // ascend：化神後有天劫待渡就渡（機器人沒有特別追條件，只是順勢達成的才算）；渡劫道心立刻進帳
   if (FLAG('ascend')) { Asc.tick(s); for (const id of [...s.ascend.ready]) { Asc.claim(s, id); once('天劫 ' + id + '（第 ' + (s.reincarnation.count + 1) + ' 世）', true); } }
   // 化神後轉生，並把道心花在商店
-  if (FLAG('hunt') && s.realmIdx >= 13 && s.run.huntAt === undefined) s.run.huntAt = s.t;      // hunt：抵達化神的時間
+  if ((FLAG('hunt') || FLAG('linger')) && s.realmIdx >= 13 && s.run.huntAt === undefined) s.run.huntAt = s.t;      // hunt：抵達化神的時間
   const hunting = FLAG('hunt') && s.run.huntAt !== undefined && s.t - s.run.huntAt < HUNT_MIN * 60000 && (Nem.pickNemesis(s) || s.grudges.some(g => g.nemesisId) || s.visitor.current?.nemesisId);
-  if (REBIRTH && Dao.canRebirth(s) && !hunting) {
+  const lingering = FLAG('linger') && s.run.huntAt !== undefined && s.t - s.run.huntAt < (Number(process.env.LINGER) || 120) * 60000 && s.expeditions.length > 0;      // linger：化神後等派出去的秘境全部回來才轉生（上限 LINGER 分鐘，預設 120）
+  if (REBIRTH && Dao.canRebirth(s) && !hunting && !lingering) {
     lives.push({ min: (s.t - lifeStart) / 60000, dao: Dao.daoGain(s), bursts: s.run.bursts, chain: s.run.maxChain, nd: NEMESES.filter(n => s.nemeses[n.id]?.defeated).length, side: NEMESES.filter(n => n.side && s.nemeses[n.id]?.defeated).length, aw: Object.values(s.nemeses).reduce((a, n) => a + (n.awakeLv || 0), 0), hs: Math.round((s.t - (s.run.huntAt ?? s.t)) / 60000), reach: ((s.run.huntAt ?? s.t) - lifeStart) / 60000, inc: RS('incidents'), endure: RS('endures'), exp: RS('expeditions') });
-    Dao.rebirth(s); lifeStart = s.t;
+    Dao.rebirth(s, process.env.MUT || null); lifeStart = s.t;
     for (let again = true; again;) {
       again = false; for (const id of SHOP_PRIORITY) if (Dao.buy(s, id)) { again = true; break; }
       if (!again && FLAG('ascend')) { const f = FRUIT.filter(id => Dao.canBuy(s, id)).sort((a, b) => Dao.shopCost(s, a).daoHeart - Dao.shopCost(s, b).daoHeart)[0]; if (f && Dao.buy(s, f)) again = true; }
@@ -99,16 +106,21 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   Ex.tick(s);
   // 秘境：機器人把空的探索位派去補「之後要用的材料」缺口（跨大境界突破、進階）；noexp 旗標可關閉（量測用）
   if (!FLAG('noexp') && s.realmIdx >= 2 && step % 5 === 0) {
-    for (let i = s.expeditions.length - 1; i >= 0; i--) if (s.expeditions[i].status === 'done') { const x = s.expeditions[i]; Ex.claim(s, i); (s.simExpLog ||= []).push(`  ↳ ${(s.t/3600000).toFixed(2)}h ${x.id} ${x.success ? '成功' : '失敗'} +${x.result.mat}`); }
+    for (let i = s.expeditions.length - 1; i >= 0; i--) if (s.expeditions[i].status === 'done') { const x = s.expeditions[i]; const cr = Ex.claim(s, i); s.simOK = s.simOK || {}; const o = s.simOK[x.id] ||= [0, 0]; o[cr?.success ? 0 : 1]++; if (cr?.artifact) s.simArt = (s.simArt || 0) + 1; if (cr?.recruit) s.simRec = (s.simRec || 0) + 1; (s.simExpLog ||= []).push(`  ↳ ${(s.t/3600000).toFixed(2)}h ${x.id} ${x.success ? '成功' : '失敗'} +${x.result.mat}`); }
     const want = {}, soon = {};                       // want：之後所有大境界的材料；soon：下一次突破就要用的
     for (const [idx, c] of Object.entries(REALM_MATS)) if (Number(idx) > s.realmIdx) for (const [k, v] of Object.entries(c)) { want[k] = (want[k] || 0) + v; if (Number(idx) === s.realmIdx + 1 || Number(idx) === Math.max(10, s.realmIdx + 1)) soon[k] = (soon[k] || 0) + v; }
     if (FLAG('branch')) { want.mat_cave = (want.mat_cave || 0) + 2; want.mat_spring = (want.mat_spring || 0) + 2; }
-    const running = id => s.expeditions.filter(x => x.id === id).length;
+    const HI = ['ruins', 'seal', 'rift'], pool = EXPEDITIONS.filter(e => !(FLAG('nohi') && HI.includes(e.id)));
+    const mk = e => 'mat_' + matIdOf(e);
+    const running = k => s.expeditions.filter(x => mk(EXPEDITIONS_BY_ID[x.id]) === k).length;
+    const rank = e => (soon[mk(e)] || 0) > s.res[mk(e)];
+    const worth = e => (e.reward.qiSec || 0) * eco.qiPerSec(s) / 1000 + (e.reward.stoneSec || 0) * eco.stonePerSec(s) * 4 / 1000 + (e.reward.artifact || 0) * 5000 + (e.reward.recruit || 0) * 3000;   // 刷材料以外的價值（粗估）
     while (s.expeditions.length < Ex.slotCount(s)) {
-      const opts = EXPEDITIONS.filter(e => Ex.isUnlocked(s, e) && want['mat_' + e.id] - s.res['mat_' + e.id] - running(e.id) * 2 > 0)
-        .sort((a, b) => ((soon['mat_' + b.id] || 0) > s.res['mat_' + b.id]) - ((soon['mat_' + a.id] || 0) > s.res['mat_' + a.id]) || (want['mat_' + b.id] - s.res['mat_' + b.id]) - (want['mat_' + a.id] - s.res['mat_' + a.id]));
+      let opts = pool.filter(e => Ex.isUnlocked(s, e) && want[mk(e)] - s.res[mk(e)] - running(mk(e)) * 2 > 0)
+        .sort((a, b) => (rank(b) - rank(a)) || (FLAG('hiexp') ? (HI.includes(b.id) - HI.includes(a.id)) : 0) || (want[mk(b)] - s.res[mk(b)]) - (want[mk(a)] - s.res[mk(a)]));
+      if (FLAG('farm')) opts = opts.concat(pool.filter(e => Ex.isUnlocked(s, e) && !opts.includes(e) && (Ex.bestTeam(s, e.id)?.chance || 0) >= (Number(process.env.FARM_MIN) || 30) / 100).sort((a, b) => worth(b) - worth(a)));
       let started = false;
-      for (const e of opts) { const bt = Ex.bestTeam(s, e.id); if (bt && Ex.start(s, e.id, bt.uids)) { started = true; s.simExp = (s.simExp || 0) + 1; (s.simExpLog ||= []).push(`${(s.t/3600000).toFixed(2)}h ${e.id} ${Math.round(bt.chance*100)}%`); break; } }
+      for (const e of opts) { const bt = Ex.bestTeam(s, e.id); if (bt && Ex.start(s, e.id, bt.uids)) { started = true; s.simExp = (s.simExp || 0) + 1; s.simExpBy = s.simExpBy || {}; s.simExpBy[e.id] = (s.simExpBy[e.id] || 0) + 1; (s.simExpLog ||= []).push(`${(s.t/3600000).toFixed(2)}h ${e.id} ${Math.round(bt.chance*100)}%`); break; } }
       if (!started) break;
     }
   }
@@ -152,3 +164,4 @@ if (process.env.DEBUG_EXP) console.log('材料', JSON.stringify(Object.fromEntri
 console.log('建築：', BUILDINGS.map(d => `${d.name}${s.buildings[d.id].lv}`).join(' '));
 const bc = R.breakCost(s);
 if (bc) console.log('下一境界成本', JSON.stringify(bc), '｜持有', JSON.stringify(Object.fromEntries(Object.entries(s.res).map(([k, v]) => [k, Math.round(v)]))), '｜每秒 靈氣', eco.qiPerSec(s).toFixed(1), '靈石', eco.stonePerSec(s).toFixed(3));
+if (process.env.JSON) console.log('SUMMARY ' + JSON.stringify({ mut: process.env.MUT || null, hours: HOURS, reb: s.reincarnation.count, lives, art: s.artifacts.length, disciples: s.disciples.length, expBy: s.simExpBy || {}, expOK: s.simOK || {}, simArt: s.simArt || 0, simRec: s.simRec || 0, ascDone: s.ascend.done.length, qi: eco.qiPerSec(s), stone: eco.stonePerSec(s), log: log.slice(0, 40) }));
