@@ -26,7 +26,7 @@ export function createState() {
     endureStreak: 0,                        // 連續忍氣吞聲次數（憋屈值）
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）
     reincarnation: { count: 0, shop: {} },  // 轉生次數、道心商店等級
-    run: { bursts: 0, maxChain: 0, nemeses: 0, goals: 0 },   // 本輪表現（轉生時結算道心）
+    run: { bursts: 0, maxChain: 0, nemeses: 0, goals: 0, startT: 0, base: {} },   // 本輪表現（轉生時結算道心）；startT／base 是本輪起點的時間與統計基準（天劫用）
     expeditions: [],                        // 進行中／待領取的秘境探索
     mutator: null,                          // 本輪輪迴詞條
     factions: {},                           // 勢力威望 {factionId: rep}（跨轉生保留）
@@ -49,6 +49,7 @@ export function createState() {
     chronicle: [],                          // 宗門年表（跨轉生保留）
     commissions: { list: [], nextAt: 0, done: 0 },   // 宗門委託（跨轉生保留）
     goalsDone: [],                          // 已完成的宗門大事
+    ascend: { done: [], ready: [] },        // 九重天劫：已渡／待渡（跨轉生保留）
     burstActive: false,
     stats: { meditations: 0, bursts: 0, maxChain: 0, incidents: 0, nemesisDefeated: 0, expeditions: 0, endures: 0, upgrades: 0 },
   };

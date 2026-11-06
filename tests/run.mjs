@@ -64,6 +64,11 @@ import * as Sq from '../src/core/squad.js';
 import { KEEP_KEYS, RESET_KEYS, REBIRTH_KEEP } from '../src/data/rebirth.js';
 import * as EpMod from '../src/core/exploration.js';
 import { applyOffline } from '../src/core/offline.js';
+import * as Asc from '../src/core/ascend.js';
+import { TRIALS, TRIALS_BY_ID, HEAVENS } from '../src/data/ascend.js';
+import { STORIES3 } from '../src/data/stories.js';
+import { OFFLINE_EVENTS } from '../src/data/offlineEvents.js';
+import { DAO_SHOP } from '../src/data/daoShop.js';
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ✓', name); };
@@ -594,7 +599,8 @@ t('轉生：重置本輪，保留收藏類進度，道心入帳', () => {
   // 重置
   assert.equal(s.realmIdx, 0); assert.equal(s.buildings.field.lv, 0); assert.equal(s.buildings.temple.lv, CONFIG.start.templeLevel);
   assert.equal(s.res.qi, CONFIG.start.qi); assert.equal(s.grudges.length, 0); assert.equal(s.disguise.value, 0);
-  assert.deepEqual(s.run, { bursts: 0, maxChain: 0, nemeses: 0, goals: 0 });
+  assert.deepEqual({ ...s.run, startT: 0, base: {} }, { bursts: 0, maxChain: 0, nemeses: 0, goals: 0, startT: 0, base: {} });   // 本輪統計歸零（startT／base 另測）
+  assert.equal(s.run.startT, s.t);
   // 保留
   assert.equal(s.res.daoHeart, gain); assert.equal(s.res.shard, 77); assert.equal(s.reincarnation.count, 1);
   assert.equal(s.disciples.length, 1); assert.equal(s.disciples[0].lv, 1); assert.equal(s.disciples[0].at, null); assert.equal(s.disciples[0].star, 2);
@@ -631,7 +637,7 @@ t('道心：轉生次數自動加成、打坐冷卻、招賢令、離線上限�
 t('存檔 v1 → v2：舊檔可讀並補上轉生欄位', () => {
   const old = { version: 1, savedAt: Date.now(), state: { res: { qi: 9 }, buildings: { temple: { lv: 3, pausedUntil: 0 } } } };
   const { state } = S.parse(JSON.stringify(old));
-  assert.equal(state.res.qi, 9); assert.equal(state.reincarnation.count, 0); assert.deepEqual(state.run, { bursts: 0, maxChain: 0, nemeses: 0, goals: 0 });
+  assert.equal(state.res.qi, 9); assert.equal(state.reincarnation.count, 0); assert.deepEqual(state.run, { bursts: 0, maxChain: 0, nemeses: 0, goals: 0, startT: 0, base: {} });
   const st = fakeStorage(); const m = maxedRun(); Dao.rebirth(m); S.save(m, st);
   assert.equal(S.load(st).state.reincarnation.count, 1);
   assert.throws(() => S.parse(JSON.stringify({ version: 99, state: { res: {}, buildings: {} } })));
@@ -1511,6 +1517,105 @@ t('轉生清單：每個狀態欄位都被歸類為保留或重置，確認視�
   assert.ok(KEEP_KEYS.every(k => all.includes(k)), '保留清單含有不存在的欄位');
   const txt = REBIRTH_KEEP.map(g => g.label).join('');
   for (const w of ['秘境材料', '功勳', '探索度', '仇人記憶', '勢力威望', '出戰陣容', '專長心得']) assert.ok(txt.includes(w), `保留清單缺少「${w}」`);
+});
+
+// ── 化神之後：九重天劫、道果、終章故事、轉生後事件 ──
+t('天劫：未到化神不判定；達成條件進入待渡，渡劫發獎勵、寫年表、只能渡一次', () => {
+  const s = createState(); s.run.bursts = 6; s.res.daoHeart = 0;
+  Asc.tick(s); assert.equal(Asc.readyCount(s), 0, '未到化神不應判定');
+  s.realmIdx = 13; Asc.tick(s);
+  assert.ok(Asc.isReady(s, 'th1')); assert.ok(!Asc.isReady(s, 'th2'));
+  const r = Asc.claim(s, 'th1');
+  assert.ok(r && r.dao === 8 && r.story.length === 2);
+  assert.equal(s.res.daoHeart, 8); assert.ok(Asc.isDone(s, 'th1')); assert.ok(!Asc.isReady(s, 'th1'));
+  assert.equal(Asc.claim(s, 'th1'), null, '已渡不能再領'); assert.equal(Asc.claim(s, 'th2'), null, '未待渡不能領');
+  assert.ok(s.chronicle.some(e => e.text.includes('引雷入體')));
+  assert.equal(Asc.ascendPerm(s, 'qiMult'), 0.03);
+  assert.ok(Dao.perm(s, 'qiMult') >= 0.03, '永久加成計入 dao.perm');
+  Asc.tick(s); Asc.tick(s); assert.equal([...s.ascend.ready, ...s.ascend.done].filter(x => x === 'th1').length, 1, '渡過的不會再回到待渡');
+  assert.equal(new Set(s.ascend.ready).size, s.ascend.ready.length, '不會重複進入待渡');
+});
+
+t('天劫：本輪統計以轉生時的基準計算；速證限時一旦錯過本輪就失敗', () => {
+  const s = createState(); s.realmIdx = 13; s.stats.incidents = 20; s.stats.endures = 100;
+  assert.equal(Asc.status(s, TRIALS_BY_ID.th3).cur, 8, '舊存檔沒有基準：從累計算');
+  Dao.rebirth(s);
+  assert.equal(s.run.startT, s.t); assert.equal(s.run.base.incidents, 20);
+  s.realmIdx = 13;
+  assert.equal(Asc.status(s, TRIALS_BY_ID.th3).cur, 0, '轉生後本輪統計歸零');
+  s.stats.incidents += 8; s.stats.endures += 50; Asc.tick(s);
+  assert.ok(Asc.isReady(s, 'th3') && Asc.isReady(s, 'hr1'));
+  // 速證：本輪超過限時才到化神 → failed；限時內到化神 → 待渡
+  const late = createState(); late.t = 3 * 3600 * 1000; late.realmIdx = 13; Asc.tick(late);
+  assert.equal(Asc.status(late, TRIALS_BY_ID.hr2).state, 'failed'); assert.ok(!Asc.isReady(late, 'hr2'));
+  const fast = createState(); fast.t = 2 * 3600 * 1000; fast.realmIdx = 13; Asc.tick(fast);
+  assert.ok(Asc.isReady(fast, 'hr2'));
+});
+
+t('天劫：因果輪迴看轉生次數；破廟飛升要先渡完其餘八劫；九劫圓滿開放道果', () => {
+  const s = createState(); s.realmIdx = 13; s.reincarnation.count = 5;
+  Asc.tick(s); assert.ok(Asc.isReady(s, 'kr2')); assert.ok(!Asc.isReady(s, 'kr3'));
+  const others = TRIALS.filter(x => x.id !== 'kr3');
+  s.ascend.done = others.slice(0, 7).map(x => x.id); s.ascend.ready = [others[7].id];
+  Asc.tick(s); assert.ok(!Asc.isReady(s, 'kr3'), '還有一劫沒渡');
+  assert.ok(Asc.claim(s, others[7].id)); Asc.tick(s);
+  assert.ok(Asc.isReady(s, 'kr3'));
+  assert.ok(!Dao.canBuy(s, 'fruitQi'), '九劫未圓滿，道果不開放');
+  const last = Asc.claim(s, 'kr3'); assert.ok(last.last && Asc.complete(s));
+  s.res.daoHeart = 1e6; assert.ok(Dao.canBuy(s, 'fruitQi'));
+  const before = Dao.perm(s, 'qiMult'); assert.ok(Dao.buy(s, 'fruitQi'));
+  assert.ok(Math.abs(Dao.perm(s, 'qiMult') - before - 0.02) < 1e-9);
+});
+
+t('天劫：資料完整（每重天 3 劫、獎勵與故事齊全）；進度跨轉生與存檔保留；壞資料被清理', () => {
+  assert.equal(TRIALS.length, 9); assert.equal(new Set(TRIALS.map(x => x.id)).size, 9);
+  for (const h of HEAVENS) assert.equal(TRIALS.filter(x => x.heaven === h.id).length, 3);
+  for (const x of TRIALS) { assert.ok(x.name && x.desc && x.story[0] && x.story[1].length > 40, x.id); assert.ok(x.reward.dao > 0); const c = x.check(createState()); assert.ok(c.target > 0 && typeof c.text === 'string', x.id); }
+  assert.ok(DAO_SHOP.filter(i => i.gate === 'ascend').length === 3);
+  const s = maxedRun(); s.ascend.done = ['th1', 'hr1']; s.ascend.ready = ['th2'];
+  Dao.rebirth(s); assert.deepEqual(s.ascend, { done: ['th1', 'hr1'], ready: ['th2'] });
+  const back = S.parse(S.serialize(s)).state; assert.deepEqual(back.ascend, s.ascend);
+  const bad = createState(); bad.ascend = { done: ['th1', 'th1', 'nope'], ready: ['th1', 'th2', 'zzz'] }; sanitize(bad);
+  assert.deepEqual(bad.ascend, { done: ['th1'], ready: ['th2'] });
+  const old = S.parse(JSON.stringify({ version: 2, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 1, pausedUntil: 0 } } } })).state;
+  assert.deepEqual(old.ascend, { done: [], ready: [] }); assert.ok(!Number.isNaN(old.run.startT));
+});
+
+t('弟子終章：有第二章的弟子都有第三章；升到 3 星才解鎖，獎勵與特性加成', () => {
+  assert.deepEqual(Object.keys(STORIES3).sort(), Object.keys(STORIES2).sort());
+  const s = createState(); s.res.token = 0; s.res.shard = 0;
+  s.disciples.push({ uid: 1, defId: 'yunqing', lv: 5, at: null, star: 2 }); s.stories.yunqing = 2;
+  assert.equal(St.nextChapter(s, s.disciples[0]), null, '2 星還不能讀終章');
+  assert.ok(St.lockedHint(s, s.disciples[0]).includes('終章'));
+  s.disciples[0].star = 3;
+  const r = St.read(s, 1); assert.equal(r.idx, 3); assert.equal(s.stories.yunqing, 3);
+  assert.equal(s.res.token, 4); assert.equal(s.res.shard, 20);
+  assert.equal(St.reread(s, 'yunqing').length, 3); assert.equal(St.chapterCount('yunqing'), 3);
+  assert.equal(St.nextChapter(s, s.disciples[0]), null);
+  const sv = createState(); sv.stories = { yunqing: 9, afu: 9 }; sanitize(sv); assert.equal(sv.stories.yunqing, 3); assert.equal(sv.stories.afu, 1);
+});
+
+t('轉生後的事件：minReb 限制出現；化神事件限制化神；離線事件依轉生次數過濾', () => {
+  const s = createState(); s.realmIdx = 5;
+  const seen = new Set(); for (let i = 0; i < 400; i++) { s.incident.current = null; s.incident.nextAt = 0; s.visitor.current = null; Inc.tick(s); seen.add(s.incident.current?.id); }
+  for (const id of ['cloud', 'echo', 'qyhead', 'seal', 'letter', 'pastself', 'well', 'oldfriend']) assert.ok(!seen.has(id), `${id} 不該在此時出現`);
+  s.realmIdx = 13; s.reincarnation.count = 3; const seen2 = new Set();
+  for (let i = 0; i < 800; i++) { s.incident.current = null; s.incident.nextAt = 0; s.visitor.current = null; Inc.tick(s); seen2.add(s.incident.current?.id); }
+  for (const id of ['cloud', 'echo', 'pastself', 'well', 'oldfriend']) assert.ok(seen2.has(id), `${id} 應該會出現`);
+  const fresh = createState();
+  for (let i = 0; i < 200; i++) assert.ok(!OFFLINE_EVENTS.find(e => e.id === Off.rollOfflineEvent(fresh, 3600000))?.minReb, '沒轉生過不應抽到轉生後事件');
+  fresh.reincarnation.count = 5; const got = new Set(); for (let i = 0; i < 400; i++) got.add(Off.rollOfflineEvent(fresh, 3600000));
+  assert.ok(got.has('ancestor') && got.has('lamp'));
+  for (const e of OFFLINE_EVENTS) { const o = Off.resolveOffline(createState(), e.id, 0), o2 = Off.resolveOffline(createState(), e.id, 1); assert.ok(o && o2 && o.text && o2.text, e.id); }
+});
+
+t('天劫相關大事與成就：進度來自天劫與道果；新分頁在化神或轉生後解鎖', () => {
+  const s = createState(); assert.ok(!Prog.TAB_RULES.ascend.when(s));
+  s.realmIdx = 13; assert.ok(Prog.TAB_RULES.ascend.when(s));
+  const s2 = createState(); s2.reincarnation.count = 1; assert.ok(Prog.TAB_RULES.ascend.when(s2));
+  s.ascend.done = TRIALS.map(x => x.id); s.reincarnation.shop = { fruitQi: 20 };
+  Goals.tick(s); for (const id of ['asc3', 'asc6', 'asc9', 'fruit20']) assert.ok(Goals.isDone(s, id), id);
+  assert.ok(Gl.gloryPoints(s) >= 72, '天劫計入榮耀');
 });
 
 console.log(`\n${n} 項測試通過`);

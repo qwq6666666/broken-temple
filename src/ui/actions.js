@@ -11,6 +11,7 @@ import * as Sq from '../core/squad.js';
 import * as Exp from '../core/exploration.js';
 import * as I from '../core/incidents.js';
 import * as Dao from '../core/dao.js';
+import * as Asc from '../core/ascend.js';
 import * as St from '../core/stories.js';
 import * as Sp from '../core/spec.js';
 import { autoAssign } from '../core/autoAssign.js';
@@ -24,7 +25,7 @@ import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITY_ORDER } from '../data/gachaRates.js';
-import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp, showOfflineResult, showStory, showStoryLog } from './overlay.js';
+import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp, showOfflineResult, showStory, showStoryLog, showAscend } from './overlay.js';
 import { sfx, unlock, applyVolume } from './audio.js';
 import { getPrefs, setPref } from './prefs.js';
 import { ghostOut, ripple, pulse } from './fx.js';
@@ -105,6 +106,7 @@ export function bindActions(s, ui, rerender) {
       if (gain != null) { sfx('fanfare'); ui.tab = 'dao'; ui.lastPull = null; }
     },
     daoExchange: el => { if (Dao.exchange(s, el.dataset.id)) sfx('coin'); },
+    ascendClaim: el => { const r = Asc.claim(s, el.dataset.id); if (r) { sfx('fanfare'); showAscend(r); } },
     daoBuy: el => { if (Dao.buy(s, el.dataset.id)) sfx('upgrade'); },
     incident: el => {
       const rect = ghostOut('.incident-card', 'exit-event');

@@ -1,6 +1,6 @@
 // 道心商店：用轉生獲得的道心購買永久加成。
 import { DAO_SHOP } from '../data/daoShop.js';
-import { shopLevel, shopCost, canBuy, autoBonus, EXCHANGES } from '../core/dao.js';
+import { shopLevel, shopCost, canBuy, autoBonus, EXCHANGES, unlockedItem } from '../core/dao.js';
 import { canAfford } from '../core/resources.js';
 import { CONFIG } from '../config.js';
 import { fmt } from '../core/format.js';
@@ -10,17 +10,19 @@ const fmtVal = (it, v) => it.unit === '%' ? `+${Math.round(v * 100)}%` : it.unit
 
 export function daoPanel(s, ui) {
   const n = s.reincarnation.count;
-  const rows = DAO_SHOP.map(it => {
+  const mk = it => {
+    if (!unlockedItem(s, it.id)) return crow(ui, { key: 'd' + it.id, cls: 'locked', icon: '🔒', title: `<b>${esc(it.name)}</b>`, sub: '渡過九重天劫後開放（見「天劫」）' });
     const lv = shopLevel(s, it.id), max = lv >= it.maxLv, can = canBuy(s, it.id);
     return crow(ui, { key: 'd' + it.id, cls: can ? 'affordable' : '', icon: it.icon, title: `<b>${esc(it.name)}</b> <span class="lv">Lv ${lv}/${it.maxLv}</span>`,
       sub: `${esc(it.desc)}　目前 ${esc(fmtVal(it, lv * it.perLevel))}`,
       act: max ? '<span class="tag gold">已滿級</span>' : `<div class="costs">${costChips(s, shopCost(s, it.id))}</div><button class="btn ${can ? 'primary' : ''}" data-act="daoBuy" data-id="${it.id}" ${can ? '' : 'disabled'}>修習</button>`,
       detail: `<small>${esc(it.desc)}</small><small class="dim">每級 ${esc(fmtVal(it, it.perLevel))}　目前 <b class="gold">${esc(fmtVal(it, lv * it.perLevel))}</b></small>` });
-  }).join('');
+  };
+  const rows = DAO_SHOP.filter(it => !it.gate).map(mk).join(''), fruit = DAO_SHOP.filter(it => it.gate).map(mk).join('');
   const ex = EXCHANGES.map(e => {
     const can = canAfford(s, { daoHeart: e.cost });
     return crow(ui, { key: 'dx' + e.id, cls: can ? 'affordable' : '', icon: e.icon, title: `<b>${esc(e.name)}</b>`, sub: esc(e.desc),
       act: `<div class="costs">${costChips(s, { daoHeart: e.cost })}</div><button class="btn ${can ? 'primary' : ''}" data-act="daoExchange" data-id="${e.id}" ${can ? '' : 'disabled'}>兌換</button>` });
   }).join('');
-  return `<p class="hint">☯️ 道心 ${fmt(s.res.daoHeart)}　已轉生 ${n} 次（靈氣、靈石 +${Math.round(autoBonus(n) * 100)}%）</p>${rows}<h3 class="sub">道心兌換</h3>${ex}`;
+  return `<p class="hint">☯️ 道心 ${fmt(s.res.daoHeart)}　已轉生 ${n} 次（靈氣、靈石 +${Math.round(autoBonus(n) * 100)}%）</p>${rows}<h3 class="sub">🍑 道果（無上限）</h3>${fruit}<h3 class="sub">道心兌換</h3>${ex}`;
 }

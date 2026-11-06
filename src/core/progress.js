@@ -31,6 +31,7 @@ export const TAB_RULES = {
   nemesis:   { name: '宿敵錄', when: s => Object.keys(s.nemeses).length > 0 },
   goals:     { name: '大事',   when: s => s.realmIdx >= 1 || s.goalsDone.length > 0 },
   dao:       { name: '道心',   when: s => s.realmIdx >= 13 || s.reincarnation.count > 0 },
+  ascend:    { name: '天劫',   when: s => s.realmIdx >= 13 || s.reincarnation.count > 0 || s.ascend.done.length > 0 },
 };
 export const isUnlocked = (s, tab) => !TAB_RULES[tab] || !!s.unlocked[tab];
 
@@ -80,6 +81,7 @@ export function nextStep(s) {
       : { text: `累積 ${Math.ceil(c.qi)} 靈氣建「煉丹房」（可打坐加快）。` };
   }
   if (canBreak(s)) return { text: `靈石夠了，到「境界」突破 ${nextRealm(s).name}！`, tab: 'realm' };
+  if (s.ascend.ready.length) return { text: '有天劫條件達成了，到「境界」的「天劫」按「渡劫」領獎勵與後日談。', tab: 'realm' };
   if (canRebirth(s)) return { text: '已臻化神，可到「境界」轉生換道心。', tab: 'realm' };
   if (s.res.token >= 1 && s.disciples.length === 0) return { text: '用招賢令抽弟子，再派駐建築。', tab: 'gacha' };
   if (s.disciples.length && !s.disciples.some(d => d.at) && Object.keys(s.buildings).some(id => slots(s, id) > 0))

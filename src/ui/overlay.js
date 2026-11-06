@@ -279,6 +279,12 @@ export function showStory(r) {
     <p class="storytext">${esc(r.text)}</p>
     <p class="hint">獲得 ${rw}；${esc(r.name)} 的特性效果永久 +10%。</p>`);
 }
+export function showAscend(r) {
+  const perm = Object.entries(r.perm).map(([k, v]) => `${{ qiMult: '靈氣', stoneMult: '靈石', powerMult: '戰力', burstReward: '爆擊獎勵' }[k]} +${Math.round(v * 100)}%`).join('、');
+  return showModal(`<h3>⚡ ${esc(r.trial.name)}・${esc(r.story[0])}</h3>
+    <p class="storytext">${esc(r.story[1])}</p>
+    <p class="hint">☯️ 道心 +${r.dao}${perm ? `；永久加成：${esc(perm)}` : ''}。${r.last ? '九劫圓滿——「道心」頁已開放道果。' : ''}</p>`);
+}
 export function showStoryLog(name, emoji, chapters) {
   return showModal(`<h3>${emoji} ${esc(name)}的回憶</h3>` + chapters.map(([t, x]) => `<p><b class="gold">${esc(t)}</b><br><span class="storytext">${esc(x)}</span></p>`).join(''));
 }

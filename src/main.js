@@ -14,6 +14,7 @@ import * as economy from './core/economy.js';
 import * as conceal from './core/conceal.js';
 import * as endure from './core/endure.js';
 import * as goals from './core/goals.js';
+import * as ascend from './core/ascend.js';
 import * as commissions from './core/commissions.js';
 import * as achievements from './core/achievements.js';
 import * as glory from './core/glory.js';
@@ -58,6 +59,7 @@ function onTick(dt) {
   incidents.tick(state);
   expeditions.tick(state);
   goals.tick(state);
+  ascend.tick(state);
   commissions.tick(state);
   achievements.tick(state);
   glory.tick(state);

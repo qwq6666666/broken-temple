@@ -10,6 +10,7 @@ import { toast, quote, cue } from './events.js';
 import { specSum } from './spec.js';
 import { factionPerm } from './factions.js';
 import { mutSum } from './mutators.js';
+import { ascendPerm, complete as ascendComplete, startRun } from './ascend.js';
 import { MUTATORS_BY_ID } from '../data/mutators.js';
 
 // 轉生次數的自動加成：前 softCap 次線性，之後只有小幅尾巴（遞減）
@@ -25,7 +26,7 @@ export function perm(s, key) {
   let v = 0;
   for (const it of DAO_SHOP) if (it.key === key) v += shopLevel(s, it.id) * it.perLevel;
   if (key === 'qiMult' || key === 'stoneMult') v += autoBonus(s.reincarnation.count);
-  return v + specSum(s, key) + factionPerm(s, key) + mutSum(s, key);   // 建築專精、勢力威望、輪迴詞條
+  return v + specSum(s, key) + factionPerm(s, key) + mutSum(s, key) + ascendPerm(s, key);   // 建築專精、勢力威望、輪迴詞條、天劫
 }
 
 export const canRebirth = s => s.realmIdx >= CONFIG.reincarnation.minRealm && !s.burstActive;
@@ -56,6 +57,7 @@ export function rebirth(s, mutatorId = null, now = Date.now()) {
   Object.assign(s.res, keepRes); s.res.daoHeart = dao;
   if (bonus) s.weekly = { claimed: weekIndex(now) };
   s.res.stone += perm(s, 'startStone'); s.res.token += perm(s, 'startToken');
+  startRun(s);                                                            // 記錄本輪起點（天劫的本輪條件用）
   s.visitor.nextAt = s.t + CONFIG.visitor.firstSec * 1000;
   s.incident.nextAt = s.t + 300000;
   note(s, '☯️', `第${wasNo}世結束：引爆 ${wasRun.bursts} 次、最大連鎖 ${wasRun.maxChain}、擊敗宿敵 ${wasRun.nemeses}、完成大事 ${wasRun.goals}，獲得道心 ${gain}${bonus ? `（含每週挑戰 +${bonus}）` : ''}`);
@@ -69,7 +71,9 @@ export function shopCost(s, id) {
   const it = DAO_SHOP_BY_ID[id];
   return { daoHeart: Math.ceil(it.baseCost * it.growth ** shopLevel(s, id)) };
 }
-export const canBuy = (s, id) => shopLevel(s, id) < DAO_SHOP_BY_ID[id].maxLv && canAfford(s, shopCost(s, id));
+// gate: 'ascend' 的項目（道果）要九劫全渡才開放
+export const unlockedItem = (s, id) => DAO_SHOP_BY_ID[id].gate !== 'ascend' || ascendComplete(s);
+export const canBuy = (s, id) => unlockedItem(s, id) && shopLevel(s, id) < DAO_SHOP_BY_ID[id].maxLv && canAfford(s, shopCost(s, id));
 export function buy(s, id) {
   if (!canBuy(s, id)) return false;
   pay(s, shopCost(s, id));

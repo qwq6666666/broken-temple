@@ -16,6 +16,7 @@ export const GLORY_SOURCES = [
   ['專長心得', s => Object.values(s.insight || {}).reduce((a, n) => a + n, 0), 1],
   ['法寶', s => s.artifacts.length, 1],
   ['弟子', s => s.disciples.length, 1],
+  ['渡過天劫', s => s.ascend.done.length, 8],
   ['弟子故事', s => Object.values(s.stories || {}).reduce((a, n) => a + n, 0), 0.5],
   ['宗門委託', s => Math.min(100, s.commissions.done), 0.2],
 ];

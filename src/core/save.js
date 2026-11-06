@@ -3,7 +3,8 @@
 import { CONFIG } from '../config.js';
 import { createState } from './state.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
-import { STORIES, STORIES2 } from '../data/stories.js';
+import { STORIES, STORIES2, STORIES3 } from '../data/stories.js';
+import { TRIALS_BY_ID } from '../data/ascend.js';
 import { SPECS } from '../data/specs.js';
 import { FACTIONS_BY_ID } from '../data/factions.js';
 import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
@@ -87,6 +88,11 @@ export function sanitize(s) {
   s.commissions = { list: (Array.isArray(cm.list) ? cm.list : []).filter(c => isPlain(c) && COMMISSION_BY_KIND[c.kind] && isPlain(c.reward))
     .map(c => ({ kind: c.kind, target: Math.max(1, Math.floor(num(c.target, 1))), base: Math.max(0, num(c.base)), reward: c.reward })).slice(0, 3),
     nextAt: num(cm.nextAt), done: Math.max(0, Math.floor(num(cm.done))) };
+  const asc = isPlain(s.ascend) ? s.ascend : {};
+  s.ascend = { done: dedupe((Array.isArray(asc.done) ? asc.done : []).filter(id => TRIALS_BY_ID[id])) };
+  s.ascend.ready = dedupe((Array.isArray(asc.ready) ? asc.ready : []).filter(id => TRIALS_BY_ID[id] && !s.ascend.done.includes(id)));
+  if (!isPlain(s.run)) s.run = { bursts: 0, maxChain: 0, nemeses: 0, goals: 0, startT: 0, base: {} };
+  s.run.startT = Math.max(0, num(Number(s.run.startT))); if (!isPlain(s.run.base)) s.run.base = {};
   s.goalsDone = dedupe((Array.isArray(s.goalsDone) ? s.goalsDone : []).filter(id => GOALS_BY_ID[id]));
   s.grudges = (Array.isArray(s.grudges) ? s.grudges : []).map(sanitizeGrudge).filter(Boolean);
   for (const id of Object.keys(s.buildings)) {
@@ -117,7 +123,7 @@ export function sanitize(s) {
   if (!isPlain(s.specs)) s.specs = {};
   for (const id of Object.keys(s.specs)) if (!(SPECS[id] || []).some(o => o.id === s.specs[id])) delete s.specs[id];
   if (!isPlain(s.stories)) s.stories = {};
-  for (const id of Object.keys(s.stories)) { const max = STORIES2[id] ? 2 : STORIES[id] ? 1 : 0; if (!max) delete s.stories[id]; else s.stories[id] = Math.max(0, Math.min(max, Math.floor(num(Number(s.stories[id]))))); }
+  for (const id of Object.keys(s.stories)) { const max = STORIES3[id] ? 3 : STORIES2[id] ? 2 : STORIES[id] ? 1 : 0; if (!max) delete s.stories[id]; else s.stories[id] = Math.max(0, Math.min(max, Math.floor(num(Number(s.stories[id]))))); }
   s.disguise.value = Math.max(0, Math.min(20, num(s.disguise.value)));
   s.tokBuy = { n: Math.max(0, Math.floor(num(isPlain(s.tokBuy) ? Number(s.tokBuy.n) : 0))), resetAt: Math.max(0, num(isPlain(s.tokBuy) ? Number(s.tokBuy.resetAt) : 0)) };
   for (const k of ['merit', ...MAT_KEYS]) if (s.res[k] === undefined) s.res[k] = 0;        // 舊存檔沒有功勳與秘境材料
