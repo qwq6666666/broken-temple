@@ -3,7 +3,7 @@ import { MATERIALS, REALM_MATS } from '../data/materials.js';
 import { BRANCHES } from '../data/branches.js';
 import { EXPLORATION, EX_KEYS } from '../data/exploration.js';
 import { exLevel, exXp, exNext, pendingEvents } from '../core/exploration.js';
-import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R, reqLines } from '../data/expeditions.js';
+import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R, reqLines, matIdOf } from '../data/expeditions.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
@@ -12,7 +12,7 @@ import { slotCount, isUnlocked, freeDisciples, successChance, teamPower, reqChec
 import { fmt } from '../core/format.js';
 import { esc, crow } from './dom.js';
 
-const rewardText = (rw, id) => [`${MATERIALS[id].icon}${MATERIALS[id].name}`, rw.qiSec && '✨靈氣', rw.stoneSec && '💎靈石', rw.artifact && `法寶${Math.round(rw.artifact * 100)}%`, rw.recruit && `弟子${Math.round(rw.recruit * 100)}%`].filter(Boolean).join('　');
+const rewardText = (rw, id) => [`${MATERIALS[matIdOf(EXPEDITIONS_BY_ID[id])].icon}${MATERIALS[matIdOf(EXPEDITIONS_BY_ID[id])].name}`, rw.qiSec && '✨靈氣', rw.stoneSec && '💎靈石', rw.artifact && `法寶${Math.round(rw.artifact * 100)}%`, rw.recruit && `弟子${Math.round(rw.recruit * 100)}%`].filter(Boolean).join('　');
 const wantText = w => [w.specialty && `專長：${w.specialty}`, w.element && `五行：${w.element}`].filter(Boolean).join('、');
 
 const reqTags = (s, e, uids) => {
@@ -95,7 +95,7 @@ const rewardPreview = r => Object.entries(r).map(([k, v]) => ({ merit: `🏅${v}
 
 // 這個秘境的材料拿來做什麼
 function matUse(id) {
-  const k = 'mat_' + id, uses = [];
+  const k = 'mat_' + matIdOf(EXPEDITIONS_BY_ID[id]), uses = [];
   for (const [i, c] of Object.entries(REALM_MATS)) if (c[k]) uses.push(`突破到${REALMS[i].name}`);
   for (const b of Object.values(BRANCHES)) if (b.cost[k]) uses.push(`弟子進階「${b.name}」`);
   return uses.length ? `材料用途：${uses.join('、')}` : '';

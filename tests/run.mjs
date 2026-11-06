@@ -40,7 +40,9 @@ import * as Gl from '../src/core/glory.js';
 import { GLORY_LEVELS } from '../src/data/glory.js';
 import * as Cm from '../src/core/commissions.js';
 import * as Ex from '../src/core/expeditions.js';
-import { EXPEDITIONS, EXPEDITIONS_BY_ID } from '../src/data/expeditions.js';
+import { EXPEDITIONS, EXPEDITIONS_BY_ID, matIdOf } from '../src/data/expeditions.js';
+import { MATERIALS, MAT_YIELD } from '../src/data/materials.js';
+import { EXPLORATION } from '../src/data/exploration.js';
 import { MUTATORS } from '../src/data/mutators.js';
 import { SPECS, specText } from '../src/data/specs.js';
 import { STORIES, STORIES2 } from '../src/data/stories.js';
@@ -993,9 +995,26 @@ t('輪迴詞條：效果、訪客頻率、本輪道心倍率、轉生選擇與�
   assert.equal(loadPatched(st => { st.mutator = 'poor'; }).mutator, 'poor');
 });
 
+t('高階秘境：材料沿用雲台星砂／龍脈精華，探索度第 1 則也發同一種材料；需符合隊伍限制', () => {
+  const s = createState(); s.realmIdx = 13; s.unlocked.expedition = true;
+  const mk = (id, lv) => { const d = D.addDisciple(s, id).disciple; d.lv = lv; return d.uid; };
+  const dan = mk('shenyao', 30), a = mk('qinwu', 30), b = mk('moqi', 30);       // 丹火、劍金、陣水
+  assert.equal(Ex.reqCheck(s, EXPEDITIONS_BY_ID.rift, [dan, a]).ok, false);      // 至少 3 人
+  assert.equal(Ex.reqCheck(s, EXPEDITIONS_BY_ID.rift, [dan, a, b]).ok, true);
+  assert.equal(Ex.reqCheck(s, EXPEDITIONS_BY_ID.ruins, [a, b]).ok, true);        // 墨小棋是陣修
+  assert.equal(Ex.reqCheck(s, EXPEDITIONS_BY_ID.ruins, [dan, a]).ok, false);     // 缺陣修
+  setRng(() => 0); assert.ok(Ex.start(s, 'rift', [dan, a, b])); s.t += 121 * 60000; Ex.tick(s);
+  const x = s.expeditions[0]; assert.equal(x.result.matId, 'abyss');
+  const before = s.res.mat_abyss; const r = Ex.claim(s, 0); setRng(Math.random);
+  assert.ok(r.success && s.res.mat_abyss > before && !('mat_rift' in s.res));       // 材料進了龍脈精華，沒有另開新材料
+  const e = createState(); e.explore.ruins = 2; EpMod.resolve(e, 'ruins', 1); assert.equal(e.res.mat_sky, 3);
+});
+
 t('秘境與詞條資料完整', () => {
   EXPEDITIONS.forEach(e => { assert.ok(e.minutes > 0 && e.difficulty > 0 && Object.keys(e.reward).length); });
-  assert.ok(EXPEDITIONS.every((e, i) => i === 0 || e.unlockRealm > EXPEDITIONS[i - 1].unlockRealm));
+  assert.ok(EXPEDITIONS.every((e, i) => i === 0 || e.unlockRealm >= EXPEDITIONS[i - 1].unlockRealm));   // 同一境界可有多個秘境
+  assert.ok(EXPEDITIONS.length >= 11 && EXPEDITIONS.filter(e => e.unlockRealm >= 12).length >= 3, '元嬰之後的高階秘境');
+  EXPEDITIONS.forEach(e => { const m = matIdOf(e); assert.ok(MATERIALS[m], e.id + ' 材料不存在'); assert.ok(MAT_YIELD[e.id], e.id + ' 缺產量'); assert.ok(EXPLORATION[e.id], e.id + ' 缺探索度事件'); });
   MUTATORS.forEach(m => assert.ok(m.effects.dao > 0 && m.desc));
   const KEYS = new Set(['qiMult', 'stoneMult', 'powerMult', 'burstReward', 'disguiseRate', 'tokenRate', 'cdCut', 'offlineEff', 'offlineCap', 'discipleCap', 'visitFreq', 'startStone', 'startToken', 'dao']);
   MUTATORS.forEach(m => { assert.ok(m.name && m.flavor, m.id); Object.keys(m.effects).forEach(k => assert.ok(KEYS.has(k), `${m.id} 用了不支援的效果鍵 ${k}`)); });

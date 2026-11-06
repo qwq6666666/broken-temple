@@ -13,7 +13,7 @@ export const MATERIALS = {
 export const matKey = id => 'mat_' + id;
 export const MAT_KEYS = Object.keys(MATERIALS).map(matKey);
 // 每個秘境單次成功的產量區間（失敗固定 1）；探索度每級 +10%
-export const MAT_YIELD = { cave: [1, 2], spring: [1, 2], field: [2, 4], swamp: [2, 4], valley: [2, 4], maze: [2, 4], sky: [3, 5], abyss: [3, 5] };
+export const MAT_YIELD = { cave: [1, 2], spring: [1, 2], field: [2, 4], swamp: [2, 4], valley: [2, 4], maze: [2, 4], sky: [3, 5], abyss: [3, 5], ruins: [3, 5], seal: [4, 6], rift: [5, 7] };   // 高階秘境依 id 查產量，材料種類由 matIdOf 決定
 // 主角跨大境界突破所需材料（突破到該境界序號）
 export const REALM_MATS = {
   10: { mat_field: 2, mat_valley: 2 },       // 築基
