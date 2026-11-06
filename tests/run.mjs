@@ -985,7 +985,7 @@ t('輪迴詞條：效果、訪客頻率、本輪道心倍率、轉生選擇與�
   const s = createState(); s.mutator = 'ascetic';
   const q = eco.qiPerSec(s); s.mutator = null; assert.ok(Math.abs(q / eco.qiPerSec(s) - 0.7) < 1e-9);         // 靈氣 -30%
   const a = maxedRun(); a.mutator = 'tribulation'; const b = maxedRun();
-  assert.equal(Dao.daoGain(a), Math.floor(Dao.daoGain(b) * 1.3));                                            // 本輪道心 +30%
+  assert.equal(Dao.daoGain(a), Math.floor(Dao.daoGain(b) * 1.15));                                           // 本輪道心 +15%
   assert.ok(Math.abs(eco.combatPower(a) / eco.combatPower(b) - 0.8) < 1e-9);                                 // 戰力 -20%
   const gap = mut => { setRng(() => 0.5); const x = createState(); x.mutator = mut; x.visitor.current = visitor('former', 1); E.endure(x); setRng(Math.random); return x.visitor.nextAt; };
   assert.ok(gap('bustle') < gap(null) && gap(null) < gap('hermit'));
