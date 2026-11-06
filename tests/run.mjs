@@ -1521,7 +1521,7 @@ t('轉生清單：每個狀態欄位都被歸類為保留或重置，確認視�
 
 // ── 化神之後：九重天劫、道果、終章故事、轉生後事件 ──
 t('天劫：未到化神不判定；達成條件進入待渡，渡劫發獎勵、寫年表、只能渡一次', () => {
-  const s = createState(); s.run.bursts = 6; s.res.daoHeart = 0;
+  const s = createState(); s.run.bursts = 8; s.res.daoHeart = 0;
   Asc.tick(s); assert.equal(Asc.readyCount(s), 0, '未到化神不應判定');
   s.realmIdx = 13; Asc.tick(s);
   assert.ok(Asc.isReady(s, 'th1')); assert.ok(!Asc.isReady(s, 'th2'));
@@ -1538,22 +1538,22 @@ t('天劫：未到化神不判定；達成條件進入待渡，渡劫發獎勵�
 
 t('天劫：本輪統計以轉生時的基準計算；速證限時一旦錯過本輪就失敗', () => {
   const s = createState(); s.realmIdx = 13; s.stats.incidents = 20; s.stats.endures = 100;
-  assert.equal(Asc.status(s, TRIALS_BY_ID.th3).cur, 8, '舊存檔沒有基準：從累計算');
+  assert.equal(Asc.status(s, TRIALS_BY_ID.th3).cur, 10, '舊存檔沒有基準：從累計算（上限為門檻）');
   Dao.rebirth(s);
   assert.equal(s.run.startT, s.t); assert.equal(s.run.base.incidents, 20);
   s.realmIdx = 13;
   assert.equal(Asc.status(s, TRIALS_BY_ID.th3).cur, 0, '轉生後本輪統計歸零');
-  s.stats.incidents += 8; s.stats.endures += 50; Asc.tick(s);
+  s.stats.incidents += 10; s.stats.endures += 130; Asc.tick(s);
   assert.ok(Asc.isReady(s, 'th3') && Asc.isReady(s, 'hr1'));
   // 速證：本輪超過限時才到化神 → failed；限時內到化神 → 待渡
-  const late = createState(); late.t = 3 * 3600 * 1000; late.realmIdx = 13; Asc.tick(late);
+  const late = createState(); late.t = 2.5 * 3600 * 1000; late.realmIdx = 13; Asc.tick(late);
   assert.equal(Asc.status(late, TRIALS_BY_ID.hr2).state, 'failed'); assert.ok(!Asc.isReady(late, 'hr2'));
-  const fast = createState(); fast.t = 2 * 3600 * 1000; fast.realmIdx = 13; Asc.tick(fast);
+  const fast = createState(); fast.t = 1.5 * 3600 * 1000; fast.realmIdx = 13; Asc.tick(fast);
   assert.ok(Asc.isReady(fast, 'hr2'));
 });
 
 t('天劫：因果輪迴看轉生次數；破廟飛升要先渡完其餘八劫；九劫圓滿開放道果', () => {
-  const s = createState(); s.realmIdx = 13; s.reincarnation.count = 5;
+  const s = createState(); s.realmIdx = 13; s.reincarnation.count = 8;
   Asc.tick(s); assert.ok(Asc.isReady(s, 'kr2')); assert.ok(!Asc.isReady(s, 'kr3'));
   const others = TRIALS.filter(x => x.id !== 'kr3');
   s.ascend.done = others.slice(0, 7).map(x => x.id); s.ascend.ready = [others[7].id];
