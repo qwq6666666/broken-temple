@@ -1,6 +1,6 @@
 // 平衡模擬器：貪婪機器人無頭跑 core，印出各里程碑時間。
 // 新增（量測元嬰・化神高階秘境與輪迴詞條）：nohi＝機器人不派祖庭遺墟／地底封印／虛空裂隙（對照組）；hiexp＝缺材料時優先派高階秘境；
-//   linger＝化神後等秘境回來才轉生（LINGER 分鐘上限）；farm＝沒有材料缺口時，空的探索位也去刷（挑成功率 ≥ FARM_MIN%（預設 30）裡獎勵最大的）；MUT=詞條id＝每次轉生都選該詞條；JSON=1＝最後印出一行機器可讀的摘要。
+//   EXTRA=N＝直接給擴建 +N 級；linger＝化神後等秘境回來才轉生（LINGER 分鐘上限）；farm＝沒有材料缺口時，空的探索位也去刷（挑成功率 ≥ FARM_MIN%（預設 30）裡獎勵最大的）；MUT=詞條id＝每次轉生都選該詞條；JSON=1＝最後印出一行機器可讀的摘要。
 // 用法：node tests/sim.mjs [小時數=12] [passive] [rebirth] [equip] [branch] [commission] [insight] [smart] [ascend] [squad] [noexp]
 //   passive = 完全不打坐；rebirth = 化神後自動轉生；equip/branch/commission/insight = 開啟對應新功能的最佳化行為
 //   smart = 用「補滿空位」依專長五行派駐；環境變數 ELEMENT=0 關閉五行效果（比較基準）
@@ -56,6 +56,7 @@ let seed = Number(process.env.SEED) || 12345;
 setRng(() => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; });
 
 const s = createState();
+if (process.env.EXTRA) s.reincarnation.shop.expand = Math.round(Number(process.env.EXTRA) / 10);     // EXTRA=300：一開始就有道心商店「擴建」+300 級（量測擴建對節奏的影響；不花道心）
 const log = [];
 const mark = (name) => log.push([name, s.t / 1000]);
 const seen = new Set();

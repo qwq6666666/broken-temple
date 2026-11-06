@@ -2,14 +2,14 @@
 import { REALMS, TIER_NAMES } from '../data/realms.js';
 import { CONFIG } from '../config.js';
 import { nextRealm, breakCost, canBreak } from '../core/realm.js';
-import { capAtRealm } from '../core/buildings.js';
+import { capAtRealm, extraLevels } from '../core/buildings.js';
 import { fmt } from '../core/format.js';
 import { canRebirth, daoGain } from '../core/dao.js';
 import { mutatorOf } from '../core/mutators.js';
 import { esc, costChips, RES } from './dom.js';
 import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
 
-const capAt = capAtRealm;
+const capAt = (s, i) => capAtRealm(i, extraLevels(s));
 
 // 分段大階：每個大境界一列，段內以小點表示層數（已過＝實心、目前＝金色、未到＝空心）
 function stages(s) {
@@ -24,7 +24,7 @@ function stages(s) {
 export function realmPanel(s) {
   const cur = REALMS[s.realmIdx], nx = nextRealm(s);
   const cost = nx ? breakCost(s) : null, ok = nx && canBreak(s);
-  const capNow = capAt(s.realmIdx), capNext = nx ? capAt(nx.idx) : capNow;
+  const capNow = capAt(s, s.realmIdx), capNext = nx ? capAt(s, nx.idx) : capNow;
   const showPower = s.grudges.length > 0 || !!s.unlocked.avenge;       // 戰力只有打臉預估用得到
   const diff = nx ? `<div class="diff"><span>產出 <b>×${fmt(cur.mult)}</b> → <b class="gold">×${fmt(nx.mult)}</b></span>
       ${capNext > capNow ? `<span>建築上限 <b>Lv${capNow}</b> → <b class="gold">Lv${capNext}</b></span>` : ''}</div>` : '';

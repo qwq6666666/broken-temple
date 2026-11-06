@@ -3,7 +3,7 @@ import { BUILDINGS, BUILDINGS_BY_ID } from '../data/buildings.js';
 import { VISITOR_TYPES } from '../data/visitors.js';
 import { lvlLabel, REALMS } from '../data/realms.js';
 import { CONFIG } from '../config.js';
-import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked } from '../core/buildings.js';
+import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked, extraLevels, maxLevelOf } from '../core/buildings.js';
 import { upgradeButtons, milestoneText } from './buildingPanel.js';
 import { SPECS, SPEC_LEVEL, specText } from '../data/specs.js';
 import { tierOfSect, repOf } from '../core/factions.js';
@@ -72,7 +72,7 @@ export function updateScene(root, refs, s, ui) {
   for (const d of BUILDINGS) {
     const b = s.buildings[d.id], t = refs.tileEls[d.id], si = stageIndex(d.id, b.lv);
     const built = b.lv > 0, paused = built && s.t < b.pausedUntil;
-    setClass(t.el, `bld ${isBuildingUnlocked(s, d.id) ? '' : 'locked'} ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${b.lv >= CONFIG.building.maxLevel ? 'maxed' : ''} ${ui.selBuilding === d.id ? 'sel' : ''} st-${si}${t.el._pop ? ' popup' : ''}`);
+    setClass(t.el, `bld ${isBuildingUnlocked(s, d.id) ? '' : 'locked'} ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${isMax(s, d.id) ? 'maxed' : ''} ${ui.selBuilding === d.id ? 'sel' : ''} st-${si}${t.el._pop ? ' popup' : ''}`);
     if (t.si !== si) { t.si = si; t.art.innerHTML = drawBuilding(d.id, si); }
     setText(t.chip, built ? 'Lv' + b.lv : '建造');
     const crew = s.disciples.filter(x => x.at === d.id).slice(0, 4);
@@ -106,10 +106,10 @@ function buildingPopover(s, id) {
   const crew = s.disciples.filter(x => x.at === id), paused = b.lv > 0 && s.t < b.pausedUntil;
   const max = isMax(s, id), capped = isCapped(s, id), can = canUpgrade(s, id);
   const action = max ? '<span class="tag gold">已滿級</span>'
-    : capped ? `<span class="tag red">需突破至 ${esc(REALMS[realmNeededFor(b.lv + 1)].name)}</span>`
+    : capped ? `<span class="tag red">需突破至 ${esc(REALMS[realmNeededFor(b.lv + 1, extraLevels(s))].name)}</span>`
     : `<div class="costs">${costChips(s, upgradeCost(s, id))}</div>${upgradeButtons(s, id)}`;
   return `<div class="bpop-card"><button class="hx" data-act="closeBuilding" title="關閉">✕</button>
-    <div class="row"><span class="bigemoji">${st.emoji}</span><b>${esc(d.name)}</b> <span class="lv">Lv ${b.lv}/${CONFIG.building.maxLevel}</span>
+    <div class="row"><span class="bigemoji">${st.emoji}</span><b>${esc(d.name)}</b> <span class="lv">Lv ${b.lv}/${maxLevelOf(s)}</span>
       <span class="tag">專長：${esc(d.specialty)}</span>${paused ? '<span class="tag red">⏸ 暫停產出中</span>' : ''}</div>
     <small>${esc(d.desc)}</small>
     <small class="dim">${esc(st.label)}${next ? `　→　Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}</small>${milestoneText(d, b.lv)}

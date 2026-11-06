@@ -101,7 +101,7 @@ export function sanitize(s) {
   s.grudges = (Array.isArray(s.grudges) ? s.grudges : []).map(sanitizeGrudge).filter(Boolean);
   for (const id of Object.keys(s.buildings)) {
     if (!BUILDINGS_BY_ID[id]) { delete s.buildings[id]; continue; }
-    s.buildings[id].lv = Math.max(0, Math.min(CONFIG.building.maxLevel, Math.floor(num(s.buildings[id].lv))));
+    s.buildings[id].lv = Math.max(0, Math.min(CONFIG.building.hardMax, Math.floor(num(s.buildings[id].lv))));
   }
   for (const id of Object.keys(s.nemeses)) if (!NEMESES_BY_ID[id]) delete s.nemeses[id];
   for (const id of Object.keys(s.reincarnation.shop)) {

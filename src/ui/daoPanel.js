@@ -5,7 +5,7 @@ import { canAfford } from '../core/resources.js';
 import { fmt } from '../core/format.js';
 import { esc, costChips, crow } from './dom.js';
 
-const fmtVal = (it, v) => it.unit === '%' ? `+${Math.round(v * 100)}%` : it.unit === '秒' ? `-${v}秒` : `+${v}${it.unit === '小時' ? ' 小時' : ''}`;
+const fmtVal = (it, v) => it.unit === '%' ? `+${Math.round(v * 100)}%` : it.unit === '秒' ? `-${v}秒` : `+${v}${it.unit === '小時' ? ' 小時' : it.unit === '級' ? ' 級' : ''}`;
 
 export function daoPanel(s, ui) {
   const n = s.reincarnation.count;

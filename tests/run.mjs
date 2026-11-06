@@ -1,6 +1,7 @@
 // 核心邏輯測試：node tests/run.mjs （不需任何框架）
 import assert from 'node:assert/strict';
 import { CONFIG } from '../src/config.js';
+import { lvEff } from '../src/core/buildingMath.js';
 import { REALMS } from '../src/data/realms.js';
 import { createState } from '../src/core/state.js';
 import { fmt } from '../src/core/format.js';
@@ -107,7 +108,7 @@ t('建築成本 = 基礎 ÷ 10 × 1.0141^等級 × 解鎖所需境界倍率，�
 t('建築等級刻度：里程碑倍率、產出與舊制中性、功能型效果等比縮放、駐守位、批量購買、舊存檔換算', () => {
   // 里程碑：只套用在會產出的建築，取不超過目前等級的最後一項
   assert.equal(B.milestoneMult(9), 1); assert.equal(B.milestoneMult(10), 1.1); assert.equal(B.milestoneMult(49), 1.25); assert.equal(B.milestoneMult(100), 2);
-  assert.deepEqual(B.nextMilestone(10), [25, 1.25]); assert.equal(B.nextMilestone(100), null);
+  assert.deepEqual(B.nextMilestone(10), [25, 1.25]); assert.deepEqual(B.nextMilestone(100), [200, 2.5]); assert.equal(B.nextMilestone(1000), null); assert.equal(B.milestoneMult(1000), 14.9);
   // 產出：舊制 k 級（k×每級）≈ 新制 10k 級（含里程碑與歸一化）；不應偏離超過 ±45%（前期偏低、化神滿級偏高，見設計表）
   for (const L of [10, 20, 30, 50, 70, 100]) {
     const s = createState(); s.realmIdx = 13; s.buildings.temple.lv = 0; s.buildings.field.lv = L; const q = eco.qiPerSec(s) - CONFIG.innateQiPerSec * eco.realmOf(s).mult;
@@ -135,7 +136,36 @@ t('建築等級刻度：里程碑倍率、產出與舊制中性、功能型效�
   const old = S.parse(JSON.stringify({ version: 2, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 7, pausedUntil: 0 }, field: { lv: 10, pausedUntil: 0 } } } })).state;
   assert.equal(old.buildings.temple.lv, 70); assert.equal(old.buildings.field.lv, 100);
   const cur = S.parse(JSON.stringify({ version: 3, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 7, pausedUntil: 0 }, field: { lv: 999, pausedUntil: 0 } } } })).state;
-  assert.equal(cur.buildings.temple.lv, 7); assert.equal(cur.buildings.field.lv, 100);
+  assert.equal(cur.buildings.temple.lv, 7); assert.equal(cur.buildings.field.lv, 999);        // v3 存檔不換算；絕對上限 1000（擴建後才可能超過 100）
+});
+
+t('擴建（道心商店）：等級上限隨境界逐步加成、成本跟著、功能效果遞減、存檔與上限', () => {
+  const s = createState(); s.reincarnation.shop.expand = 30;                       // +300 級
+  assert.equal(B.extraLevels(s), 300);
+  s.realmIdx = 0; assert.equal(B.levelCap(s), 10);                                   // 凡人：沒有加成，不會繞過境界
+  s.realmIdx = 13; assert.equal(B.levelCap(s), 400); assert.equal(B.maxLevelOf(s), 400);
+  s.realmIdx = 7; assert.equal(B.levelCap(s), B.capAtRealm(7) + Math.floor(300 * 7 / 13));
+  for (let i = 1; i <= 13; i++) assert.ok(B.capAtRealm(i, 300) >= B.capAtRealm(i - 1, 300), '上限單調不減');
+  assert.equal(B.capAtRealm(13, 0), 100);
+  // 成本：超過 100 級仍照成長公式，且 realmNeededFor 會把擴建算進去（不會一律當化神）
+  assert.equal(B.realmNeededFor(101, 0), 99); assert.ok(B.realmNeededFor(101, 300) < 13);
+  const c = createState(); c.reincarnation.shop.expand = 30; c.realmIdx = 13; c.buildings.field.lv = 300;
+  assert.equal(B.upgradeCost(c, 'field').qi, Math.floor(6 * CONFIG.building.costGrowth ** 300 * REALMS[B.realmNeededFor(301, 300)].mult));
+  c.res.qi = 1e300; assert.equal(B.upgradeN(c, 'field', 1000), 100);                // 升到 400 級（=上限）為止
+  assert.equal(c.buildings.field.lv, 400); assert.equal(B.isMax(c, 'field'), true); assert.equal(B.isCapped(c, 'field'), true);   // 擴建 +300 → 最高 400，到了就是滿級
+  c.reincarnation.shop.expand = 90; assert.equal(B.maxLevelOf(c), 1000); assert.equal(B.isMax(c, 'field'), false); c.buildings.field.lv = 1000; assert.equal(B.isMax(c, 'field'), true);
+  c.realmIdx = 7; c.buildings.field.lv = B.levelCap(c); assert.equal(B.isCapped(c, 'field'), true); assert.equal(B.isMax(c, 'field'), false);   // 境界不夠：被境界卡住，但不是滿級
+  // 功能型效果：100 級以上遞減（1000 級約為 100 級的 2 倍）
+  assert.equal(lvEff(100), 10); assert.ok(Math.abs(lvEff(200) - 13) < 1e-9); assert.ok(Math.abs(lvEff(1000) - (10 + 3 * Math.log2(10))) < 1e-9);
+  assert.ok(lvEff(1000) / lvEff(100) < 2.05 && lvEff(1000) > lvEff(999));
+  // 產出：0.01 秒內不會因擴建而改變低境界的上限；等級 1000 的產出倍率 = 14.9 × 線性
+  const p = createState(); p.realmIdx = 13; p.buildings.temple.lv = 0; p.buildings.field.lv = 100; const q100 = eco.qiPerSec(p);
+  p.buildings.field.lv = 1000; assert.ok(eco.qiPerSec(p) / q100 > 70 && eco.qiPerSec(p) / q100 < 80, '1000 級約為 100 級的 74 倍（10 倍等級 × 里程碑 14.9/2）');
+  // 商店：maxLv 90 → 最多 +900 級；存檔清理夾在 1000 內
+  assert.equal(DAO_SHOP.find(i => i.id === 'expand').maxLv * DAO_SHOP.find(i => i.id === 'expand').perLevel, CONFIG.building.hardMax - CONFIG.building.maxLevel);
+  assert.equal(S.parse(JSON.stringify({ version: 3, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 5000, pausedUntil: 0 } } } })).state.buildings.temple.lv, 1000);
+  const d = createState(); d.res.daoHeart = 1e6; assert.equal(Dao.buy(d, 'expand'), true); assert.equal(B.extraLevels(d), 10);
+  const k = createState(); k.reincarnation.shop.expand = 5; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.reincarnation.shop.expand, 5);   // 轉生保留
 });
 
 t('建築等級受境界限制', () => {
