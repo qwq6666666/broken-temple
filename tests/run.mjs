@@ -65,6 +65,9 @@ import { KEEP_KEYS, RESET_KEYS, REBIRTH_KEEP } from '../src/data/rebirth.js';
 import * as EpMod from '../src/core/exploration.js';
 import { applyOffline } from '../src/core/offline.js';
 import * as Asc from '../src/core/ascend.js';
+import { LINES, idlePool } from '../src/data/lines.js';
+import { PERSONALITIES } from '../src/data/visitors.js';
+import { FACTIONS } from '../src/data/factions.js';
 import { TRIALS, TRIALS_BY_ID, HEAVENS } from '../src/data/ascend.js';
 import { STORIES3 } from '../src/data/stories.js';
 import { OFFLINE_EVENTS } from '../src/data/offlineEvents.js';
@@ -768,11 +771,14 @@ t('建築剪影：每棟每個外觀階段都有圖，且數量與資料的里�
 });
 
 // ── R10 弟子故事與緣分 ──
-t('故事資料完整：每位弟子有第一章，SR 以上有第二章', () => {
+t('故事資料完整：每位弟子有第一、二章（內容夠長）；SR 以上另有終章；緣分的人都存在且不重複', () => {
   for (const d of DISCIPLES) {
     assert.ok(STORIES[d.id] && STORIES[d.id][1].length > 20, `${d.id} 缺第一章`);
-    assert.equal(!!STORIES2[d.id], ['SR', 'SSR', 'UR'].includes(d.rarity), `${d.id} 第二章與稀有度不符`);
+    assert.ok(STORIES2[d.id] && STORIES2[d.id][0] && STORIES2[d.id][1].length > 30, `${d.id} 缺第二章`);
+    if (STORIES3[d.id]) assert.ok(['SR', 'SSR', 'UR'].includes(d.rarity), `${d.id} 終章只給 SR 以上`);
   }
+  assert.equal(new Set(BONDS.map(b => b.id)).size, BONDS.length, '緣分 id 重複');
+  assert.equal(new Set(BONDS.map(b => [b.a, b.b].sort().join())).size, BONDS.length, '同一對弟子重複');
   for (const b of BONDS) assert.ok(DISCIPLES_BY_ID[b.a] && DISCIPLES_BY_ID[b.b] && b.a !== b.b);
 });
 
@@ -805,7 +811,7 @@ t('緣分：同一建築才生效，換棟就失效', () => {
 t('故事進度跨轉生保留；存檔清理未知弟子的故事', () => {
   const s = maxedRun(); s.stories = { afu: 1 }; Dao.rebirth(s); assert.equal(s.stories.afu, 1);
   const x = loadPatched(st => { st.stories = { gone: 1, afu: 9, yunqing: 'x' }; });
-  assert.equal(x.stories.gone, undefined); assert.equal(x.stories.afu, 1); assert.equal(x.stories.yunqing, 0);
+  assert.equal(x.stories.gone, undefined); assert.equal(x.stories.afu, St.chapterCount('afu')); assert.equal(x.stories.yunqing, 0);
 });
 
 // ── R11 專精與後期建築 ──
@@ -1582,7 +1588,8 @@ t('天劫：資料完整（每重天 3 劫、獎勵與故事齊全）；進度�
 });
 
 t('弟子終章：有第二章的弟子都有第三章；升到 3 星才解鎖，獎勵與特性加成', () => {
-  assert.deepEqual(Object.keys(STORIES3).sort(), Object.keys(STORIES2).sort());
+  assert.deepEqual(Object.keys(STORIES3).sort(), DISCIPLES.filter(d => ['SR', 'SSR', 'UR'].includes(d.rarity)).map(d => d.id).sort(), 'SR 以上都有終章');
+  Object.keys(STORIES3).forEach(id => assert.ok(STORIES2[id], `${id} 有終章就必須有第二章`));
   const s = createState(); s.res.token = 0; s.res.shard = 0;
   s.disciples.push({ uid: 1, defId: 'yunqing', lv: 5, at: null, star: 2 }); s.stories.yunqing = 2;
   assert.equal(St.nextChapter(s, s.disciples[0]), null, '2 星還不能讀終章');
@@ -1592,7 +1599,7 @@ t('弟子終章：有第二章的弟子都有第三章；升到 3 星才解鎖�
   assert.equal(s.res.token, 4); assert.equal(s.res.shard, 20);
   assert.equal(St.reread(s, 'yunqing').length, 3); assert.equal(St.chapterCount('yunqing'), 3);
   assert.equal(St.nextChapter(s, s.disciples[0]), null);
-  const sv = createState(); sv.stories = { yunqing: 9, afu: 9 }; sanitize(sv); assert.equal(sv.stories.yunqing, 3); assert.equal(sv.stories.afu, 1);
+  const sv = createState(); sv.stories = { yunqing: 9, afu: 9 }; sanitize(sv); assert.equal(sv.stories.yunqing, 3); assert.equal(sv.stories.afu, St.chapterCount('afu'));
 });
 
 t('轉生後的事件：minReb 限制出現；化神事件限制化神；離線事件依轉生次數過濾', () => {
@@ -1616,6 +1623,41 @@ t('天劫相關大事與成就：進度來自天劫與道果；新分頁在化�
   s.ascend.done = TRIALS.map(x => x.id); s.reincarnation.shop = { fruitQi: 20 };
   Goals.tick(s); for (const id of ['asc3', 'asc6', 'asc9', 'fruit20']) assert.ok(Goals.isDone(s, id), id);
   assert.ok(Gl.gloryPoints(s) >= 72, '天劫計入榮耀');
+});
+
+// ── 擴充文案：事件分層、台詞池、勢力背景 ──
+t('事件資料：id 不重複、每則 2~3 個選項、文字夠長；中期（築基前後）有足夠事件可抽', () => {
+  assert.equal(new Set(INCIDENTS.map(i => i.id)).size, INCIDENTS.length, '事件 id 重複');
+  for (const i of INCIDENTS) { assert.ok(i.choices.length >= 2 && i.choices.length <= 3, i.id); assert.ok(i.text.length > 12 && i.title && i.emoji, i.id); assert.ok(i.choices.every(c => c.label && c.desc), i.id); assert.ok(i.timeoutChoice >= 0 && i.timeoutChoice < i.choices.length, i.id); }
+  const at = r => INCIDENTS.filter(i => i.minRealm <= r && !i.minReb).length;
+  assert.ok(at(6) >= 20 && at(10) >= 28 && at(12) >= 33, `中期事件池太小：${at(6)}/${at(10)}/${at(12)}`);
+  const good = INCIDENTS.filter(i => i.good).length; assert.ok(good >= 20 && INCIDENTS.length - good >= 12, '好壞事件比例失衡');
+});
+
+t('老祖台詞池：進度越高閒聊越多；每類台詞都非空、沒有重複句', () => {
+  const s = createState(); const base = idlePool(s).length;
+  assert.equal(base, LINES.idle.length);
+  s.realmIdx = 10; const mid = idlePool(s).length; assert.ok(mid > base);
+  s.realmIdx = 13; s.reincarnation.count = 1; const late = idlePool(s).length; assert.ok(late > mid);
+  s.ascend.done = ['th1']; const asc = idlePool(s).length; assert.ok(asc > late);
+  s.ascend.done = TRIALS.map(x => x.id); assert.ok(idlePool(s).length > asc);
+  const flat = a => Array.isArray(a) ? a : Object.values(a).flat();
+  for (const [k, v] of Object.entries(LINES)) { if (typeof v === 'string') continue; const f = flat(v); assert.ok(f.length > 0, k); assert.equal(new Set(f).size, f.length, `${k} 有重複台詞`); }
+  assert.ok(LINES.idle.length >= 16 && LINES.rebirth.length >= 4);
+});
+
+t('訪客對白：每種個性各情境至少 3 句、不重複', () => {
+  for (const [name, p] of Object.entries(PERSONALITIES)) for (const k of ['taunt', 'counter', 'kneel', 'narrow', 'fail']) {
+    assert.ok(p[k].length >= 3, `${name}.${k}`); assert.equal(new Set(p[k]).size, p[k].length, `${name}.${k} 重複`);
+  }
+});
+
+t('勢力背景：每個勢力有背景與三階升階描述；升階時寫進年表', () => {
+  for (const f of FACTIONS) { assert.ok(f.lore && f.lore.length > 20, f.id); assert.ok(f.tierLines[1] && f.tierLines[2] && f.tierLines[3], f.id); }
+  const s = createState(); const before = s.chronicle.length;
+  Fac.addRep(s, '青雲宗', 10);                                   // 第一階
+  assert.equal(s.chronicle.length, before + 1); assert.ok(s.chronicle.at(-1).text.includes('繞路'));
+  Fac.addRep(s, '青雲宗', 1); assert.equal(s.chronicle.length, before + 1, '沒升階不寫年表');
 });
 
 console.log(`\n${n} 項測試通過`);

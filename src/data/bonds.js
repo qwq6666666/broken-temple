@@ -14,4 +14,17 @@ export const BONDS = [
   { id: 'mad', name: '煉丹瘋老', a: 'ludan', b: 'chenlan', effect: { stoneMult: 0.06 }, line: '一個炸爐，一個偷學，丹房從此熱鬧。' },
   { id: 'iceflame', name: '冰火相濟', a: 'bingxin', b: 'chiyuan', effect: { power: 0.06 }, line: '一個壓火，一個點冰，剛好互相制衡。' },
   { id: 'bamboo', name: '竹林論劍', a: 'zhuyin', b: 'yanhui', effect: { pauseCut: 0.12 }, line: '兩個閒雲野鶴，論起劍來誰也不讓誰。' },
+  // ── 新增：N／R 之間的緣分 ──
+  { id: 'greens', name: '靈菜姐妹', a: 'liu2', b: 'xiaocui', effect: { qiMult: 0.04 }, line: '一個潑辣一個溫柔，菜園再沒人敢偷菜。' },
+  { id: 'plants', name: '草木之友', a: 'qinghe', b: 'baixt', effect: { qiMult: 0.05 }, line: '兩個都跟植物說話的人，田裡的苗長得特別有禮貌。' },
+  { id: 'shield', name: '擋在前面的人', a: 'shigan', b: 'tieniu', effect: { endureLoss: 0.10 }, line: '一個擋刀，一個扛事，剩下的人負責躲在後面。' },
+  { id: 'tongue', name: '毒舌與丹心', a: 'shenyao', b: 'yunqing', effect: { stoneMult: 0.06 }, line: '一個罵人，一個煉丹。病人被罵完，剛好吃藥。' },
+  { id: 'nameless', name: '無名之劍', a: 'qinwu', b: 'zhuyin', effect: { power: 0.05 }, line: '一個沒名字的劍，一個沒對手的劍，剛好湊成一對。' },
+  { id: 'compass', name: '校準星盤', a: 'sinan', b: 'luoshen', effect: { rare: 0.05 }, line: '一個不許錯一分，一個看得見天上的缺口。' },
+  { id: 'ledger', name: '算盤對帳', a: 'moqi', b: 'jinsha', effect: { stoneMult: 0.06 }, line: '兩個都精於算計的人，帳目從此沒有秘密。' },
+  { id: 'anger', name: '一怒拔刀', a: 'leidong', b: 'huolie', effect: { burstReward: 0.05 }, line: '熱血少年配上熱血青年，連香火都燒得比較旺。' },
+  { id: 'night', name: '守夜人', a: 'laozhou', b: 'bingxin', effect: { pauseCut: 0.12 }, line: '兩個都不愛說話的守夜人，值班時整座廟安靜得連老鼠都不敢出聲。' },
+  { id: 'dock', name: '碼頭兄弟', a: 'shuisheng', b: 'liuzi', effect: { showOffReward: 0.15 }, line: '一個撐船一個挑水，在哪兒都能吵起來。' },
+  { id: 'elders', name: '老前輩們', a: 'taixu', b: 'xuantian', effect: { power: 0.06 }, line: '兩位活了不知道多久的前輩，湊一起只聊「當年」。' },
+  { id: 'redice', name: '谷裡谷外', a: 'chiyuan', b: 'zhaoling', effect: { pauseCut: 0.12 }, line: '一個是陣法天才，一個是畫陣膽小鬼，剛好互相教學。' },
 ];
