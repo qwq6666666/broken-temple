@@ -24,13 +24,13 @@ export const EXPEDITIONS = [
     req: { minTeam: 3, specialty: '體修' },
     desc: '傳說盤著一條沉睡的龍脈，肉身不夠強的進去就別想出來。', reward: { stoneSec: 1500, artifact: 0.35 } },
   // ── 元嬰・化神之後的高階秘境：難度高、獎勵大；材料沿用雲台星砂／龍脈精華（`mat` 欄位），所以仍是每輪突破的供應來源 ──
-  { id: 'ruins', name: '祖庭遺墟',   emoji: '🏛️', unlockRealm: 12, minutes: 70, difficulty: 340, want: { specialty: '陣修' }, mat: 'sky',
+  { id: 'ruins', name: '祖庭遺墟',   emoji: '🏛️', unlockRealm: 12, minutes: 35, difficulty: 340, want: { specialty: '陣修' }, mat: 'sky',
     req: { minTeam: 2, specialty: '陣修' },
     desc: '三千年前祖庭崩塌的遺址，殘存的護山大陣仍在自行運轉，只有懂陣的人走得進去。', reward: { qiSec: 2400, stoneSec: 2000, artifact: 0.40, recruit: 0.12 } },
-  { id: 'seal',  name: '地底封印',   emoji: '🔒', unlockRealm: 13, minutes: 90, difficulty: 480, want: { element: '火' }, mat: 'abyss',
+  { id: 'seal',  name: '地底封印',   emoji: '🔒', unlockRealm: 13, minutes: 45, difficulty: 480, want: { element: '火' }, mat: 'abyss',
     req: { minTeam: 3, anyElement: ['金', '木'] },
     desc: '破廟地底那道敲門聲的源頭。下去的人要同時壓得住封印、也撐得住封印裡的東西。', reward: { qiSec: 3200, stoneSec: 3000, artifact: 0.45, recruit: 0.15 } },
-  { id: 'rift',  name: '虛空裂隙',   emoji: '🌌', unlockRealm: 13, minutes: 120, difficulty: 650, want: { specialty: '丹修' }, mat: 'abyss',
+  { id: 'rift',  name: '虛空裂隙',   emoji: '🌌', unlockRealm: 13, minutes: 60, difficulty: 650, want: { specialty: '丹修' }, mat: 'abyss',
     req: { minTeam: 3, noDupElement: true, specialty: '丹修' },
     desc: '天幕上被劫雷撕開的口子，裡頭什麼都有，也什麼都沒有。要五行調和的隊伍，加上一位能護住神魂的丹修。', reward: { qiSec: 5000, stoneSec: 5000, artifact: 0.50, recruit: 0.20 } },
 ];
