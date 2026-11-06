@@ -1,6 +1,6 @@
 // 建築專精：建築升到 SPEC_LEVEL 級後，二選一（本輪有效，轉生後重選）。
 // effects 的 key 與道心商店相同（core/dao.js perm 會一併計入）。
-export const SPEC_LEVEL = 5;
+export const SPEC_LEVEL = 50;       // 等級刻度 100 級滿級（舊版 5 / 10 級）
 export const SPECS = {
   temple:  [{ id: 'zen', name: '靜修殿', effects: { clickMult: 0.8, cdCut: 2 }, flavor: '以靜制動，打坐更勝一籌。' },
             { id: 'incense', name: '香火殿', effects: { qiMult: 0.2 }, flavor: '香火鼎盛，靈氣綿綿不絕。' }],

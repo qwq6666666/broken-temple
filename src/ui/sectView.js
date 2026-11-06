@@ -4,6 +4,7 @@ import { VISITOR_TYPES } from '../data/visitors.js';
 import { lvlLabel, REALMS } from '../data/realms.js';
 import { CONFIG } from '../config.js';
 import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked } from '../core/buildings.js';
+import { upgradeButtons, milestoneText } from './buildingPanel.js';
 import { SPECS, SPEC_LEVEL, specText } from '../data/specs.js';
 import { tierOfSect, repOf } from '../core/factions.js';
 import { FACTION_RULES as FR, FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_TIERS } from '../data/factions.js';
@@ -106,12 +107,12 @@ function buildingPopover(s, id) {
   const max = isMax(s, id), capped = isCapped(s, id), can = canUpgrade(s, id);
   const action = max ? '<span class="tag gold">已滿級</span>'
     : capped ? `<span class="tag red">需突破至 ${esc(REALMS[realmNeededFor(b.lv + 1)].name)}</span>`
-    : `<div class="costs">${costChips(s, upgradeCost(s, id))}</div><button class="btn ${can ? 'primary' : ''}" data-act="upgrade" data-id="${id}" ${can ? '' : 'disabled'}>${b.lv === 0 ? '建造' : '升級'}</button>`;
+    : `<div class="costs">${costChips(s, upgradeCost(s, id))}</div>${upgradeButtons(s, id)}`;
   return `<div class="bpop-card"><button class="hx" data-act="closeBuilding" title="關閉">✕</button>
     <div class="row"><span class="bigemoji">${st.emoji}</span><b>${esc(d.name)}</b> <span class="lv">Lv ${b.lv}/${CONFIG.building.maxLevel}</span>
       <span class="tag">專長：${esc(d.specialty)}</span>${paused ? '<span class="tag red">⏸ 暫停產出中</span>' : ''}</div>
     <small>${esc(d.desc)}</small>
-    <small class="dim">${esc(st.label)}${next ? `　→　Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}</small>
+    <small class="dim">${esc(st.label)}${next ? `　→　Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}</small>${milestoneText(d, b.lv)}
     ${specBlock(s, id)}
     <div class="bpop-foot">
       <small>駐守 ${crew.length}/${slots(s, id)}：${crew.length ? crew.map(x => `${DISCIPLES_BY_ID[x.defId].emoji}${esc(DISCIPLES_BY_ID[x.defId].name)}`).join('、') : '<span class="dim">無（到「弟子」分頁派駐）</span>'}</small>

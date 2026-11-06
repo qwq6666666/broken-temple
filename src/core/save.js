@@ -26,7 +26,7 @@ import { COMMISSION_BY_KIND } from '../data/commissions.js';
 import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { PERSONALITIES, VISITOR_TYPES } from '../data/visitors.js';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 const isPlain = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(base, saved) {
@@ -41,6 +41,10 @@ function merge(base, saved) {
 // 舊版存檔升級（之後改資料結構時在這裡加）
 function migrate(data) {
   // v1 → v2：新增 reincarnation / run 欄位，由 merge() 以預設值補齊，資料本身不需轉換
+  // v2 → v3：建築等級刻度由 10 級放大為 100 級，舊等級 ×10
+  if (data.version < 3 && data.state?.buildings && typeof data.state.buildings === 'object') {
+    for (const b of Object.values(data.state.buildings)) if (b && Number.isFinite(b.lv)) b.lv = Math.floor(b.lv) * CONFIG.building.levelScale;
+  }
   data.version = SAVE_VERSION;
   return data;
 }
@@ -97,7 +101,7 @@ export function sanitize(s) {
   s.grudges = (Array.isArray(s.grudges) ? s.grudges : []).map(sanitizeGrudge).filter(Boolean);
   for (const id of Object.keys(s.buildings)) {
     if (!BUILDINGS_BY_ID[id]) { delete s.buildings[id]; continue; }
-    s.buildings[id].lv = Math.max(0, Math.min(10, Math.floor(num(s.buildings[id].lv))));
+    s.buildings[id].lv = Math.max(0, Math.min(CONFIG.building.maxLevel, Math.floor(num(s.buildings[id].lv))));
   }
   for (const id of Object.keys(s.nemeses)) if (!NEMESES_BY_ID[id]) delete s.nemeses[id];
   for (const id of Object.keys(s.reincarnation.shop)) {

@@ -116,6 +116,7 @@ button.meditate:active { transform: scale(.96); }
 .tag { background: #0e1613; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; font-size: .75em; color: var(--dim); }
 .tag.gold { color: var(--gold); border-color: var(--gold); } .tag.red { color: var(--red); border-color: var(--red); }
 .costs { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.bulk { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
 .chip { font-size: .8em; background: #0b100e; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; color: var(--jade); }
 .chip.lack { color: var(--red); border-color: rgba(209,88,76,.5); }
 .hint { color: var(--dim); font-size: .85em; margin: 6px 2px; }

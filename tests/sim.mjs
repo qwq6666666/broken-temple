@@ -133,7 +133,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
     const opts = BUILDINGS.filter(d => B.canUpgrade(s, d.id)).sort((a, b) => (b.id === 'alchemy') - (a.id === 'alchemy') || B.upgradeCost(s, a.id).qi - B.upgradeCost(s, b.id).qi);   // 煉丹房優先（玩家通常也會先蓋它拿靈石）
     if (!opts.length) break;
     const id = opts[0].id; B.upgrade(s, id);
-    once(`${id} Lv${s.buildings[id].lv}`, true);
+    if (s.buildings[id].lv % 10 === 0) once(`${id} Lv${s.buildings[id].lv}`, true);       // 每 10 級記一筆（等級刻度 100 級）
   }
   // 抽卡、派駐、升級
   while (s.res.token >= 1) G.pull(s, 1);

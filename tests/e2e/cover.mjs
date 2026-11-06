@@ -18,7 +18,7 @@ export async function run(b, URL, devices, PLAT) {
     for (const k of ['gacha', 'disciples', 'goals', 'avenge', 'expedition', 'factions', 'nemesis', 'dao', 'buildings', 'realm']) s.unlocked[k] = true;
     s.stats.bursts = 3; s.stats.endures = 40; G.pull(s, 40);
     s.disciples.forEach((d, i) => { d.lv = 10; });
-    for (const id of Object.keys(s.buildings)) s.buildings[id].lv = 5;
+    for (const id of Object.keys(s.buildings)) s.buildings[id].lv = 50;
     s.artifacts = ['yinqi', 'tuna', 'huxin', 'qian_abacus']; s.achv.done = ['a1'];
     s.grudges = Array.from({ length: 5 }, (_, i) => ({ id: 700 + i, name: '仇人' + i, type: ['former', 'rival', 'elder', 'trader', 'rival'][i], sect: ['青雲宗', '赤焰谷', '萬劍山莊', '南海商隊', '落霞宗'][i], role: '弟子', personality: ['傲慢', '勢利', '刻薄', '虛偽', '暴躁'][i], lvl: 5 + i, alert: false, element: ['金', '木', '水', '火', '土'][i] }));
     s.disguise.value = 20; s.visitor.nextAt = 1e15; s.visitor.current = null;

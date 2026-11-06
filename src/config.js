@@ -6,16 +6,21 @@ export const CONFIG = {
   maxFrameMs: 30 * 60 * 1000,  // 單次時間差上限（防止系統休眠後暴衝）
   debug: { timeScale: 1 },     // 時間倍率；網址加 ?speed=10 可加速測試
 
-  start: { qi: 0, stone: 0, token: 3, templeLevel: 1 },
+  start: { qi: 0, stone: 0, token: 3, templeLevel: 10 },    // 破廟開局 10 級（舊刻度的 1 級）
   // 打坐（引氣）：有冷卻。收益 = max(保底, 每秒靈氣 × productionSec)，主動最多約為被動產出的 +50%
   click: { cooldownMs: 8000, productionSec: 4, base: 1, perTempleLevel: 0.5 },
   innateQiPerSec: 0.5,                       // 破廟的基礎產出（不受暫停影響）
 
   building: {
-    maxLevel: 10,
-    costGrowth: 1.15,          // 成本 = 基礎成本 × costGrowth ^ 目前等級
-    slotEvery: 3,              // 每 N 級多一個弟子駐守位（1 + floor((lv-1)/N)）
-    levelCapRealmFactor: 0.7,  // 建築等級上限 = min(10, 1 + floor(境界序號 × 0.7))，境界不夠就升不上去
+    maxLevel: 100,
+    levelScale: 10,            // 刻度：舊版滿級 10 級，現在 100 級。資料裡的「每級成本／產出／效果」仍以舊刻度書寫，程式再除以這個值
+    costGrowth: 1.0141,        // 成本 = 基礎成本 ÷ levelScale × costGrowth ^ 目前等級（100 級合計成長仍約 1.15^10 ≈ 4 倍）
+    slotEvery: 30,             // 每 N 級多一個弟子駐守位（1 + floor((lv-1)/N)）：第 1／31／61／91 級
+    levelCapBase: 10,          // 凡人時的等級上限（相當於舊版第 1 級）
+    levelCapRealmFactor: 6.93, // 建築等級上限 = min(100, 10 + floor(境界序號 × 6.93))，境界不夠就升不上去
+    produceNorm: 1.4,          // 產出建築的每級產出 = 舊值 ÷ levelScale ÷ produceNorm（讓下面的里程碑倍率整體中性）
+    // 里程碑：等級達到時，會產出的建築（破廟／靈田／煉丹房）產出累計倍率。取不超過目前等級的最後一項
+    milestones: [[10, 1.1], [25, 1.25], [50, 1.5], [75, 1.75], [100, 2]],
   },
 
   // 補滿空位的建築價值權重（× 建築等級）：把弟子放進「實際產出價值高」的建築。0 表示不考慮（如不產出的建築）

@@ -6,6 +6,7 @@ import { defOf, starOf } from './discipleMath.js';
 import { discipleDiscount } from './economy.js';
 import { perm } from './dao.js';
 import { slots } from './buildings.js';
+import { lvEff } from './buildingMath.js';
 import { canAfford, pay } from './resources.js';
 
 // 新增弟子；已擁有同一位 → 轉為碎片
@@ -21,7 +22,7 @@ export function addDisciple(s, defId) {
   return { isNew: true, shards: 0, disciple: d };
 }
 
-export const levelCap = s => CONFIG.disciple.baseLevelCap + s.buildings.arena.lv * CONFIG.disciple.capPerArenaLevel + s.buildings.hall.lv + perm(s, 'discipleCap');   // 演武場、傳功殿、專精
+export const levelCap = s => CONFIG.disciple.baseLevelCap + Math.floor(lvEff(s.buildings.arena.lv) * CONFIG.disciple.capPerArenaLevel + lvEff(s.buildings.hall.lv) + 1e-9) + perm(s, 'discipleCap');   // 演武場、傳功殿、專精
 // 個別弟子的等級上限：全域上限 + 每星 +2
 export const levelCapOf = (s, d) => levelCap(s) + CONFIG.disciple.starCap * starOf(d);
 

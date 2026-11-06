@@ -1,6 +1,7 @@
 // 核心邏輯測試：node tests/run.mjs （不需任何框架）
 import assert from 'node:assert/strict';
 import { CONFIG } from '../src/config.js';
+import { REALMS } from '../src/data/realms.js';
 import { createState } from '../src/core/state.js';
 import { fmt } from '../src/core/format.js';
 import { setRng } from '../src/core/rng.js';
@@ -76,8 +77,12 @@ import { STORIES3 } from '../src/data/stories.js';
 import { OFFLINE_EVENTS } from '../src/data/offlineEvents.js';
 import { DAO_SHOP } from '../src/data/daoShop.js';
 
-let n = 0;
-const t = (name, fn) => { fn(); n++; console.log('  ✓', name); };
+let n = 0; const failed = [];
+// KEEP_GOING=1：失敗不中斷，最後一次列出全部失敗（大改數值時用）；預設遇到第一個失敗就停
+const t = (name, fn) => {
+  try { fn(); n++; console.log('  ✓', name); }
+  catch (e) { if (!process.env.KEEP_GOING) throw e; failed.push(name); console.log('  ✗', name, '\n     ', String(e.message).split('\n').slice(0, 3).join(' | '), '\n     ', (String(e.stack).match(/run\.mjs:\d+/) || [''])[0]); }
+};
 
 t('format 大數字', () => {
   assert.equal(fmt(999), '999'); assert.equal(fmt(1500), '1.5K');
@@ -85,24 +90,65 @@ t('format 大數字', () => {
   assert.equal(fmt(999999), '1M');
 });
 
-t('建築成本 = 基礎 × 1.15^等級 × 解鎖所需境界倍率，且封頂 10 級', () => {
+t('建築成本 = 基礎 ÷ 10 × 1.0141^等級 × 解鎖所需境界倍率，且封頂 100 級', () => {
   const s = createState();
-  assert.equal(B.upgradeCost(s, 'field').qi, 60);            // 1 級：需境界 0（倍率 1）
-  s.buildings.field.lv = 1;                                  // 升 2 級需煉氣二層（倍率 1.35^2）
-  assert.equal(B.upgradeCost(s, 'field').qi, Math.floor(60 * 1.15 * 1.35 ** 2));
-  s.buildings.field.lv = 10; s.realmIdx = 13; s.res.qi = 1e12;
+  assert.equal(B.upgradeCost(s, 'field').qi, 6);             // 第 1 級：基礎 60 ÷ 10；需境界 0（倍率 1）
+  s.buildings.field.lv = 10;                                 // 升到 11 級需煉氣一層（倍率 1.35）
+  assert.equal(B.upgradeCost(s, 'field').qi, Math.floor(6 * CONFIG.building.costGrowth ** 10 * 1.35));
+  assert.equal(B.upgradeCost(createState(), 'library').stone, 1);   // 有成本的資源至少 1（5 ÷ 10 不會變成 0）
+  s.buildings.field.lv = 100; s.realmIdx = 13; s.res.qi = 1e12;
   assert.equal(B.upgrade(s, 'field'), false);
+  // 總成本：升滿 100 級的累計成本與舊制（10 級、1.15 成長）相近，不超過 ±15%
+  const tot = id => { const x = createState(); x.realmIdx = 13; let t = 0; for (let l = 0; l < 100; l++) { x.buildings[id].lv = l; t += B.upgradeCost(x, id).qi; } return t; };
+  const oldTot = 60 * Array.from({ length: 10 }, (_, l) => 1.15 ** l * REALMS[[0, 2, 3, 5, 6, 8, 9, 10, 12, 13][l]].mult).reduce((a, b) => a + b, 0);
+  assert.ok(Math.abs(tot('field') / oldTot - 1) < 0.15, `靈田累計成本 ${tot('field').toExponential(2)} vs 舊制 ${oldTot.toExponential(2)}`);
+});
+
+t('建築等級刻度：里程碑倍率、產出與舊制中性、功能型效果等比縮放、駐守位、批量購買、舊存檔換算', () => {
+  // 里程碑：只套用在會產出的建築，取不超過目前等級的最後一項
+  assert.equal(B.milestoneMult(9), 1); assert.equal(B.milestoneMult(10), 1.1); assert.equal(B.milestoneMult(49), 1.25); assert.equal(B.milestoneMult(100), 2);
+  assert.deepEqual(B.nextMilestone(10), [25, 1.25]); assert.equal(B.nextMilestone(100), null);
+  // 產出：舊制 k 級（k×每級）≈ 新制 10k 級（含里程碑與歸一化）；不應偏離超過 ±45%（前期偏低、化神滿級偏高，見設計表）
+  for (const L of [10, 20, 30, 50, 70, 100]) {
+    const s = createState(); s.realmIdx = 13; s.buildings.temple.lv = 0; s.buildings.field.lv = L; const q = eco.qiPerSec(s) - CONFIG.innateQiPerSec * eco.realmOf(s).mult;
+    const old = (L / 10) * 3 * eco.realmOf(s).mult;
+    assert.ok(q / old > 0.7 && q / old < 1.45, `Lv${L} 產出比 ${(q / old).toFixed(2)}`);
+  }
+  // 功能型建築：10 級 ≈ 舊 1 級的效果
+  const f = createState(); f.buildings.library.lv = 10; assert.ok(Math.abs(eco.discipleDiscount(f) - 0.04) < 1e-9);
+  const g = createState(); g.buildings.arena.lv = 100; g.buildings.hall.lv = 100; assert.equal(D.levelCap(g), CONFIG.disciple.baseLevelCap + 20 + 10);
+  const g2 = createState(); g2.buildings.arena.lv = 35; assert.equal(D.levelCap(g2), CONFIG.disciple.baseLevelCap + 7);      // 取整，不會有小數等級
+  // 駐守位：第 1／31／61／91 級
+  const sl = lv => { const x = createState(); x.buildings.tower.lv = lv; return B.slots(x, 'tower'); };
+  assert.deepEqual([0, 1, 30, 31, 60, 61, 90, 91, 100].map(sl), [0, 1, 1, 2, 2, 3, 3, 4, 4]);
+  // 批量購買：不超過上限與資源；與逐級購買結果一致；affordableLevels 不改動狀態
+  const a = createState(), b = createState(); for (const x of [a, b]) { x.realmIdx = 5; x.res.qi = 5e4; }
+  const can = B.affordableLevels(a, 'field'); const qiBefore = a.res.qi, lvBefore = a.buildings.field.lv;
+  assert.equal(a.res.qi, qiBefore); assert.equal(a.buildings.field.lv, lvBefore); assert.ok(can > 5);
+  assert.equal(B.upgradeN(a, 'field', Infinity), can);
+  let k = 0; while (B.upgrade(b, 'field')) k++;
+  assert.equal(k, can); assert.equal(a.buildings.field.lv, b.buildings.field.lv); assert.ok(Math.abs(a.res.qi - b.res.qi) < 1e-6);
+  assert.ok(a.buildings.field.lv <= B.levelCap(a));
+  assert.equal(B.upgradeN(a, 'field', 10), 0);                // 買不起或到上限就是 0
+  const c = createState(); c.realmIdx = 13; c.res.qi = 1e30; c.res.stone = 1e20; assert.equal(B.upgradeN(c, 'alchemy', 5), 5); assert.equal(c.buildings.alchemy.lv, 5);
+  // 舊存檔（v2，滿級 10）等級 ×10；v3 存檔不再換算；超出上限被夾回
+  const old = S.parse(JSON.stringify({ version: 2, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 7, pausedUntil: 0 }, field: { lv: 10, pausedUntil: 0 } } } })).state;
+  assert.equal(old.buildings.temple.lv, 70); assert.equal(old.buildings.field.lv, 100);
+  const cur = S.parse(JSON.stringify({ version: 3, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 7, pausedUntil: 0 }, field: { lv: 999, pausedUntil: 0 } } } })).state;
+  assert.equal(cur.buildings.temple.lv, 7); assert.equal(cur.buildings.field.lv, 100);
 });
 
 t('建築等級受境界限制', () => {
   const s = createState(); s.res.qi = 1e12;
-  assert.equal(B.levelCap(s), 1);
-  assert.equal(B.upgrade(s, 'temple'), false);               // 破廟已 1 級，凡人上限 1
-  s.realmIdx = 2; assert.equal(B.levelCap(s), 2);
-  assert.equal(B.upgrade(s, 'temple'), true);
+  assert.equal(B.levelCap(s), 10);
+  assert.equal(B.upgrade(s, 'temple'), false);               // 破廟開局 10 級，凡人上限 10
+  s.realmIdx = 1; assert.equal(B.levelCap(s), 16);
+  for (let i = 0; i < 6; i++) assert.equal(B.upgrade(s, 'temple'), true);
   assert.equal(B.upgrade(s, 'temple'), false);               // 再升需更高境界
-  s.realmIdx = 13; assert.equal(B.levelCap(s), 10);
-  assert.equal(B.realmNeededFor(10), 13); assert.equal(B.realmNeededFor(1), 0);
+  s.realmIdx = 13; assert.equal(B.levelCap(s), 100);
+  assert.equal(B.realmNeededFor(100), 13); assert.equal(B.realmNeededFor(10), 0); assert.equal(B.realmNeededFor(11), 1);
+  // 上限曲線：每個境界都不低於舊制（舊上限 × 10）的 90%，且單調不減
+  for (let i = 0; i <= 13; i++) { const old = Math.min(10, 1 + Math.floor(i * 0.7)) * 10; assert.ok(B.capAtRealm(i) >= old * 0.9, `境界 ${i}`); if (i) assert.ok(B.capAtRealm(i) >= B.capAtRealm(i - 1)); }
 });
 
 t('打坐有冷卻；冷卻後可再打坐', () => {
@@ -115,7 +161,7 @@ t('打坐有冷卻；冷卻後可再打坐', () => {
 });
 
 t('打坐收益隨產出縮放，但不超過被動產出的 4 秒（保底除外）', () => {
-  const s = createState(); s.buildings.field.lv = 5; s.realmIdx = 6;
+  const s = createState(); s.buildings.field.lv = 50; s.realmIdx = 6;
   assert.ok(Math.abs(eco.clickPower(s) - Math.max(
     (CONFIG.click.base + s.buildings.temple.lv * CONFIG.click.perTempleLevel) * eco.realmOf(s).mult,
     eco.qiPerSec(s) * CONFIG.click.productionSec)) < 1e-9);
@@ -123,7 +169,7 @@ t('打坐收益隨產出縮放，但不超過被動產出的 4 秒（保底除�
 
 t('tick：產出與 dt 線性（一次大 tick = 多次小 tick）', () => {
   const a = createState(), b = createState();
-  a.buildings.field.lv = 2; b.buildings.field.lv = 2;
+  a.buildings.field.lv = 20; b.buildings.field.lv = 20;
   eco.tick(a, 60000);
   for (let i = 0; i < 600; i++) eco.tick(b, 100);
   assert.ok(Math.abs(a.res.qi - b.res.qi) < 1e-6);
@@ -161,7 +207,7 @@ t('重複弟子轉碎片', () => {
 });
 
 t('專長匹配 ×2：農修派駐靈田 > 體修派駐靈田', () => {
-  const s = createState(); s.buildings.field.lv = 1;
+  const s = createState(); s.buildings.field.lv = 10;
   D.addDisciple(s, 'afu'); D.addDisciple(s, 'liuzi');
   const [a, b] = s.disciples;
   D.assign(s, a.uid, 'field'); const m1 = eco.buildingMult(s, 'field');
@@ -170,7 +216,7 @@ t('專長匹配 ×2：農修派駐靈田 > 體修派駐靈田', () => {
 });
 
 t('駐守位限制', () => {
-  const s = createState(); s.buildings.field.lv = 1;
+  const s = createState(); s.buildings.field.lv = 10;
   D.addDisciple(s, 'afu'); D.addDisciple(s, 'liu2');
   const [a, b] = s.disciples;
   assert.ok(D.assign(s, a.uid, 'field'));
@@ -215,7 +261,7 @@ t('亮一手（前同門，打得過）：當場打臉 +招賢令，不入簿、
 });
 
 t('亮一手（商隊，打得過）：得到靈氣與靈石', () => {
-  const s = withVisitor(createState(), visitor('trader', 0)); s.realmIdx = 6; s.buildings.alchemy.lv = 2;
+  const s = withVisitor(createState(), visitor('trader', 0)); s.realmIdx = 6; s.buildings.alchemy.lv = 20;
   const qi = s.res.qi, st = s.res.stone;
   assert.equal(E.showOff(s).outcome, 'beat');
   assert.ok(s.res.qi > qi && s.res.stone > st);
@@ -231,7 +277,7 @@ t('亮一手（他宗弟子，打得過）：機率降服，必定離開', () =>
 });
 
 t('亮一手（打不過）：逞強，警覺入簿、損失 ×2', () => {
-  const s = withVisitor(createState(), visitor('former', 9)); s.res.stone = 100; s.buildings.alchemy.lv = 1;
+  const s = withVisitor(createState(), visitor('former', 9)); s.res.stone = 100; s.buildings.alchemy.lv = 10;
   const rate = eco.stonePerSec(s);
   setRng(() => 0);                                   // chance(0.5) → 必走靈石損失
   const r = E.showOff(s);
@@ -250,7 +296,7 @@ t('亮一手（長老）：即使打得過也得罪，損失 ×3', () => {
 
 t('引爆預覽與實際判定一致；弱勢長老反噬（受損失開關控制）', () => {
   const mk = () => {
-    const s = createState(); s.realmIdx = 1; s.res.stone = 500; s.buildings.alchemy.lv = 1; s.disguise.value = 99;
+    const s = createState(); s.realmIdx = 1; s.res.stone = 500; s.buildings.alchemy.lv = 10; s.disguise.value = 99;
     s.grudges = [visitor('elder', 12, { id: 1 }), visitor('former', 0, { id: 2 })];
     return s;
   };
@@ -301,12 +347,12 @@ const fakeStorage = () => { const m = {}; return { getItem: k => m[k] ?? null, s
 
 t('存檔往返一致，且 burstActive 會被重置', () => {
   const st = fakeStorage(), s = createState();
-  s.res.qi = 12345.5; s.realmIdx = 4; s.buildings.field.lv = 3; s.burstActive = true;
+  s.res.qi = 12345.5; s.realmIdx = 4; s.buildings.field.lv = 30; s.burstActive = true;
   D.addDisciple(s, 'afu'); s.artifacts.push('yinqi');
   assert.equal(S.save(s, st), true);
   const r = S.load(st);
   assert.equal(r.state.res.qi, 12345.5); assert.equal(r.state.realmIdx, 4);
-  assert.equal(r.state.buildings.field.lv, 3); assert.equal(r.state.disciples.length, 1);
+  assert.equal(r.state.buildings.field.lv, 30); assert.equal(r.state.disciples.length, 1);       // 存檔往返不變
   assert.deepEqual(r.state.artifacts, ['yinqi']); assert.equal(r.state.burstActive, false);
 });
 
@@ -314,7 +360,7 @@ t('舊存檔缺欄位會以預設值補齊', () => {
   const text = JSON.stringify({ version: 1, savedAt: Date.now(), state: { res: { qi: 5 }, buildings: { temple: { lv: 2, pausedUntil: 0 } } } });
   const { state } = S.parse(text);
   assert.equal(state.res.qi, 5); assert.equal(state.res.token, CONFIG.start.token);
-  assert.equal(state.buildings.temple.lv, 2); assert.equal(state.buildings.arena.lv, 0);
+  assert.equal(state.buildings.temple.lv, 20); assert.equal(state.buildings.arena.lv, 0);      // 舊版（v1）等級 ×10 換算到新刻度
   assert.ok(state.settings && state.disguise);
 });
 
@@ -329,7 +375,7 @@ t('壞檔不丟例外：load 回傳 error，無存檔回傳 null', () => {
 });
 
 t('離線收益：效率、上限、不產生訪客', () => {
-  const s = createState(); s.buildings.field.lv = 2;
+  const s = createState(); s.buildings.field.lv = 20;
   const rate = eco.qiPerSec(s);
   assert.equal(applyOffline(s, 10 * 1000), null);                 // 不到 1 分鐘不結算
   const r = applyOffline(s, 3600 * 1000);                         // 離開 1 小時
@@ -342,7 +388,7 @@ t('離線收益：效率、上限、不產生訪客', () => {
 t('離線：偽裝與蓄力照常增加、仇人成長、暫停計時到期', () => {
   const s = createState();
   s.grudges = [{ id: 1, name: 'A', type: 'former', sect: 's', role: 'r', personality: '傲慢', lvl: 1.0, alert: false }];
-  s.buildings.field.lv = 1; s.buildings.field.pausedUntil = s.t + 5 * 60000;
+  s.buildings.field.lv = 10; s.buildings.field.pausedUntil = s.t + 5 * 60000;
   const r = applyOffline(s, 2 * 3600 * 1000);
   assert.ok(r.disguiseGain > 0); assert.ok(r.chargeMinutes >= 119);
   assert.ok(s.grudges[0].lvl > 1.0);
@@ -353,7 +399,7 @@ t('離線：偽裝與蓄力照常增加、仇人成長、暫停計時到期', ()
 const crew = (s, defId, bid) => { s.buildings[bid].lv = Math.max(1, s.buildings[bid].lv); const { disciple } = D.addDisciple(s, defId); D.assign(s, disciple.uid, bid); return disciple; };
 
 t('特性只在派駐時生效（戰力）', () => {
-  const s = createState(); s.buildings.arena.lv = 1;
+  const s = createState(); s.buildings.arena.lv = 10;
   const base = eco.combatPower(s);
   const d = D.addDisciple(s, 'xuantian').disciple;            // 戰力 +30%
   const owned = eco.combatPower(s);                           // 持有也會提高戰力，但特性不生效
@@ -366,7 +412,7 @@ t('特性只在派駐時生效（戰力）', () => {
 t('特性：忍氣吞聲損失減免、暫停縮短', () => {
   const lose = withCrew => {
     setRng(() => 0);                                          // 走靈石損失
-    const s = createState(); s.res.stone = 1000; s.buildings.alchemy.lv = 5; s.realmIdx = 6;
+    const s = createState(); s.res.stone = 1000; s.buildings.alchemy.lv = 50; s.realmIdx = 6;
     if (withCrew) crew(s, 'shigan', 'temple');                // 耿直：損失 -25%
     withVisitor(s, visitor('former', 1)); E.endure(s); setRng(Math.random);
     return 1000 - s.res.stone;
@@ -387,12 +433,12 @@ t('特性：偽裝增速、亮一手獎勵、爆擊獎勵、靈石產出', () =>
   C.tick(a, 60000); C.tick(b, 60000);
   assert.ok(b.disguise.value > a.disguise.value * 1.29);
   const win = withCrew => {
-    const s = createState(); s.realmIdx = 6; s.buildings.field.lv = 3;
+    const s = createState(); s.realmIdx = 6; s.buildings.field.lv = 30;
     if (withCrew) crew(s, 'shenyao', 'alchemy');             // 毒舌：亮一手 +35%
     withVisitor(s, visitor('trader', 0)); const q = s.res.qi; E.showOff(s); return s.res.qi - q;
   };
   assert.ok(win(true) > win(false));
-  const sp = createState(); sp.buildings.alchemy.lv = 1; const s0 = eco.stonePerSec(sp);
+  const sp = createState(); sp.buildings.alchemy.lv = 10; const s0 = eco.stonePerSec(sp);
   crew(sp, 'ludan', 'alchemy'); assert.ok(eco.stonePerSec(sp) > s0);
   const br = withCrew => { const s = createState(); s.realmIdx = 8; s.disguise.value = 99; if (withCrew) crew(s, 'jiuli', 'temple'); s.grudges = [visitor('trader', 0, { id: 1 })]; setRng(() => 0.5); const r = X.burst(s).total.qi; setRng(Math.random); return r; };
   assert.ok(br(true) > br(false));
@@ -472,16 +518,16 @@ t('事件：到時間彈出、不與訪客重疊、尊重最低境界', () => {
 });
 
 t('事件：付費選項需負擔得起；護山大陣選項需有建築', () => {
-  const s = forceIncident(createState(), 'caravan'); s.buildings.alchemy.lv = 1; s.res.stone = 0;
+  const s = forceIncident(createState(), 'caravan'); s.buildings.alchemy.lv = 10; s.res.stone = 0;
   assert.equal(Inc.canChoose(s, 0), false); assert.equal(Inc.resolve(s, 0), null);
   s.res.stone = 100; assert.equal(Inc.canChoose(s, 0), true);
   const st = forceIncident(createState(), 'storm');
   assert.equal(Inc.canChoose(st, 0), false); assert.equal(Inc.canChoose(st, 1), true);
-  st.buildings.array.lv = 1; assert.equal(Inc.canChoose(st, 0), true);
+  st.buildings.array.lv = 10; assert.equal(Inc.canChoose(st, 0), true);
 });
 
 t('事件：賭局依機率分勝敗（確定性 rng）', () => {
-  const run = r => { setRng(() => r); const s = forceIncident(createState(), 'fortune'); s.buildings.field.lv = 2; const q = s.res.qi; Inc.resolve(s, 1); setRng(Math.random); return { s, gained: s.res.qi - q }; };
+  const run = r => { setRng(() => r); const s = forceIncident(createState(), 'fortune'); s.buildings.field.lv = 20; const q = s.res.qi; Inc.resolve(s, 1); setRng(Math.random); return { s, gained: s.res.qi - q }; };
   const win = run(0.1), lose = run(0.9);
   assert.ok(win.gained > 0);
   assert.ok(Object.values(lose.s.buildings).some(b => b.pausedUntil > lose.s.t));      // 失敗：建築暫停
@@ -489,7 +535,7 @@ t('事件：賭局依機率分勝敗（確定性 rng）', () => {
 
 t('事件：效果結算（資源、碎片、偽裝、招賢令、降服、法寶）', () => {
   setRng(() => 0);                                       // 機率類全中
-  const s = createState(); s.buildings.field.lv = 3;
+  const s = createState(); s.buildings.field.lv = 30;
   forceIncident(s, 'lost'); Inc.resolve(s, 0);
   assert.equal(s.recruits.length, 1);
   forceIncident(s, 'rats'); const dg = s.disguise.value; Inc.resolve(s, 1);
@@ -503,7 +549,7 @@ t('事件：效果結算（資源、碎片、偽裝、招賢令、降服、法�
 });
 
 t('事件：護山大陣降低損失；逾時自動採預設並計入統計', () => {
-  const loss = lv => { const s = forceIncident(createState(), 'storm'); s.buildings.field.lv = 3; s.buildings.array.lv = lv; s.res.qi = 1e6; Inc.resolve(s, 1); return 1e6 - s.res.qi; };
+  const loss = lv => { const s = forceIncident(createState(), 'storm'); s.buildings.field.lv = 30; s.buildings.array.lv = lv; s.res.qi = 1e6; Inc.resolve(s, 1); return 1e6 - s.res.qi; };
   assert.ok(loss(5) < loss(0));
   const s = forceIncident(createState(), 'rats'); s.t += 200000;
   Inc.tick(s); assert.equal(s.incident.current, null); assert.equal(s.stats.incidents, 1);
@@ -596,7 +642,7 @@ t('轉生：只有化神能轉；道心依本輪表現計算', () => {
 
 t('轉生：重置本輪，保留收藏類進度，道心入帳', () => {
   const s = maxedRun(); s.t = 5000;
-  s.res.qi = 1e9; s.res.stone = 1e5; s.res.shard = 77; s.buildings.field.lv = 5;
+  s.res.qi = 1e9; s.res.stone = 1e5; s.res.shard = 77; s.buildings.field.lv = 50;
   const d = D.addDisciple(s, 'xuantian').disciple; d.lv = 9; d.star = 2; D.assign(s, d.uid, 'temple');
   s.artifacts.push('yinqi'); s.goalsDone.push('burst1'); s.nemeses.qian = { met: 2, defeated: true };
   s.gacha.sinceSR = 33; s.grudges = [visitor('former', 1)]; s.disguise.value = 15; s.stats.bursts = 40;
@@ -724,7 +770,7 @@ t('下一步提示：依進度給出對應建議', () => {
   const s = createState(); s.t = 0;
   assert.match(Prog.nextStep(s).text, /煉丹房/);                 // 開局：先建煉丹房（靈氣不夠）
   s.res.qi = 1e6; assert.equal(Prog.nextStep(s).tab, 'buildings');
-  s.buildings.alchemy.lv = 1; s.res.qi = 0; s.res.stone = 0;
+  s.buildings.alchemy.lv = 10; s.res.qi = 0; s.res.stone = 0;
   s.res.token = 3; assert.match(Prog.nextStep(s).text, /招賢令/);  // 沒有弟子 → 抽卡
   s.res.stone = 100; assert.match(Prog.nextStep(s).text, /突破/);  // 能突破 → 優先
   s.res.stone = 0; D.addDisciple(s, 'afu'); s.res.token = 0;
@@ -789,7 +835,7 @@ t('讀故事：條件、獎勵、特性永久加成、只能讀一次', () => {
   const s = createState(); const d = D.addDisciple(s, 'yunqing').disciple;
   assert.equal(St.nextChapter(s, d), null); assert.match(St.lockedHint(s, d), /Lv5/);
   d.lv = 5; assert.equal(St.nextChapter(s, d).idx, 1);
-  s.buildings.alchemy.lv = 1; D.assign(s, d.uid, 'alchemy');
+  s.buildings.alchemy.lv = 10; D.assign(s, d.uid, 'alchemy');
   const before = eco.traitSum(s, 'stoneMult'), tok = s.res.token;
   const r = St.read(s, d.uid); assert.equal(r.idx, 1); assert.ok(s.res.token > tok);
   assert.ok(Math.abs(eco.traitSum(s, 'stoneMult') / before - 1.1) < 1e-9);          // 特性 +10%
@@ -800,11 +846,11 @@ t('讀故事：條件、獎勵、特性永久加成、只能讀一次', () => {
 });
 
 t('緣分：同一建築才生效，換棟就失效', () => {
-  const s = createState(); s.buildings.temple.lv = 1; s.buildings.field.lv = 1;
+  const s = createState(); s.buildings.temple.lv = 10; s.buildings.field.lv = 10;
   const a = D.addDisciple(s, 'qinwu').disciple, b = D.addDisciple(s, 'lingshuang').disciple;
   assert.equal(Bond.bondStatus(s, BONDS[0]), 'apart');
   D.assign(s, a.uid, 'temple'); D.assign(s, b.uid, 'field'); assert.equal(Bond.bondSum(s, 'power'), 0);
-  s.buildings.temple.lv = 4;                                                          // 先擴出第二個駐守位
+  s.buildings.temple.lv = 40;                                                          // 先擴出第二個駐守位
   D.assign(s, b.uid, 'temple');
   assert.equal(Bond.bondStatus(s, BONDS[0]), 'active'); assert.ok(Math.abs(Bond.bondSum(s, 'power') - 0.04) < 1e-9);
   assert.ok(eco.traitSum(s, 'power') >= 0.04);
@@ -824,31 +870,31 @@ t('後期建築：需達境界才能建造；已建造的不受影響；不計�
   s.realmIdx = 7; assert.equal(B.isBuildingUnlocked(s, 'tower'), true); assert.equal(B.upgrade(s, 'tower'), true);
   s.realmIdx = 3; assert.equal(B.isBuildingUnlocked(s, 'tower'), true);          // 已建造
   assert.equal(B.isBuildingUnlocked(s, 'hall'), false);
-  Object.keys(s.buildings).forEach(id => { s.buildings[id].lv = 3; }); s.buildings.beast.lv = 0;
-  assert.equal(GOALS_BY_ID.bld3.cur(s), 3);                                       // 靈獸園沒建也不影響
+  Object.keys(s.buildings).forEach(id => { s.buildings[id].lv = 30; }); s.buildings.beast.lv = 0;
+  assert.equal(GOALS_BY_ID.bld3.cur(s), 30);                                      // 靈獸園沒建也不影響
 });
 
 t('鎮魔塔／傳功殿／靈獸園的效果', () => {
   const s = createState();
-  const p0 = eco.combatPower(s); s.buildings.tower.lv = 5; assert.ok(Math.abs(eco.combatPower(s) / p0 - 1.30) < 1e-9);
+  const p0 = eco.combatPower(s); s.buildings.tower.lv = 50; assert.ok(Math.abs(eco.combatPower(s) / p0 - 1.30) < 1e-9);
   assert.ok(Math.abs(eco.towerBurst(s) - 0.15) < 1e-9);
-  const cap0 = D.levelCap(s), dis0 = eco.discipleDiscount(s); s.buildings.hall.lv = 4;
+  const cap0 = D.levelCap(s), dis0 = eco.discipleDiscount(s); s.buildings.hall.lv = 40;
   assert.equal(D.levelCap(s), cap0 + 4); assert.ok(Math.abs(eco.discipleDiscount(s) - dis0 - 0.08) < 1e-9);
-  const r0 = eco.rareChance(s); s.buildings.beast.lv = 5; assert.ok(Math.abs(eco.rareChance(s) - r0 - 0.10) < 1e-9);
-  const a = createState(), b = createState(); b.buildings.beast.lv = 10;
+  const r0 = eco.rareChance(s); s.buildings.beast.lv = 50; assert.ok(Math.abs(eco.rareChance(s) - r0 - 0.10) < 1e-9);
+  const a = createState(), b = createState(); b.buildings.beast.lv = 100;
   eco.tick(a, 90000); eco.tick(b, 90000); assert.ok(b.res.token > a.res.token);
 });
 
 t('專精：升到 Lv5 才能選、二選一、效果生效、轉生後重選', () => {
   const s = createState();
   assert.equal(Sp.canChoose(s, 'alchemy'), false); assert.equal(Sp.choose(s, 'alchemy', 'mass'), false);
-  s.buildings.alchemy.lv = 5; assert.equal(Sp.canChoose(s, 'alchemy'), true);
+  s.buildings.alchemy.lv = 50; assert.equal(Sp.canChoose(s, 'alchemy'), true);
   assert.equal(Sp.choose(s, 'alchemy', 'ghost'), false);                          // 不存在的選項
-  const st0 = eco.stonePerSec(s) || 1; s.buildings.alchemy.lv = 5;
+  const st0 = eco.stonePerSec(s) || 1; s.buildings.alchemy.lv = 50;
   const before = eco.stonePerSec(s);
   assert.equal(Sp.choose(s, 'alchemy', 'mass'), true); assert.equal(Sp.choose(s, 'alchemy', 'fine'), false);   // 不能改選
   assert.ok(Math.abs(eco.stonePerSec(s) / before - 1.25) < 1e-9);                  // 靈石 +25%
-  s.buildings.temple.lv = 5; Sp.choose(s, 'temple', 'zen');
+  s.buildings.temple.lv = 50; Sp.choose(s, 'temple', 'zen');
   assert.equal(M.cooldownMs(s), CONFIG.click.cooldownMs - 2000);                    // 靜修殿：冷卻 -2 秒
   const m = maxedRun(); m.specs = { temple: 'zen' }; Dao.rebirth(m); assert.deepEqual(m.specs, {});
 });
@@ -901,7 +947,7 @@ t('回頭客：到時間回來；復仇者更強且獎勵 ×1.5；求和者帶�
   const mk = bonus => { setRng(() => 0.5); const x = createState(); x.realmIdx = 10; x.disguise.value = 99; x.grudges = [visitor('trader', 1, { id: 1, returnBonus: bonus, sect: '商盟?' })]; const r = X.burst(x).total.stone; setRng(Math.random); return r; };
   assert.ok(Math.abs(mk(true) / mk(false) - 1.5) < 0.01);
   // 求和
-  const p = createState(); p.buildings.alchemy.lv = 3; p.res.stone = 0;
+  const p = createState(); p.buildings.alchemy.lv = 30; p.res.stone = 0;
   p.visitor.current = { id: 9, name: '求和者', type: 'former', sect: '青雲宗', role: 'r', personality: '傲慢', lvl: 1, alert: false, returning: 'plead', taunt: 't' };
   const g = E.acceptPlea(p); assert.ok(g.stone >= 3 && p.res.stone >= 3); assert.equal(p.visitor.current, null); assert.equal(p.factions.qingyun, 3);
   p.visitor.current = { id: 10, name: '被拒者', type: 'former', sect: '青雲宗', role: 'r', personality: '傲慢', lvl: 1, alert: false, returning: 'plead', taunt: 't' };
@@ -934,7 +980,7 @@ const teamOf = (s, ids, lv = 1) => ids.map(id => { const d = D.addDisciple(s, id
 t('秘境：解鎖、組隊上限、隊員自動撤下建築、探索位數量', () => {
   const s = createState(); const [a] = teamOf(s, ['qinwu']);
   assert.equal(Ex.start(s, 'cave', [a]), false);                       // 凡人：尚未解鎖
-  s.realmIdx = 2; s.buildings.arena.lv = 1; D.assign(s, a, 'arena');
+  s.realmIdx = 2; s.buildings.arena.lv = 10; D.assign(s, a, 'arena');
   assert.equal(Ex.start(s, 'cave', []), false);                        // 沒有隊員
   assert.equal(Ex.start(s, 'cave', [a]), true);
   assert.equal(s.disciples[0].at, null); assert.equal(Ex.away(s, a), true);
@@ -956,7 +1002,7 @@ t('秘境：成功率隨隊伍強度與專長相合提高，且有上下限', ()
 
 t('秘境：到期結算、領取獎勵、成功與失敗、隊員歸隊', () => {
   setRng(() => 0);                                                     // 擲骰必成功，機率類必中
-  const s = createState(); s.realmIdx = 5; s.buildings.field.lv = 3; s.buildings.alchemy.lv = 2;
+  const s = createState(); s.realmIdx = 5; s.buildings.field.lv = 30; s.buildings.alchemy.lv = 20;
   const ids = teamOf(s, ['qinwu', 'lingshuang'], 8);
   Ex.start(s, 'field', ids); Ex.tick(s); assert.equal(s.expeditions[0].status, 'running');   // 未到期
   s.t += 21 * 60000; Ex.tick(s);
@@ -1032,11 +1078,11 @@ t('分頁說明涵蓋所有分頁；說明文字涵蓋新系統', () => {
 });
 
 t('下一步提示：新系統（故事、專精、秘境）在適當時機提醒', () => {
-  const s = createState(); s.buildings.alchemy.lv = 1; s.res.stone = 0; s.realmIdx = 2; s.unlocked.expedition = true;
+  const s = createState(); s.buildings.alchemy.lv = 10; s.res.stone = 0; s.realmIdx = 2; s.unlocked.expedition = true;
   const d = D.addDisciple(s, 'afu').disciple; D.assign(s, d.uid, 'temple');
   d.lv = 5; assert.match(Prog.nextStep(s).text, /故事/);
   St.read(s, d.uid); s.res.token = 0;
-  s.buildings.field.lv = 5; assert.match(Prog.nextStep(s).text, /專精/);
+  s.buildings.field.lv = 50; assert.match(Prog.nextStep(s).text, /專精/);
   Sp.choose(s, 'field', 'rice'); assert.match(Prog.nextStep(s).text, /秘境/);
   s.visitor.current = visitor('former', 1); assert.match(Prog.nextStep(s).text, /來訪/);          // 訪客仍然優先
 });
@@ -1090,25 +1136,25 @@ t('宗門委託：舊存檔補預設、壞資料被清掉', () => {
 
 t('補滿空位：只填空位、不動已派駐、專長與緣分優先、不動探索中的弟子', () => {
   const s = createState(); s.realmIdx = 6;
-  for (const id of ['temple', 'field', 'alchemy']) s.buildings[id].lv = 4;       // Lv4 → 2 個駐守位
+  for (const id of ['temple', 'field', 'alchemy']) s.buildings[id].lv = 40;       // Lv4 → 2 個駐守位
   const a = D.addDisciple(s, 'afu').disciple, x = D.addDisciple(s, 'xiaocui').disciple;   // 田間搭檔
   const r = autoAssign(s);
   assert.equal(r.placed, 2); assert.ok(a.at && a.at === x.at, '緣分搭檔應同棟');
   for (const id of ['temple', 'field', 'alchemy']) assert.ok(D.assignedTo(s, id).length <= B.slots(s, id));
   // 已派駐的不動：手動把 afu 放在靈田，再補 xiaocui → 跟著搭檔去靈田
-  const s1 = createState(); s1.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy']) s1.buildings[id].lv = 4;
+  const s1 = createState(); s1.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy']) s1.buildings[id].lv = 40;
   const a1 = D.addDisciple(s1, 'afu').disciple, x1 = D.addDisciple(s1, 'xiaocui').disciple; a1.at = 'field';
   autoAssign(s1); assert.equal(a1.at, 'field'); assert.equal(x1.at, 'field');
   // 沒有空位時不會擠掉任何人
-  const s4 = createState(); s4.realmIdx = 6; s4.buildings.temple.lv = 1;
+  const s4 = createState(); s4.realmIdx = 6; s4.buildings.temple.lv = 10;
   const p = D.addDisciple(s4, 'afu').disciple, q = D.addDisciple(s4, 'xiaocui').disciple; p.at = 'temple';
   assert.equal(autoAssign(s4).placed, 0); assert.equal(p.at, 'temple'); assert.equal(q.at, null);
   // 專長：丹修弟子應優先去煉丹房
-  const s2 = createState(); s2.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy']) s2.buildings[id].lv = 1;
+  const s2 = createState(); s2.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy']) s2.buildings[id].lv = 10;
   const alc = D.addDisciple(s2, 'shenyao').disciple; autoAssign(s2);
   assert.equal(alc.at, 'alchemy');
   // 探索中的弟子不被動到
-  const s3 = createState(); s3.realmIdx = 6; s3.buildings.temple.lv = 4;
+  const s3 = createState(); s3.realmIdx = 6; s3.buildings.temple.lv = 40;
   const e = D.addDisciple(s3, 'afu').disciple; s3.expeditions.push({ uids: [e.uid] });
   autoAssign(s3); assert.equal(e.at, null);
 });
@@ -1138,7 +1184,7 @@ t('成就：達成即解鎖並記年表、稱號可裝備與取消、轉生保�
 });
 
 t('離線歸來事件：離開 30 分鐘以上才出現、兩個選項都能結算、不存在的選項回傳 null', () => {
-  const s = createState(); s.buildings.alchemy.lv = 1; s.buildings.temple.lv = 1;
+  const s = createState(); s.buildings.alchemy.lv = 10; s.buildings.temple.lv = 10;
   const r1 = applyOffline(createState(), 10 * 60 * 1000); assert.equal(r1.event, null);
   const r2 = applyOffline(s, 40 * 60 * 1000); assert.ok(r2.event);
   for (const i of [0, 1]) { const t0 = { ...s.res }; const r = Off.resolveOffline(s, r2.event, i); assert.ok(r && r.text); assert.ok(Object.keys(r.got).every(k => s.res[k] >= t0[k])); assert.ok(Object.keys(r.got).length); }
@@ -1159,7 +1205,7 @@ t('法寶裝備欄：裝備者效果 +50%、未裝備照常、上限 3 件、轉
 });
 
 t('弟子進階：Lv10 才能選、只能選一次、專精／悍勇各有效果、轉生重置', () => {
-  const s = createState(); s.realmIdx = 6; s.buildings.alchemy.lv = 1;
+  const s = createState(); s.realmIdx = 6; s.buildings.alchemy.lv = 10;
   const d = D.addDisciple(s, 'shenyao').disciple; D.assign(s, d.uid, 'alchemy');   // 丹修在煉丹房：專長相符
   assert.equal(D.setBranch(s, d.uid, 'focus'), false);                              // Lv1 不行
   d.lv = 10; assert.equal(D.setBranch(s, d.uid, 'focus'), false, '沒材料不能進階'); s.res.mat_cave = 2; s.res.mat_spring = 2; const c0 = eco.buildingMult(s, 'alchemy'), p0 = eco.combatPower(s);
@@ -1184,9 +1230,9 @@ t('宿敵覺醒：未達轉生次數與境界不會出現、達成後出現且�
   assert.equal(NemM.canAwaken(lowRealm, qian), false);                                                    // 境界不夠
   // 引爆：碾壓覺醒者 → 道心 +3、覺醒階數 1、不再給法寶、不重複算「擊敗宿敵」統計
   s.stats.nemesisDefeated = 6; s.res.daoHeart = 0; s.artifacts = [];
-  s.grudges = [{ ...v, alert: false }]; s.disguise.value = 20; s.res.qi = 0; s.buildings.arena.lv = 10; s.buildings.tower.lv = 10;
+  s.grudges = [{ ...v, alert: false }]; s.disguise.value = 20; s.res.qi = 0; s.buildings.arena.lv = 100; s.buildings.tower.lv = 100;
   s.disciples = []; s.res.stone = 0;
-  for (const k of Object.keys(s.buildings)) s.buildings[k].lv = 10; s.grudges[0].lvl = 0.5;
+  for (const k of Object.keys(s.buildings)) s.buildings[k].lv = 100; s.grudges[0].lvl = 0.5;
   const r = X.burst(s); assert.ok(r);
   const aw = r.nemesesDefeated.find(d => d.awaken); assert.ok(aw, '應擊敗覺醒者'); assert.equal(aw.dao, 3);
   assert.equal(s.res.daoHeart, 3); assert.equal(s.nemeses.qian.awakeLv, 1); assert.equal(s.stats.nemesisDefeated, 6); assert.equal(s.artifacts.length, 0);
@@ -1244,7 +1290,7 @@ t('五行：相生環與相剋環各自閉合、關係判定正確', () => {
 });
 
 t('五行派駐：建築與同棟隊友相生 +10%、相剋 −5%，可關閉；補滿空位會把相生隊友放一起', () => {
-  const s = createState(); s.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy', 'arena']) s.buildings[id].lv = 4;
+  const s = createState(); s.realmIdx = 6; for (const id of ['temple', 'field', 'alchemy', 'arena']) s.buildings[id].lv = 40;
   const get = id => { const d = D.addDisciple(s, id).disciple; d.lv = 5; return d; };
   // alchemy 屬火：火生土 → 土系弟子在煉丹房 +10%；火剋金 → 金系 −5%
   const earth = get('afu'), metal = get('qinwu');                           // afu 土、qinwu 金
@@ -1260,7 +1306,7 @@ t('五行派駐：建築與同棟隊友相生 +10%、相剋 −5%，可關閉；
   assert.ok(Math.abs(elementEffect(earth, 'temple', [wood]) + 0.05) < 1e-9);
   CONFIG.element.enabled = false; assert.equal(elementEffect(earth, 'alchemy'), 0); CONFIG.element.enabled = true;
   // 補滿空位：火系弟子與木系弟子同時待派，各 2 個位置的建築只剩一棟 → 兩人應被放在同一棟以取得相生
-  const s2 = createState(); s2.realmIdx = 6; s2.buildings.temple.lv = 0; s2.buildings.library.lv = 4;   // 只剩藏經閣（水、2 個駐守位）有位置
+  const s2 = createState(); s2.realmIdx = 6; s2.buildings.temple.lv = 0; s2.buildings.library.lv = 40;   // 只剩藏經閣（水、2 個駐守位）有位置
   const f2 = D.addDisciple(s2, 'huolie').disciple, w2 = D.addDisciple(s2, 'liu2').disciple; f2.lv = w2.lv = 5;
   autoAssign(s2); assert.equal(f2.at, 'library'); assert.equal(w2.at, 'library');
 });
@@ -1269,7 +1315,7 @@ t('補滿空位的結果接近暴力窮舉最佳解（含五行相生相剋）',
   const bids = ['temple', 'field', 'alchemy', 'arena'];
   const sc = s => bids.reduce((a, id) => a + (eco.buildingMult(s, id) - 1) * (CONFIG.assignValue[id] ?? 1) * Math.max(1, s.buildings[id].lv), 0);   // 與補滿空位相同的加權目標
   for (const names of [['afu', 'huolie', 'liu2', 'qinwu'], ['shenyao', 'tieniu', 'zhaoling', 'xiaocui'], ['huolie', 'liu2', 'afu', 'moqi']]) {
-    const s = createState(); s.realmIdx = 6; for (const id of bids) s.buildings[id].lv = 4;
+    const s = createState(); s.realmIdx = 6; for (const id of bids) s.buildings[id].lv = 40;
     const ds = names.map((id, i) => { const d = D.addDisciple(s, id).disciple; d.lv = 4 + i * 2; return d; });
     autoAssign(s); const got = sc(s);
     let best = 0; const cnt = {};
@@ -1282,7 +1328,7 @@ t('補滿空位的結果接近暴力窮舉最佳解（含五行相生相剋）',
 
 t('仇人五行：訪客／宿敵／回頭客都有、克制讓戰力比 +3% 每位、被剋 −2%、上下限、未派駐不算、可關閉', () => {
   assert.ok(NEMESES.every(n => ELEMENTS.includes(n.element)), '每位宿敵都有五行');
-  const s = createState(); s.realmIdx = 6; s.buildings.temple.lv = 4;
+  const s = createState(); s.realmIdx = 6; s.buildings.temple.lv = 40;
   const g = { id: 1, name: '某某', type: 'former', sect: 's', role: 'r', personality: '傲慢', lvl: 6, alert: false, element: '火' };
   assert.equal(Conc.elementAdvantage(s, g).mult, 1);                                  // 沒派駐：無克制
   const w = D.addDisciple(s, DISCIPLES.find(x => x.element === '水').id).disciple;      // 水系弟子（水剋火）
@@ -1304,7 +1350,7 @@ t('仇人五行：訪客／宿敵／回頭客都有、克制讓戰力比 +3% 每
 });
 
 t('專長心得：花碎片領悟、需該專長弟子派駐才生效、各效果併入對應加成、轉生與存檔保留', () => {
-  const s = createState(); s.realmIdx = 6; s.buildings.arena.lv = 1; s.buildings.alchemy.lv = 1; s.buildings.field.lv = 1;
+  const s = createState(); s.realmIdx = 6; s.buildings.arena.lv = 10; s.buildings.alchemy.lv = 10; s.buildings.field.lv = 10;
   assert.equal(Ins.learn(s, '劍修'), false);                                         // 沒碎片
   s.res.shard = 100;
   const sword = D.addDisciple(s, 'qinwu').disciple, alch = D.addDisciple(s, 'shenyao').disciple;   // 劍修、丹修
@@ -1324,12 +1370,12 @@ t('專長心得：花碎片領悟、需該專長弟子派駐才生效、各效�
 });
 
 t('補滿空位依建築價值加權：沒有專長的弟子優先去產出建築，而不是不產出的藏經閣', () => {
-  const s = createState(); s.realmIdx = 6; s.buildings.temple.lv = 0; s.buildings.library.lv = 4; s.buildings.field.lv = 4;   // 各 2 個位置
+  const s = createState(); s.realmIdx = 6; s.buildings.temple.lv = 0; s.buildings.library.lv = 40; s.buildings.field.lv = 40;   // 各 2 個位置
   const a = D.addDisciple(s, 'liuzi').disciple, b = D.addDisciple(s, 'liu2').disciple;                                          // 兩位都不是靈田專屬以外的
   a.lv = b.lv = 5; autoAssign(s);
   assert.equal(a.at, 'field'); assert.equal(b.at, 'field');
   CONFIG.assignValue.field = 0.01; CONFIG.assignValue.library = 5;                                                               // 把權重倒過來，結果應跟著翻轉
-  const s2 = createState(); s2.realmIdx = 6; s2.buildings.temple.lv = 0; s2.buildings.library.lv = 4; s2.buildings.field.lv = 4;
+  const s2 = createState(); s2.realmIdx = 6; s2.buildings.temple.lv = 0; s2.buildings.library.lv = 40; s2.buildings.field.lv = 40;
   const c = D.addDisciple(s2, 'liuzi').disciple; c.lv = 5; autoAssign(s2); assert.equal(c.at, 'library');
   CONFIG.assignValue.field = 3; CONFIG.assignValue.library = 0.3;
 });
@@ -1344,20 +1390,20 @@ t('功能區塊漸進解鎖：條件達成才出現且不會消失；舊存檔 q
   // 舊存檔：quiet 時直接解鎖（不 toast）
   const old = createState(); old.realmIdx = 5; Prog.tick(old, true); assert.ok(Prog.hasFeature(old, 'achv') && Prog.hasFeature(old, 'insight'));
   // 下一步提示
-  const h = createState(); h.buildings.alchemy.lv = 1; h.res.stone = 0; h.realmIdx = 2; h.unlocked.expedition = false;
+  const h = createState(); h.buildings.alchemy.lv = 10; h.res.stone = 0; h.realmIdx = 2; h.unlocked.expedition = false;
   const d = D.addDisciple(h, 'afu').disciple; D.assign(h, d.uid, 'temple'); St.read(h, d.uid); h.res.token = 0;
   d.lv = 10; assert.match(Prog.nextStep(h).text, /故事/);                          // 故事優先
   h.stories = { afu: 99 }; assert.match(Prog.nextStep(h).text, /進階/);              // 讀完後提示進階
   h.res.mat_cave = 2; D.setBranch(h, d.uid, 'focus'); h.artifacts = ['yinqi']; h.equipped = []; h.unlocked.expedition = false;
   assert.match(Prog.nextStep(h).text, /裝備欄/);                                   // 有法寶沒裝備
-  h.equipped = ['yinqi']; h.unlocked.f_insight = true; h.res.shard = 10; h.disciples.push({ uid: 99, defId: 'qinwu', lv: 1, at: 'arena' }); h.buildings.arena.lv = 1;
+  h.equipped = ['yinqi']; h.unlocked.f_insight = true; h.res.shard = 10; h.disciples.push({ uid: 99, defId: 'qinwu', lv: 1, at: 'arena' }); h.buildings.arena.lv = 10;
   assert.match(Prog.nextStep(h).text, /專長心得/);                                 // 劍修派駐中、碎片夠
 });
 
 t('擴充內容：每則事件的每個選項都能結算；宿敵鏈串到後日談；新宿敵資料完整；秘境新增與限制可組隊', () => {
   assert.ok(INCIDENTS.length >= 24, '事件數量');
   for (const inc of INCIDENTS) for (let i = 0; i < inc.choices.length; i++) {
-    const s = createState(); s.realmIdx = 10; s.res.qi = 1e9; s.res.stone = 1e9; for (const id of Object.keys(s.buildings)) s.buildings[id].lv = 3;
+    const s = createState(); s.realmIdx = 10; s.res.qi = 1e9; s.res.stone = 1e9; for (const id of Object.keys(s.buildings)) s.buildings[id].lv = 30;
     forceIncident(s, inc.id);
     assert.doesNotThrow(() => Inc.resolve(s, i, false), `${inc.id}[${i}]`);
     assert.equal(s.incident.current, null, `${inc.id}[${i}] 結算後事件應清除`);
@@ -1386,7 +1432,7 @@ t('宗門榮耀：榮耀值由進度換算、等級只升不降並彈提示寫�
   assert.equal(Gl.gloryName(s), GLORY_LEVELS[0].name); assert.ok(Math.abs(Gl.gloryPerm(s, 'qiMult') - 0.01) < 1e-9);
   assert.equal(Gl.gloryPerm(s, 'clickMult'), 0, '只加靈氣／靈石／戰力');
   // 加成實際進經濟：同一個狀態下，榮耀 1 級讓靈氣產出 +1%（乘在倍率上）
-  const a = createState(); a.buildings.temple.lv = 5; const base = eco.qiPerSec(a);
+  const a = createState(); a.buildings.temple.lv = 50; const base = eco.qiPerSec(a);
   a.glory.lv = 1; assert.ok(eco.qiPerSec(a) > base);
   // 只增不減：即使進度「看起來」變少，等級仍取歷史最高
   s.reincarnation.count = 0; assert.equal(Gl.gloryLevel(s), 1);
@@ -1733,3 +1779,4 @@ t('宿敵場上上限：同時最多 3 位；擊敗後才會再來；存檔與�
 });
 
 console.log(`\n${n} 項測試通過`);
+if (failed.length) { console.log(`\n${failed.length} 項失敗：\n - ` + failed.join('\n - ')); process.exit(1); }

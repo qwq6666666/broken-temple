@@ -2,13 +2,14 @@
 import { REALMS, TIER_NAMES } from '../data/realms.js';
 import { CONFIG } from '../config.js';
 import { nextRealm, breakCost, canBreak } from '../core/realm.js';
+import { capAtRealm } from '../core/buildings.js';
 import { fmt } from '../core/format.js';
 import { canRebirth, daoGain } from '../core/dao.js';
 import { mutatorOf } from '../core/mutators.js';
 import { esc, costChips, RES } from './dom.js';
 import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
 
-const capAt = i => Math.min(CONFIG.building.maxLevel, 1 + Math.floor(i * CONFIG.building.levelCapRealmFactor));
+const capAt = capAtRealm;
 
 // 分段大階：每個大境界一列，段內以小點表示層數（已過＝實心、目前＝金色、未到＝空心）
 function stages(s) {

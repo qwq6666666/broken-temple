@@ -74,6 +74,7 @@ export function bindActions(s, ui, rerender) {
     },
     closeBuilding: () => { ui.selBuilding = null; },
     upgrade: el => { if (B.upgrade(s, el.dataset.id)) sfx('upgrade'); },
+    upgradeN: el => { const n = B.upgradeN(s, el.dataset.id, el.dataset.n === 'max' ? Infinity : +el.dataset.n); if (n) { sfx('upgrade'); toast(`升了 ${n} 級`, 'good'); } },
     breakthrough: async () => {
       if (ui.busy) return;
       const res = R.breakthrough(s);
