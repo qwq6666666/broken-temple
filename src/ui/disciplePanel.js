@@ -43,7 +43,7 @@ export function disciplePanel(s, ui) {
       <div class="fgroup"><small class="dim">篩選</small>${FILTERS.map(x => chip('dFilter', 'flt', flt, x)).join('')}
         <select class="assign" data-change="dElem"><option value="">五行：全部</option>${ELEMS.map(e => `<option value="${e}" ${elem === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>` : '';
   const tools = `<div class="dtools">
-      ${s.disciples.length >= 2 ? `<button class="btn primary" data-act="autoAssign" title="把未派駐的弟子依專長、五行與緣分放進空位（已派駐的不動）">⚡ 補滿空位</button>` : ''}
+      ${s.disciples.length >= 2 ? autoBtn(s, away) : ''}
       ${sortBar}
     </div>`;
   const cards = shown.map(d => card(s, ui, d, away)).join('') || '<p class="hint">沒有符合條件的弟子。</p>';
@@ -155,4 +155,12 @@ function bondsBox(s) {
   const names = b => `${DISCIPLES_BY_ID[b.a].emoji}${esc(DISCIPLES_BY_ID[b.a].name)} ＋ ${DISCIPLES_BY_ID[b.b].emoji}${esc(DISCIPLES_BY_ID[b.b].name)}`;
   return `<div class="bonds"><b>🔗 緣分</b> <small class="dim">（兩人派駐在同一棟建築即生效）</small>` + rows.map(({ b, st }) =>
     `<div class="bond ${ST[st][1]}"><span>${esc(b.name)}</span><span>${names(b)}</span><span>${Object.entries(b.effect).map(([k, v]) => esc(traitText(k, v))).join('、')}</span><small>${ST[st][0]}</small></div>`).join('') + '</div>';
+}
+
+// 補滿空位按鈕：沒有閒置弟子或沒有空位時灰掉並說明原因（避免點了只得到一則「沒有…」通知）
+function autoBtn(s, away) {
+  const idle = s.disciples.filter(d => !d.at && !away.has(d.uid)).length;
+  const free = BUILDINGS.reduce((n, b) => n + Math.max(0, slots(s, b.id) - assignedTo(s, b.id).length), 0);
+  const why = !idle ? '沒有未派駐的弟子' : !free ? '沒有空著的駐守位（升級建築可增加）' : '';
+  return `<button class="btn ${why ? '' : 'primary'}" data-act="autoAssign" ${why ? 'disabled' : ''} title="${esc(why || '把未派駐的弟子依專長、五行與緣分放進空位（已派駐的不動）')}">⚡ 補滿空位${why ? `<small class="dim">（${esc(why)}）</small>` : ''}</button>`;
 }

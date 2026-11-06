@@ -85,7 +85,10 @@ export function goalPanel(s, ui) {
         <small class="dim">${fmt(cur)}/${fmt(g.target)}　獎勵：${esc(rewardText(g.reward))}</small></div></div>`;
   };
   const todo = GOALS.filter(g => !isDone(s, g.id)), fin = GOALS.filter(g => isDone(s, g.id));
-  const rows = todo.map(card).join('')
+  const byPct = [...todo].sort((a, b) => progress(s, b) / b.target - progress(s, a) / a.target), TOP = 6;
+  const near = byPct.slice(0, TOP), later = byPct.slice(TOP);
+  const rows = near.map(card).join('')
+    + (later.length ? crow(ui, { key: 'goalslater', icon: '🎯', title: `<b>其餘 ${later.length} 項大事</b>`, sub: '進度較少，點開查看', detail: later.map(card).join('') }) : '')
     + (fin.length ? crow(ui, { key: 'goalsdone', icon: '✅', title: `<b>已完成的大事 ${fin.length}</b>`, sub: fin.slice(-3).map(g => esc(g.name)).join('、'), detail: fin.map(g => `<small>✅ <b>${esc(g.name)}</b>　${esc(g.desc)}</small>`).join('') }) : '');
   const owned = new Set(s.disciples.map(d => d.defId));
   const dex = DISCIPLES.map(d => owned.has(d.id)

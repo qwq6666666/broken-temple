@@ -23,7 +23,7 @@ import { assess } from '../core/endure.js';
 import { nemOf } from '../core/nemesis.js';
 import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
 import { costChips } from './dom.js';
-import { esc, setHTML, setText } from './dom.js';
+import { esc, setHTML, setText, sectRole } from './dom.js';
 
 export function mountScene(root) {
   const blds = DRAW_ORDER.map(id => {
@@ -37,6 +37,7 @@ export function mountScene(root) {
   }).join('');
   root.innerHTML = `
     <div class="daynight"></div><div class="vignette"></div>
+    <button class="scenetoggle" data-act="toggleScene" aria-pressed="false">🏞 展開全景</button>
     <div class="sky"><span class="moon">🌕</span><span class="cloud c1">☁️</span><span class="cloud c2">☁️</span></div>
     <div class="ancestor"><div class="avatar" data-r="avatar">👴</div><div class="bubble" data-r="bubble"></div></div>
     <div class="landwrap">
@@ -150,7 +151,7 @@ function visitorCard(s, entering = false) {
   return `<div class="visitor-card ${nem ? 'nemesis' : ''} ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${nem ? nem.emoji : t.emoji}</span>
       <div><b>${esc(v.name)}</b> ${nem ? '<span class="tag gold">宿敵</span>' : ''}${v.returning === 'revenge' ? '<span class="tag red">回頭客・復仇（獎勵 ×' + FR.revengeReward + '）</span>' : ''}<span class="tag">${esc(t.label)}</span> <span class="tag">${esc(v.personality)}</span> <span class="verdict ${vc}">${vt}</span><br>
-      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}・五行${esc(elementOfGrudge(v))}${elAdv(s, v)}</small>${facLine(s, v)}</div></div>
+      <small>${sectRole(v.sect, v.role)}・${esc(lvlLabel(v.lvl))}・五行${esc(elementOfGrudge(v))}${elAdv(s, v)}</small>${facLine(s, v)}</div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">
       <button class="btn endure" data-act="endure"><b>😤 忍氣吞聲</b><small>${endureText}</small></button>
@@ -190,7 +191,7 @@ function pleaCard(s, v, t, entering) {
   return `<div class="visitor-card plea ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${t.emoji}</span>
       <div><b>${esc(v.name)}</b> <span class="tag gold">${v.tribute ? '勢力進貢' : '回頭客・求和'}</span> <span class="tag">${esc(v.personality)}</span><br>
-      <small>${esc(v.sect)}・${esc(v.role)}・${esc(lvlLabel(v.lvl))}</small>${facLine(s, v)}</div></div>
+      <small>${sectRole(v.sect, v.role)}・${esc(lvlLabel(v.lvl))}</small>${facLine(s, v)}</div></div>
     <p class="taunt">「${esc(v.taunt)}」</p>
     <div class="vbtns">
       <button class="btn show good" data-act="acceptPlea"><b>🎁 收下${v.tribute ? '貢禮' : '賠禮'}</b><small>${gift}，${esc(v.sect)}威望 +3；對方離開</small></button>

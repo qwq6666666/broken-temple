@@ -51,6 +51,7 @@ bindActions(state, ui, render);
 
 // 每個固定 tick：產出 → 偽裝/成長 → 訪客
 function onTick(dt) {
+  if (ui.introOpen) { state.visitor.nextAt = Math.max(state.visitor.nextAt, state.t + 5000); state.incident.nextAt = Math.max(state.incident.nextAt, state.t + 5000); }   // 開場介紹開著時不來訪客與事件
   economy.tick(state, dt);
   conceal.tick(state, dt);
   endure.tick(state);
@@ -94,7 +95,7 @@ addEventListener('storage', e => {
 });
 if (loaded && loaded.error) toast('存檔損壞，已開始新遊戲：' + loaded.error, 'warn');
 if (welcome) showWelcome(welcome);
-else if (!state.seenIntro && state.realmIdx === 0 && !state.stats.bursts) showHelp(true);   // 第一次進來：開場說明
+else if (!state.seenIntro && state.realmIdx === 0 && !state.stats.bursts) { ui.introOpen = true; showHelp(true).finally?.(() => { ui.introOpen = false; }); }   // 第一次進來：開場說明
 state.seenIntro = true;
 
 window.__game = { state, ui, CONFIG };   // 方便在 console 除錯，例如 __game.state.res.stone = 999

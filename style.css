@@ -705,3 +705,19 @@ main > section, #panel { min-width: 0; }
   .pvlist { max-height: none; overflow: visible; }
   #hint { position: sticky; top: 0; z-index: 40; background: #1a1c12; margin-top: 0; border-radius: 0 0 10px 10px; }
 }
+
+/* ── 觸控與點擊目標：手機至少 44px、桌面至少 28px；手機縮小全景讓主面板更早出現；合併通知計數 ── */
+[data-act=toggleD], [data-act=dismissTip], [data-act=dSort], [data-act=dFilter], [data-act=toggleTip], [data-act=slotPick], [data-act=toggleBonds], .dmore { min-height: 28px; }
+@media (max-width: 860px) {
+  [data-act=toggleD], [data-act=dismissTip], [data-act=dSort], [data-act=dFilter], [data-act=toggleTip], [data-act=slotPick], [data-act=toggleBonds], .dmore { min-height: 44px; }
+  .scene svg.land { max-height: 210px; }
+  .toast .tcount { color: var(--gold); margin-left: 4px; }
+}
+.toast .tcount { color: var(--gold); margin-left: 4px; }
+
+/* 手機：全景預設收合（保留老祖對話、訪客與打坐），主面板更早出現；桌面不顯示切換鈕 */
+.scenetoggle { display: none; }
+@media (max-width: 860px) {
+  .scenetoggle { display: block; position: absolute; right: 10px; top: 10px; z-index: 5; min-height: 36px; padding: 4px 10px; font: inherit; font-size: .8em; color: var(--text, #efe6d0); background: rgba(14,22,19,.85); border: 1px solid var(--line); border-radius: 18px; cursor: pointer; }
+  body:not(.scene-open) .landwrap { display: none; }
+}

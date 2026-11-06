@@ -41,3 +41,6 @@ export function crow(ui, { key, cls = '', icon, title, badges = '', sub = '', ac
       ${act ? `<div class="ca">${act}</div>` : ''}${can ? `<span class="cx">${open ? '▴' : '▾'}</span>` : ''}
     </div>${open && can ? `<div class="cdetail">${detail}</div>` : ''}</div>`;
 }
+
+// 門派與職稱同名時（如「雲遊散修・散修」）只顯示一個
+export const sectRole = (sect, role) => (sect === role ? esc(sect) : `${esc(sect)}・${esc(role)}`);

@@ -40,6 +40,7 @@ export function bindActions(s, ui, rerender) {
       if (globalThis.matchMedia?.('(max-width: 860px)').matches) setTimeout(() => document.getElementById('right')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
     },
     expFocus: el => { ui.tab = 'world'; ui.expPick = el.dataset.id; ui.expTeam = []; if (globalThis.matchMedia?.('(max-width: 860px)').matches) setTimeout(() => document.getElementById('right')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30); },
+    toggleScene: el => { const on = document.body.classList.toggle('scene-open'); el.setAttribute('aria-pressed', String(on)); el.textContent = on ? '🏞 收合全景' : '🏞 展開全景'; },
     gotoScene: () => { document.getElementById('left')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); },      // 手機：回到訪客卡與引爆鈕所在的上方區域
     meditate: (el, ev) => {
       const gain = meditate(s);
@@ -185,6 +186,7 @@ export function bindActions(s, ui, rerender) {
     },
     dElem: el => { ui.dElem = el.value; },
     spare: el => { if (X.toggleSpare(s, +el.dataset.gid)) showBurstPreview(X.previewBurst(s)); },
+    toggleFast: el => { setPref('fastBurst', el.checked); },
     toggleTips: el => { setPref('tips', el.checked); },
     toggleHints: el => { setPref('hints', el.checked); },
     toggleLoss: el => { s.settings.loss = el.checked; },

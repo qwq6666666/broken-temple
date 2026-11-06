@@ -13,7 +13,8 @@ import { HELP, INTRO } from '../data/help.js';
 import { FACTIONS_BY_ID, FACTION_RULES as FR } from '../data/factions.js';
 import { REBIRTH_KEEP, REBIRTH_RESET } from '../data/rebirth.js';
 import { MUTATORS } from '../data/mutators.js';
-import { getPrefs } from './prefs.js';
+import { getPrefs, setPref } from './prefs.js';
+import { toast } from '../core/events.js';
 import { shake, flash, particles, banner, countUp } from './fx.js';
 
 const root = () => document.getElementById('overlay');
@@ -57,7 +58,8 @@ export async function playBurst(result) {
     <div class="stage" data-r="stage"></div></div>`;
   o.classList.add('on');
   const scene = o.firstElementChild;
-  o.querySelector('.skipbtn').onclick = () => { skip.v = true; };
+  if (getPrefs().fastBurst) skip.v = true;                                    // 之前按過「跳過」：直接快速播放
+  o.querySelector('.skipbtn').onclick = () => { skip.v = true; if (!getPrefs().fastBurst) { setPref('fastBurst', true); toast('已記住：之後引爆演出會快速播放（說明視窗可關閉）', 'info'); } };
   const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]');
 
   sfx('burstIntro');
@@ -265,6 +267,7 @@ export function showHelp(intro = false) {
   return showModal(`<h3>${intro ? '🏚️ 歡迎來到破廟宗主' : '❓ 玩法說明'}</h3>
     ${list.map(x => `<p><b class="gold">${esc(x.t)}</b><br>${esc(x.d)}</p>`).join('')}
     ${intro ? '' : `<div class="helpopts"><label class="loss"><input type="checkbox" data-change="toggleHints" ${getPrefs().hints ? 'checked' : ''}> 顯示畫面上方的「下一步」提示</label>
+ <label class="loss"><input type="checkbox" data-change="toggleFast" ${getPrefs().fastBurst ? 'checked' : ''}> 引爆演出快速播放（按過一次「跳過」會自動開啟）</label>
       <label class="loss"><input type="checkbox" data-change="toggleTips" ${getPrefs().tips ? 'checked' : ''}> 第一次打開分頁時顯示說明</label>
       <button class="btn mini" data-act="resetTips">重新顯示所有分頁說明</button> <button class="btn mini" data-act="replayIntro">重看開場介紹</button></div>`}`);
 }

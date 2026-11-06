@@ -9,7 +9,7 @@ import { recruitCost, weakOf } from '../core/burst.js';
 import { PERSONALITY_BIAS } from '../data/enemies.js';
 import { canAfford } from '../core/resources.js';
 import { CONFIG } from '../config.js';
-import { esc, costChips, crow } from './dom.js';
+import { esc, costChips, crow, sectRole } from './dom.js';
 
 const VERDICT = {
   crush: { t: '預估：碾壓', c: 'v-crush' },
@@ -31,7 +31,7 @@ export function avengePanel(s, ui) {
         ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${PERSONALITY_BIAS[g.personality]?.label ? `<span class="tag" title="個性偏好">${esc(PERSONALITY_BIAS[g.personality].label)}</span>` : ''}${g.ripe ? `<span class="tag gold">熟成 ${g.ripe}・獎勵 +${g.ripe * 25}%</span>` : ''}${g.foe ? `<span class="tag ${g.foe >= 3 ? 'gold' : ''}">${g.foe >= 3 ? '老對頭' : '舊識'}・擊敗過 ${g.foe} 次</span>` : ''}${nem && weakOf(g) ? `<span class="tag">弱點：${esc(weakOf(g))}</span>` : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}</div>`;
     return crow(ui, { key: 'g' + g.id, cls: `${nem ? 'nemesis' : ''} vr-${escapes ? 'fail' : gap.verdict}`, icon: nem ? nem.emoji : t.emoji,
       title: `<b>${esc(g.name)}</b>`, badges: nem ? ` <span class="tag gold">${g.awaken ? '覺醒宿敵' : '宿敵'}</span>` : '',
-      sub: `${esc(gap.enemy)}・${esc(gap.element)}${gap.adv.mult > 1 ? '↑' : gap.adv.mult < 1 ? '↓' : ''}・${esc(g.sect)}・${esc(g.role)}`, act: `<span class="verdict ${v.c}">${v.t}</span>`, detail });
+      sub: `${esc(gap.enemy)}・${esc(gap.element)}${gap.adv.mult > 1 ? '↑' : gap.adv.mult < 1 ? '↓' : ''}・${sectRole(g.sect, g.role)}`, act: `<span class="verdict ${v.c}">${v.t}</span>`, detail });
   }).join('') || '<p class="hint">復仇簿是空的。等人來嘲諷，然後忍著。</p>';
   const summary = s.grudges.length
     ? `<div class="vsum"><span>復仇簿 ${s.grudges.length}/${CONFIG.visitor.maxGrudges}</span><span class="verdict v-crush">碾壓 ${cnt.crush}</span><span class="verdict v-narrow">險勝 ${cnt.narrow}</span><span class="verdict v-fail">打不過 ${cnt.fail}</span></div>`
