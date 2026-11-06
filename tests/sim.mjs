@@ -30,6 +30,7 @@ import { ARTIFACTS_BY_ID as ARTS, EQUIP_SLOTS } from '../src/data/artifacts.js';
 import { isSpecialtyMatch } from '../src/core/discipleMath.js';
 import { REALMS } from '../src/data/realms.js';
 import * as Asc from '../src/core/ascend.js';
+import { NEMESES } from '../src/data/nemeses.js';
 
 const HOURS = Number(process.argv[2]) || 12;
 const PASSIVE = process.argv[3] === 'passive';
@@ -40,6 +41,8 @@ if (process.env.KE) CONFIG.element.keBonus = Number(process.env.KE);
 if (process.env.ENEMY_BEAT) CONFIG.element.enemyBeat = Number(process.env.ENEMY_BEAT);
 if (process.env.ENEMY_BEATEN) CONFIG.element.enemyBeaten = Number(process.env.ENEMY_BEATEN);
 if (process.env.BV) Object.assign(CONFIG.assignValue, JSON.parse(process.env.BV));   // 覆寫建築價值權重，如 BV='{"library":0.2}'
+const HUNT_MIN = Number(process.env.HUNT_MIN) || 20;     // hunt 旗標：化神後最多多留幾遊戲分鐘等宿敵（HUNT_MIN 可覆寫）
+if (process.env.NO_SIDE) NEMESES.splice(NEMESES.findIndex(n => n.side));     // NO_SIDE=1：移除勢力宿敵，當作比較基準
 const REBIRTH = process.argv.includes('rebirth');   // 化神後自動轉生並購買道心商店，印出每一輪耗時
 
 // 固定亂數種子，讓每次結果可比較
@@ -64,8 +67,10 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   // ascend：化神後有天劫待渡就渡（機器人沒有特別追條件，只是順勢達成的才算）；渡劫道心立刻進帳
   if (FLAG('ascend')) { Asc.tick(s); for (const id of [...s.ascend.ready]) { Asc.claim(s, id); once('天劫 ' + id + '（第 ' + (s.reincarnation.count + 1) + ' 世）', true); } }
   // 化神後轉生，並把道心花在商店
-  if (REBIRTH && Dao.canRebirth(s)) {
-    lives.push({ min: (s.t - lifeStart) / 60000, dao: Dao.daoGain(s), bursts: s.run.bursts, chain: s.run.maxChain, inc: RS('incidents'), endure: RS('endures'), exp: RS('expeditions') });
+  if (FLAG('hunt') && s.realmIdx >= 13 && s.run.huntAt === undefined) s.run.huntAt = s.t;      // hunt：抵達化神的時間
+  const hunting = FLAG('hunt') && s.run.huntAt !== undefined && s.t - s.run.huntAt < HUNT_MIN * 60000 && (Nem.pickNemesis(s) || s.grudges.some(g => g.nemesisId) || s.visitor.current?.nemesisId);
+  if (REBIRTH && Dao.canRebirth(s) && !hunting) {
+    lives.push({ min: (s.t - lifeStart) / 60000, dao: Dao.daoGain(s), bursts: s.run.bursts, chain: s.run.maxChain, nd: NEMESES.filter(n => s.nemeses[n.id]?.defeated).length, side: NEMESES.filter(n => n.side && s.nemeses[n.id]?.defeated).length, aw: Object.values(s.nemeses).reduce((a, n) => a + (n.awakeLv || 0), 0), hs: Math.round((s.t - (s.run.huntAt ?? s.t)) / 60000), reach: ((s.run.huntAt ?? s.t) - lifeStart) / 60000, inc: RS('incidents'), endure: RS('endures'), exp: RS('expeditions') });
     Dao.rebirth(s); lifeStart = s.t;
     for (let again = true; again;) {
       again = false; for (const id of SHOP_PRIORITY) if (Dao.buy(s, id)) { again = true; break; }
@@ -138,7 +143,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   }
 }
 
-if (REBIRTH) { console.log('各輪耗時（分鐘）與道心：'); lives.forEach((l, i) => console.log(`  第 ${i + 1} 輪 ${l.min.toFixed(0).padStart(5)} 分（${(l.min / 60).toFixed(2)} 小時）  道心 +${l.dao}  引爆 ${l.bursts} 次  ${i ? `= 第 1 輪的 ${(l.min / lives[0].min * 100).toFixed(0)}%` : ''}${process.env.RUNSTATS ? `  ｜連鎖 ${l.chain} 事件 ${l.inc} 忍 ${l.endure} 秘境 ${l.exp}` : ''}`)); }
+if (REBIRTH) { console.log('各輪耗時（分鐘）與道心：'); lives.forEach((l, i) => console.log(`  第 ${i + 1} 輪 ${l.min.toFixed(0).padStart(5)} 分（${(l.min / 60).toFixed(2)} 小時）  道心 +${l.dao}  引爆 ${l.bursts} 次  ${i ? `= 第 1 輪的 ${(l.min / lives[0].min * 100).toFixed(0)}%` : ''}${process.env.RUNSTATS ? `  ｜連鎖 ${l.chain} 事件 ${l.inc} 忍 ${l.endure} 秘境 ${l.exp}` : ''}${process.env.RUNSTATS ? `｜宿敵 ${l.nd}/${NEMESES.length}（勢力 ${l.side}/6）覺醒 ${l.aw}/${NEMESES.length * 3} 化神停留 ${l.hs} 分｜抵達化神 ${(l.reach / 60).toFixed(2)} 小時` : ''}`)); }
 const f = sec => sec >= 3600 ? (sec / 3600).toFixed(2) + ' 小時' : (sec / 60).toFixed(1) + ' 分';
 console.log(`模擬 ${HOURS} 小時（${PASSIVE ? '純掛機' : '含打坐'}）`);
 for (const [n, t] of log) console.log(String(f(t)).padStart(10), ' ', n);

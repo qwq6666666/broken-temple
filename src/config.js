@@ -112,7 +112,7 @@ export const CONFIG = {
   // 自動加成：前 softCap 次每次 +10% 靈氣／靈石，之後每次只 +tail（避免轉生循環無限縮短）
   reincarnation: { minRealm: 13, daoBase: 10, daoBasePerCount: 1, daoBaseMax: 30, burstCap: 40, perBurst: 1, perChain: 2, perNemesis: 5, perGoal: 2,
                    autoBonusPerCount: 0.10, autoBonusSoftCap: 10, autoBonusTail: 0.01 },
-  nemesis: { chance: 0.5 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵
+  nemesis: { chance: 0.5, maxPresent: 3 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵；場上（訪客＋復仇簿）同時最多幾位
   save: { key: 'broken-temple-save', autosaveMs: 10000 },
 
   burst: {

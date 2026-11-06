@@ -24,6 +24,13 @@ export const ARTIFACTS = [
   { id: 'mo_lamp', unique: true, kind: '法寶', name: '引魂燈', emoji: '🏮', effect: { burstReward: 0.18 }, desc: '爆擊獎勵 +18%（墨無常）' },
   { id: 'ling_bell', unique: true, kind: '法寶', name: '聽濤鈴', emoji: '🔔', effect: { qiMult: 0.30 }, desc: '靈氣產出 +30%（凌霄子）' },
   { id: 'wu_mirror', unique: true, kind: '法寶', name: '無相鏡', emoji: '🪞', effect: { powerMult: 0.20, stoneMult: 0.20 }, desc: '戰力 +20%、靈石 +20%（無相）' },
+  // ── 勢力宿敵專屬（效果刻意比主線宿敵小：+6~8%，長線靠「出現時機」而不是加成）──
+  { id: 'jiao_furnace', unique: true, kind: '法寶', name: '焦爐殘片', emoji: '🔥', effect: { stoneMult: 0.08 }, desc: '靈石產出 +8%（焦烈）' },
+  { id: 'mowen_blade', unique: true, kind: '法寶', name: '無鞘劍', emoji: '🗡️', effect: { powerMult: 0.08 }, desc: '戰力 +8%（莫問鋒）' },
+  { id: 'song_scroll', unique: true, kind: '法寶', name: '落霞詩卷', emoji: '📜', effect: { qiMult: 0.08 }, desc: '靈氣產出 +8%（宋清歡）' },
+  { id: 'han_ice', unique: true, kind: '法寶', name: '冰魄寒玉', emoji: '🧊', effect: { discipleDiscount: 0.06 }, desc: '弟子升級成本 -6%（寒千山）' },
+  { id: 'tie_nail', unique: true, kind: '法寶', name: '百煉釘', emoji: '📌', effect: { burstReward: 0.08 }, desc: '爆擊獎勵 +8%（鐵無歸）' },
+  { id: 'meng_scale', unique: true, kind: '法寶', name: '黑市天平', emoji: '⚖️', effect: { clickMult: 0.30 }, desc: '打坐收益 +30%（孟百川）' },
 ];
 // 裝備欄：已擁有的法寶一律照常生效；放進裝備欄的再額外獲得「共鳴」加成（效果 ×(1+EQUIP_BONUS)）。
 export const EQUIP_SLOTS = 3;

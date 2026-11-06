@@ -5,8 +5,8 @@ import { isDefeated, nemState, unlocked, condText, present, awakeLv, canAwaken, 
 import { esc, crow } from './dom.js';
 
 export function nemesisPanel(s, ui) {
-  const mainList = NEMESES.filter(n => !n.epilogue), epiList = NEMESES.filter(n => n.epilogue);
-  const mainDone = mainList.filter(n => isDefeated(s, n.id)).length, epiDone = epiList.filter(n => isDefeated(s, n.id)).length;
+  const mainList = NEMESES.filter(n => !n.epilogue && !n.side), epiList = NEMESES.filter(n => n.epilogue), sideList = NEMESES.filter(n => n.side);
+  const mainDone = mainList.filter(n => isDefeated(s, n.id)).length, epiDone = epiList.filter(n => isDefeated(s, n.id)).length, sideDone = sideList.filter(n => isDefeated(s, n.id)).length;
   const rows = NEMESES.map(n => {
     const st = s.nemeses[n.id] || { met: 0 }, defeated = isDefeated(s, n.id), open = defeated || st.met > 0 || unlocked(s, n);
     if (!open) return crow(ui, { key: 'n' + n.id, cls: 'locked', icon: '❔', title: '<b>？？？</b>', sub: `解鎖條件：${esc(condText(s, n))}` });
@@ -21,5 +21,5 @@ export function nemesisPanel(s, ui) {
     return crow(ui, { key: 'n' + n.id, cls: defeated ? 'done' : '', icon: n.emoji, title: `<b>${esc(n.name)}</b>`, badges: ` <span class="tag">${esc(n.title)}</span> <span class="tag">五行${esc(n.element)}</span>${awTag}`, act: status,
       sub: esc(st.met ? n.intro[Math.max(1, st.met) - 1] : (condText(s, n) || '隨時可能登場')), detail });
   }).join('');
-  return `<p class="hint">主線宿敵 ${mainDone}/${mainList.length}（擊敗全部才算「舊債還清」）・後日談宿敵 ${epiDone}/${epiList.length}（另計）</p>${rows}`;
+  return `<p class="hint">主線宿敵 ${mainDone}/${mainList.length}（擊敗全部才算「舊債還清」）・後日談宿敵 ${epiDone}/${epiList.length}・勢力宿敵 ${sideDone}/${sideList.length}（打臉累積勢力威望後現身，各自另計）</p>${rows}`;
 }

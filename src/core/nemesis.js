@@ -4,6 +4,8 @@ import { NEMESES, NEMESES_BY_ID, AWAKEN, ROMAN } from '../data/nemeses.js';
 import { REALMS } from '../data/realms.js';
 import { PERSONALITIES } from '../data/visitors.js';
 import { randInt, randFloat, pick } from './rng.js';
+import { FACTIONS_BY_ID, FACTION_TIERS } from '../data/factions.js';
+import { tierOf } from './factions.js';
 
 export const nemState = (s, id) => (s.nemeses[id] ||= { met: 0, defeated: false });
 export const isDefeated = (s, id) => !!s.nemeses[id]?.defeated;
@@ -14,6 +16,7 @@ export const nemOf = g => NEMESES_BY_ID[g.nemesisId];
 export function unlocked(s, n) {
   if (isDefeated(s, n.id)) return false;
   if (s.realmIdx < (n.cond.minRealm || 0)) return false;
+  if (n.cond.faction && tierOf(s, n.cond.faction) < (n.cond.tier || 1)) return false;      // 勢力宿敵：該勢力威望要夠
   return !n.cond.prev || isDefeated(s, n.cond.prev);
 }
 export const present = (s, id) => s.visitor.current?.nemesisId === id || s.grudges.some(g => g.nemesisId === id);
@@ -28,13 +31,16 @@ export const awakenNeedText = (s, n) => {
   const lv = awakeLv(s, n.id);
   return lv >= AWAKEN.maxLv ? '覺醒已圓滿' : `第 ${lv + 1} 階覺醒：轉生 ${AWAKEN.needRebirth[lv]} 次、境界達${REALMS[awakenRealm(n)].name}`;
 };
-export const pickNemesis = s =>
+// 場上（訪客＋復仇簿）同時最多幾位宿敵：避免多位同時解鎖時佔滿復仇簿、干擾連鎖
+export const presentCount = s => s.grudges.filter(g => g.nemesisId).length + (s.visitor.current?.nemesisId ? 1 : 0);
+export const pickNemesis = s => presentCount(s) >= CONFIG.nemesis.maxPresent ? null :
   NEMESES.find(n => unlocked(s, n) && !present(s, n.id)) || NEMESES.find(n => canAwaken(s, n) && !present(s, n.id)) || null;
 
 // 解鎖條件的文字說明（宿敵錄用）
 export function condText(s, n) {
   const parts = [];
   if (n.cond.prev) parts.push(`擊敗${NEMESES_BY_ID[n.cond.prev].name}`);
+  if (n.cond.faction) parts.push(`${FACTIONS_BY_ID[n.cond.faction].name}威望達「${FACTION_TIERS[n.cond.tier || 1]}」`);
   if (n.cond.minRealm) parts.push(`境界達${REALMS[n.cond.minRealm].name}`);
   return parts.join('，且');
 }
@@ -43,7 +49,7 @@ export function condText(s, n) {
 export function makeNemesisVisitor(s, n) {
   const st = nemState(s, n.id);
   const awaken = isDefeated(s, n.id) ? (st.awakeLv || 0) + 1 : 0;            // 已擊敗過 → 這次是覺醒形態
-  const taunt = awaken ? AWAKEN.taunts[awaken - 1] : n.intro[Math.min(st.met, n.intro.length - 1)];
+  const taunt = awaken ? (n.awakenTaunts?.[awaken - 1] || AWAKEN.taunts[awaken - 1]) : n.intro[Math.min(st.met, n.intro.length - 1)];
   if (!awaken) st.met++;
   const lvl = Math.max(0, Math.min(CONFIG.enemy.maxLevel, s.realmIdx + randInt(...n.offset) + awaken * AWAKEN.levelBoost)) + randFloat(0, 0.6);
   return { id: s.nextGid++, nemesisId: n.id, name: awaken ? `${n.name}・覺醒${ROMAN[awaken]}` : n.name, type: n.type, sect: n.sect, role: n.title,
