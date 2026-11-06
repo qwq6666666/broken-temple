@@ -107,7 +107,7 @@ export function burst(s) {
     const r = rewardFor(s, e.g, e.verdict);
     const sw = fsum[FACTION_OF_SECT[e.g.sect]] || 1; e.sweep = sw;
     const k = cm * cMult * art * sw;
-    r.qi *= k; r.stone *= k; r.token = Math.round(r.token * cMult * art * sw);
+    r.qi *= k; r.stone *= k; r.token = Math.round(r.token * cMult * art * sw * CONFIG.gacha.burstTokenScale);
     total.qi += r.qi; total.stone += r.stone; total.token += r.token; s.res.shard += r.shard || 0; total.shard = (total.shard || 0) + (r.shard || 0);
     if (r.surrender) {
       const def = rollSurrender(s);

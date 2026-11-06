@@ -61,6 +61,7 @@ export const CONFIG = {
     pitySSR: 90,               // 90 抽保底 SSR 以上
     tenPull: 10,
     tokenTrickleSec: 120,      // 每 120 秒自然獲得 1 招賢令
+    burstTokenScale: 1,        // 引爆時每位仇人的招賢令乘數（宿敵獎勵不受影響）；引爆是招賢令的最大來源，調收藏節奏先動這裡
   },
 
   realm: {

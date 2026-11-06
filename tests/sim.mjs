@@ -14,6 +14,7 @@ import * as B from '../src/core/buildings.js';
 import * as R from '../src/core/realm.js';
 import * as G from '../src/core/gacha.js';
 import * as D from '../src/core/disciples.js';
+import { DISCIPLES } from '../src/data/disciples.js';
 import * as X from '../src/core/burst.js';
 import * as Ex from '../src/core/expeditions.js';
 import { EXPEDITIONS, EXPEDITIONS_BY_ID, matIdOf } from '../src/data/expeditions.js';
@@ -49,6 +50,7 @@ if (process.env.HI_MIN || process.env.HI_REWARD) for (const e of EXPEDITIONS) if
   if (process.env.HI_MIN) e.minutes = Math.round(e.minutes * Number(process.env.HI_MIN));
   if (process.env.HI_REWARD) for (const k of ['qiSec', 'stoneSec']) if (e.reward[k]) e.reward[k] *= Number(process.env.HI_REWARD);
 }
+if (process.env.TOKSCALE) CONFIG.gacha.burstTokenScale = Number(process.env.TOKSCALE);     // TOKSCALE=0.3：引爆招賢令 ×0.3（量收藏節奏）
 const REBIRTH = process.argv.includes('rebirth');   // 化神後自動轉生並購買道心商店，印出每一輪耗時
 
 // 固定亂數種子，讓每次結果可比較
@@ -137,6 +139,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   }
   // 功勳換招賢令
   while (s.res.merit >= 6) G.exchangeMerit(s, 1);
+  once('收集全部弟子', s.disciples.length >= DISCIPLES.length); once('集齊全部 UR', DISCIPLES.filter(d => d.rarity === 'UR').every(d => s.disciples.some(x => x.defId === d.id)));
   // 突破
   while (R.canBreak(s)) { R.breakthrough(s); if (!REBIRTH) once('境界 ' + REALMS[s.realmIdx].name, true); }
   // 建築：最便宜的先買
@@ -177,4 +180,4 @@ console.log('建築：', BUILDINGS.map(d => `${d.name}${s.buildings[d.id].lv}`).
 const bc = R.breakCost(s);
 if (bc) console.log('下一境界成本', JSON.stringify(bc), '｜持有', JSON.stringify(Object.fromEntries(Object.entries(s.res).map(([k, v]) => [k, Math.round(v)]))), '｜每秒 靈氣', eco.qiPerSec(s).toFixed(1), '靈石', eco.stonePerSec(s).toFixed(3));
 if (process.env.TOKSRC) console.log('TOKSRC ' + JSON.stringify({ hours: HOURS, pulls: s.gacha.total, src: tokSrc }));
-if (process.env.JSON) console.log('SUMMARY ' + JSON.stringify({ mut: process.env.MUT || null, hours: HOURS, reb: s.reincarnation.count, lives, art: s.artifacts.length, disciples: s.disciples.length, expBy: s.simExpBy || {}, expOK: s.simOK || {}, simArt: s.simArt || 0, simRec: s.simRec || 0, ascDone: s.ascend.done.length, qi: eco.qiPerSec(s), stone: eco.stonePerSec(s), log: log.slice(0, 40) }));
+if (process.env.JSON) console.log('SUMMARY ' + JSON.stringify({ pulls: s.gacha.total, tAll: (log.find(x => x[0] === '收集全部弟子') || [])[1] ?? null, tUR: (log.find(x => x[0] === '集齊全部 UR') || [])[1] ?? null, mut: process.env.MUT || null, hours: HOURS, reb: s.reincarnation.count, lives, art: s.artifacts.length, disciples: s.disciples.length, expBy: s.simExpBy || {}, expOK: s.simOK || {}, simArt: s.simArt || 0, simRec: s.simRec || 0, ascDone: s.ascend.done.length, qi: eco.qiPerSec(s), stone: eco.stonePerSec(s), log: log.slice(0, 40) }));
