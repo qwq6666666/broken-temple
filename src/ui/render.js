@@ -81,6 +81,7 @@ export function createRenderer(s, ui) {
 
     // 下一步提示（可關閉；在「說明」裡重新開啟）
     const hint = getPrefs().hints ? nextStep(s) : null;
+    hintEl.classList.toggle('urgent', !!hint && hint.goto === 'scene');      // 手機：只有「要立刻處理」的提示（訪客、引爆、求和）才黏在頂端
     setHTML(hintEl, hint ? `<span class="hbulb">💡 下一步</span><span class="htext">${hint.text}</span>${hint.tab ? `<button class="btn mini" data-act="tab" data-tab="${hint.tab}">前往</button>` : hint.goto ? '<button class="btn mini" data-act="gotoScene">前往</button>' : ''}<button class="hx" data-act="hideHints" title="隱藏提示">✕</button>` : '');
 
     updateScene(sceneEl, sceneRefs, s, ui);

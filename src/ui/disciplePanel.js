@@ -112,7 +112,7 @@ function card(s, ui, d, away) {
   const loc = away.has(d.uid) ? '<span class="loc away">🧭 探索中</span>'
     : d.at ? `<span class="loc ${isSpecialtyMatch(d, d.at) ? 'match' : ''}">📍 ${esc(BUILDINGS_BY_ID[d.at].name)}${isSpecialtyMatch(d, d.at) ? ' ×2' : ''}</span>` : '<span class="loc idle">未派駐</span>';
   const lvBtn = atMax ? '<span class="tag">已達上限</span>'
-    : `<button class="btn ${can ? 'primary' : ''}" data-act="levelUp" data-uid="${d.uid}" ${can ? '' : 'disabled'}>升級 ${costChips(s, levelCost(s, d))}</button>`;
+    : `<button class="btn mini ${can ? 'primary' : ''}" data-act="levelUp" data-uid="${d.uid}" ${can ? '' : 'disabled'}>升級 ${costChips(s, levelCost(s, d))}</button>`;
   let detail = '';
   if (open) {
     const opts = BUILDINGS.filter(b => slots(s, b.id) > 0).map(b => {
@@ -133,8 +133,8 @@ function card(s, ui, d, away) {
     <div class="dhead"><span class="de">${df.emoji}</span>
       <div class="dname"><b>${esc(df.name)}</b> <span class="rar">${df.rarity}</span>${br ? ` <span class="tag gold">${br.icon}${br.name}</span>` : ''}
         <small>Lv ${d.lv}/${levelCapOf(s, d)} <span class="gold">${'★'.repeat(star)}${'☆'.repeat(3 - star)}</span></small></div></div>
-    ${loc}${ch ? `<button class="btn mini primary" data-act="readStory" data-uid="${d.uid}">📖 讀故事</button>` : ''}${canBranch(d) ? `<button class="btn mini primary" data-act="toggleD" data-uid="${d.uid}">⬆ 可進階</button>` : ''}${sc && canStar(s, d) ? `<button class="btn mini primary" data-act="starUp" data-uid="${d.uid}">⭐ 升星 ${starChips(s, d)}</button>` : ''}
-    ${lvBtn}
+    ${loc}
+    <div class="dact">${ch ? `<button class="btn mini primary" data-act="readStory" data-uid="${d.uid}">📖 故事</button>` : ''}${canBranch(d) ? `<button class="btn mini primary" data-act="toggleD" data-uid="${d.uid}">⬆ 進階</button>` : ''}${sc && canStar(s, d) ? `<button class="btn mini primary" data-act="starUp" data-uid="${d.uid}">⭐ 升星 ${starChips(s, d)}</button>` : ''}${lvBtn}</div>
     <button class="dmore" data-act="toggleD" data-uid="${d.uid}" aria-expanded="${open}">${open ? '收合 ▴' : '詳情 ▾'}</button>
     ${detail}
   </div>`;

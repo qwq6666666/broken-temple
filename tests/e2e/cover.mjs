@@ -50,6 +50,11 @@ export async function run(b, URL, devices, PLAT) {
   await go('buildings'); await hide();
   const lay = await S(() => { const r = document.querySelector('.crow.brow'); if (!r) return null; const cm = r.querySelector('.cm').getBoundingClientRect(), ca = r.querySelector('.ca').getBoundingClientRect(), ct = r.querySelector('.ct'); const lh = parseFloat(getComputedStyle(ct).lineHeight) || 20; return { ctH: ct.getBoundingClientRect().height, lh, caBelow: ca.top >= cm.bottom - 2, caInside: ca.right <= r.getBoundingClientRect().right + 1 }; });
   rec('建築列：名稱不超過兩行、按鈕不溢出' + (mobile ? '（手機另要求按鈕換到下一行）' : ''), !!lay && lay.ctH <= lay.lh * 2.2 && lay.caInside && (!mobile || lay.caBelow), JSON.stringify(lay));
+  // 提示條：要立刻處理的（有訪客）才黏在手機頂端
+  await S(() => { __game.state.visitor.current = { id: 960, name: '路人', type: 'former', sect: '青雲宗', role: '外門弟子', personality: '傲慢', lvl: 1, alert: false, element: '金', taunt: '喂。' }; }); await p.waitForTimeout(400);
+  const hs = await S(() => ({ cls: document.getElementById('hint').className, pos: getComputedStyle(document.getElementById('hint')).position }));
+  rec('有訪客時提示條標記為 urgent' + (mobile ? '並黏在頂端' : ''), /urgent/.test(hs.cls) && (!mobile || hs.pos === 'sticky'), JSON.stringify(hs));
+  await S(() => { __game.state.visitor.current = null; });
   // 弟子頁：排序、五行篩選、派駐/取消、升星、心得
   await go('people');
   await tap('[data-act=slotPick]'); const sp = await S(() => !!document.querySelector('[data-act=slotAssign]')); rec('slotPick 開啟候選', sp);
