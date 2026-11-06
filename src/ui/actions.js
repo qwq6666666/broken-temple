@@ -39,6 +39,8 @@ export function bindActions(s, ui, rerender) {
       // 手機版：全景在上、內容在下，切換分頁後自動捲到內容區
       if (globalThis.matchMedia?.('(max-width: 860px)').matches) setTimeout(() => document.getElementById('right')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
     },
+    expFocus: el => { ui.tab = 'world'; ui.expPick = el.dataset.id; ui.expTeam = []; if (globalThis.matchMedia?.('(max-width: 860px)').matches) setTimeout(() => document.getElementById('right')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30); },
+    gotoScene: () => { document.getElementById('left')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); },      // 手機：回到訪客卡與引爆鈕所在的上方區域
     meditate: (el, ev) => {
       const gain = meditate(s);
       if (!gain) return;

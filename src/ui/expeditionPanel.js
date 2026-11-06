@@ -80,7 +80,7 @@ export function expeditionPanel(s, ui) {
 }
 
 // ── 探索度 ──
-const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每級該秘境獎勵 +10%">探索 ${lv}/3${nx ? `・${exXp(s, id)}/${nx}` : '・圓滿'}</span>`; };
+const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每升一級解鎖一則發現事件，且該秘境獎勵 +10%">探索 Lv${lv}${nx ? `（${exXp(s, id)}/${nx} 次）` : '・圓滿'}</span>`; };
 function pendingBox(ui, s) {
   const list = pendingEvents(s); if (!list.length) return '';
   return `<div class="exfind"><b class="gold">📜 新的發現（${list.length}）</b>` + list.map(({ id, lv }) => {

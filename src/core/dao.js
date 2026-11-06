@@ -1,5 +1,6 @@
 // 轉生與道心：化神後重置本輪進度，換取道心；道心在商店購買永久加成。
 import { CONFIG } from '../config.js';
+import { REBIRTH_KEEP, KEEP_KEYS } from '../data/rebirth.js';
 import { DAO_SHOP, DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { createState } from './state.js';
 import { canAfford, pay } from './resources.js';
@@ -45,16 +46,11 @@ export function rebirth(s, mutatorId = null, now = Date.now()) {
   const gain = baseGain + bonus;
   const wasRun = { ...s.run }, wasNo = s.reincarnation.count + 1;
   const fresh = createState();
-  const keep = {
-    // 重置等級與派駐，但保留弟子本身與星級
-    disciples: s.disciples.map(d => ({ ...d, lv: 1, at: null, branch: null })),
-    nextUid: s.nextUid, nextGid: s.nextGid, recruits: s.recruits,
-    artifacts: s.artifacts, goalsDone: s.goalsDone, commissions: s.commissions, chronicle: s.chronicle, achv: s.achv, equipped: s.equipped, weekly: s.weekly, insight: s.insight, squad: s.squad, foes: s.foes, explore: s.explore, exMile: s.exMile, glory: s.glory, nemeses: s.nemeses,
-    gacha: s.gacha, settings: s.settings, stats: s.stats, unlocked: s.unlocked, seenIntro: s.seenIntro, stories: s.stories, factions: s.factions,
-    reincarnation: { count: s.reincarnation.count + 1, shop: s.reincarnation.shop },
-  };
+  const keep = Object.fromEntries(KEEP_KEYS.map(k => [k, s[k]]));
+  keep.disciples = s.disciples.map(d => ({ ...d, lv: 1, at: null, branch: null }));      // 重置等級與派駐，但保留弟子本身與星級
+  keep.reincarnation = { count: s.reincarnation.count + 1, shop: s.reincarnation.shop };
   const t = s.t;
-  const keepRes = Object.fromEntries(Object.keys(s.res).filter(k => k === 'shard' || k === 'merit' || k.startsWith('mat_')).map(k => [k, s.res[k]])), dao = s.res.daoHeart + gain;
+  const keepRes = Object.fromEntries(Object.keys(s.res).filter(k => REBIRTH_KEEP.some(g => g.res && g.res(k))).map(k => [k, s.res[k]])), dao = s.res.daoHeart + gain;
   Object.assign(s, fresh, keep);
   s.t = t; s.mutator = MUTATORS_BY_ID[mutatorId] ? mutatorId : null;      // 下一輪的輪迴詞條
   Object.assign(s.res, keepRes); s.res.daoHeart = dao;

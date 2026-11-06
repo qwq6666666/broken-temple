@@ -11,6 +11,7 @@ import { sfx } from './audio.js';
 import { daoGain } from '../core/dao.js';
 import { HELP, INTRO } from '../data/help.js';
 import { FACTIONS_BY_ID, FACTION_RULES as FR } from '../data/factions.js';
+import { REBIRTH_KEEP, REBIRTH_RESET } from '../data/rebirth.js';
 import { MUTATORS } from '../data/mutators.js';
 import { getPrefs } from './prefs.js';
 import { shake, flash, particles, banner, countUp } from './fx.js';
@@ -229,7 +230,7 @@ export function showBurstPreview(pv) {
     ${facBox(pv)}
     ${pv.backfires ? '<p class="warnline">⚠ 有長老實力遠勝於你，引爆會遭到反噬（損失靈石、建築暫停）。可以再蓄力、突破後再爆。</p>' : ''}
     ${pv.spared ? `<p class="hint">已放過 ${pv.spared} 人：他們留在名單上繼續長大（占復仇簿名額，名單滿了就沒有新訪客）。</p>` : ''}
-    <div style="text-align:center;margin-top:10px"><button class="btn primary big" data-act="confirmBurst" ${pv.spared >= pv.entries.length ? 'disabled' : ''}>不裝了！</button></div>`);
+    <div class="pvfoot"><button class="btn" data-act="closeSettle">取消</button><button class="btn primary big" data-act="confirmBurst" ${pv.spared >= pv.entries.length ? 'disabled' : ''}>不裝了！</button></div>`);
 }
 
 // 勢力彙整：這次引爆會推進哪些勢力的威望、有沒有升階、一網打盡
@@ -250,8 +251,8 @@ export function showRebirthConfirm(s) {
   return showModal(`<h3>☯️ 轉生</h3>
     ${banner}
     <p>本次可獲得 <b class="gold">道心 ${fmt(daoGain(s) + (ok ? weeklyBonusFor(daoGain(s)) : 0))}</b>。</p>
-    <p><b>會重置：</b>靈氣、靈石、招賢令、境界、建築、弟子等級與派駐、復仇簿、偽裝與蓄力。</p>
-    <p><b>會保留：</b>弟子收藏與星級、碎片、功法法寶、宗門大事、宿敵進度、抽卡保底、道心與商店加成、設定。</p>
+    <p><b>會重置：</b>${REBIRTH_RESET.join('、')}。</p>
+    <p><b>會保留：</b>${REBIRTH_KEEP.map(g => g.label).join('、')}。</p>
     <p class="hint">轉生後境界回到凡人，但道心加成與轉生次數加成會讓你重新修煉得更快。</p>
     <p><b class="gold">輪迴詞條（可選）</b>：下一輪的挑戰，有代價也有報酬，結算時給額外道心。</p>
     <select id="mutsel" class="assign" style="width:100%"><option value="">— 不選擇 —</option>${MUTATORS.map(m => `<option value="${m.id}">${m.id === wm.id ? '🗓 本週挑戰・' : ''}${esc(m.name)}：${esc(m.desc)}</option>`).join('')}</select>

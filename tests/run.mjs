@@ -61,6 +61,7 @@ import { getPrefs, setPref } from '../src/ui/prefs.js';
 import { stat, traitValue } from '../src/core/discipleMath.js';
 import * as S from '../src/core/save.js';
 import * as Sq from '../src/core/squad.js';
+import { KEEP_KEYS, RESET_KEYS, REBIRTH_KEEP } from '../src/data/rebirth.js';
 import * as EpMod from '../src/core/exploration.js';
 import { applyOffline } from '../src/core/offline.js';
 
@@ -1500,6 +1501,16 @@ t('勢力接觸點：引爆預覽彙整威望與升階、一網打盡加成、�
   assert.ok(v && v.tribute && v.returning === 'plead'); tr.visitor.current = v;
   assert.equal(E.rejectPlea(tr), true); assert.equal(tr.grudges.length, 0); assert.equal(tr.visitor.current, null);
   tr.visitor.current = v; const rep0 = tr.factions.qingyun; assert.ok(E.acceptPlea(tr)); assert.equal(tr.factions.qingyun, rep0 + 3);
+});
+
+t('轉生清單：每個狀態欄位都被歸類為保留或重置，確認視窗文案由同一份資料產生', () => {
+  const s = createState(), all = Object.keys(s);
+  const unknown = all.filter(k => !KEEP_KEYS.includes(k) && !RESET_KEYS.includes(k));
+  assert.deepEqual(unknown, [], `新增的狀態欄位 ${unknown.join(',')} 未歸類到 data/rebirth.js 的保留或重置清單`);
+  assert.deepEqual(KEEP_KEYS.filter(k => RESET_KEYS.includes(k)), []);
+  assert.ok(KEEP_KEYS.every(k => all.includes(k)), '保留清單含有不存在的欄位');
+  const txt = REBIRTH_KEEP.map(g => g.label).join('');
+  for (const w of ['秘境材料', '功勳', '探索度', '仇人記憶', '勢力威望', '出戰陣容', '專長心得']) assert.ok(txt.includes(w), `保留清單缺少「${w}」`);
 });
 
 console.log(`\n${n} 項測試通過`);

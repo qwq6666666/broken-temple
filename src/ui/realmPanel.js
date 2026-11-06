@@ -36,7 +36,7 @@ export function realmPanel(s) {
     ${nx ? `<div class="act breakact"><div class="costs lg">${costChips(s, cost)}</div>
       <button class="btn bigbtn ${ok ? 'primary' : ''}" data-act="breakthrough" ${ok ? '' : 'disabled'}>突破</button></div>` : ''}
   </div>
-  ${nx && nx.matCost ? `<p class="hint">🧭 跨大境界需要「秘境材料」：${Object.keys(nx.matCost).map(k => `${RES[k].icon}${RES[k].name}（${esc(EXPEDITIONS_BY_ID[k.slice(4)].name)}）`).join('、')}。派弟子去探索秘境取得。</p>` : ''}
+  ${nx && nx.matCost ? `<p class="hint">🧭 跨大境界需要「秘境材料」：${Object.keys(nx.matCost).map(k => `${RES[k].icon}${RES[k].name} ${s.res[k] >= nx.matCost[k] ? '✔' : `${fmt(s.res[k])}/${nx.matCost[k]}`}（${esc(EXPEDITIONS_BY_ID[k.slice(4)].name)}）${s.res[k] >= nx.matCost[k] ? '' : `<button class="btn mini" data-act="expFocus" data-id="${k.slice(4)}">前往取得</button>`}`).join('　')}　派弟子去探索秘境取得。</p>` : ''}
   <div class="stages">${stages(s)}</div>
   ${mutatorBox(s)}${rebirthBox(s)}`;
 }

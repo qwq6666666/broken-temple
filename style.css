@@ -688,3 +688,20 @@ main > section, #panel { min-width: 0; }
 .facbox { background: #0e1613; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }
 .facrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .88em; }
 .vfac { margin-top: 4px; max-width: 260px; } .vfac .gbar { height: 4px; margin-top: 2px; }
+
+/* ── 手機：境界卡改為上下堆疊（資訊在上、花費與突破按鈕在下），避免文字區被擠成 0 寬 ── */
+@media (max-width: 860px) {
+  .card.big-realm { flex-wrap: wrap; align-items: flex-start; }
+  .card.big-realm .body { flex: 1 1 0; min-width: 0; }
+  .card.big-realm .act.breakact { flex: 1 1 100%; width: 100%; min-width: 0; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; margin-left: 0; flex-wrap: wrap; }
+  .card.big-realm .costs.lg { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+  .card.big-realm .btn.bigbtn { min-width: 96px; margin-left: auto; }
+  .card.big-realm .diff { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+}
+
+/* ── 手機：引爆預覽確認鈕固定在底部、單一捲動；提示條常駐頂端（訪客上門時不會被捲走） ── */
+.pvfoot { position: sticky; bottom: -1px; z-index: 3; display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 10px; padding: 10px 0 4px; background: linear-gradient(to top, var(--panel) 75%, transparent); }
+@media (max-width: 860px) {
+  .pvlist { max-height: none; overflow: visible; }
+  #hint { position: sticky; top: 0; z-index: 40; background: #1a1c12; margin-top: 0; border-radius: 0 0 10px 10px; }
+}
