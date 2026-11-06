@@ -1,29 +1,23 @@
 // 宗門全景：建築外觀隨等級里程碑改變、老祖對話、訪客卡、打坐按鈕。
-import { BUILDINGS } from '../data/buildings.js';
-import { VISITOR_TYPES, PERSONALITIES } from '../data/visitors.js';
-import { lvlLabel } from '../data/realms.js';
+import { BUILDINGS, BUILDINGS_BY_ID } from '../data/buildings.js';
+import { VISITOR_TYPES } from '../data/visitors.js';
+import { lvlLabel, REALMS } from '../data/realms.js';
 import { CONFIG } from '../config.js';
 import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked } from '../core/buildings.js';
 import { SPECS, SPEC_LEVEL, specText } from '../data/specs.js';
-import { FACTION_RULES as FR } from '../data/factions.js';
 import { tierOfSect, repOf } from '../core/factions.js';
-import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_TIERS } from '../data/factions.js';
-import { stonePerSec } from '../core/economy.js';
-import { chosenSpec, canChoose as canSpec } from '../core/spec.js';
-import { BUILDINGS_BY_ID } from '../data/buildings.js';
-import { REALMS } from '../data/realms.js';
+import { FACTION_RULES as FR, FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_TIERS } from '../data/factions.js';
+import { stonePerSec, realmOf, clickPower } from '../core/economy.js';
+import { chosenSpec } from '../core/spec.js';
 import { drawBuilding, POS, DRAW_ORDER, BACKDROP } from './sceneArt.js';
-import { realmOf } from '../core/economy.js';
-import { clickPower } from '../core/economy.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
-import { fmt, fmtTime } from '../core/format.js';
+import { fmt } from '../core/format.js';
 import { cooldownLeft, cooldownMs } from '../core/meditate.js';
 import { elementAdvantage, elementOfGrudge } from '../core/conceal.js';
 import { assess } from '../core/endure.js';
 import { nemOf } from '../core/nemesis.js';
 import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
-import { costChips } from './dom.js';
-import { esc, setHTML, setText, sectRole } from './dom.js';
+import { costChips, esc, setHTML, setText, sectRole } from './dom.js';
 
 export function mountScene(root) {
   const blds = DRAW_ORDER.map(id => {

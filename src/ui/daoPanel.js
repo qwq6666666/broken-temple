@@ -2,7 +2,6 @@
 import { DAO_SHOP } from '../data/daoShop.js';
 import { shopLevel, shopCost, canBuy, autoBonus, EXCHANGES, unlockedItem } from '../core/dao.js';
 import { canAfford } from '../core/resources.js';
-import { CONFIG } from '../config.js';
 import { fmt } from '../core/format.js';
 import { esc, costChips, crow } from './dom.js';
 

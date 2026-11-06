@@ -10,7 +10,7 @@ import { perm as daoPerm } from './dao.js';
 import { insightPerm } from './insight.js';
 import { gloryPerm } from './glory.js';
 import { explorePerm } from './exploration.js';
-import { contribution, stat, powerStat, traitOf, traitValue } from './discipleMath.js';
+import { contribution, powerStat, traitOf, traitValue } from './discipleMath.js';
 
 export const realmOf = s => REALMS[s.realmIdx];
 

@@ -1,9 +1,8 @@
 // 宗門大事：階段目標。cur(s) 回傳目前進度，達到 target 即完成並發獎勵。
 // reward 可含 stone / token / qi（直接發放）與 perm（永久加成，鍵同法寶：qiMult、stoneMult、powerMult…）。
 import { REALMS } from './realms.js';
-import { ARTIFACTS_BY_ID } from './artifacts.js';
 import { NEMESES } from './nemeses.js';
-import { ARTIFACTS } from './artifacts.js';
+import { ARTIFACTS, ARTIFACTS_BY_ID } from './artifacts.js';
 import { DISCIPLES } from './disciples.js';
 const FRUIT_IDS = ['fruitQi', 'fruitStone', 'fruitPower'];
 const NORMAL_ARTS = ARTIFACTS.filter(a => !a.unique).length;

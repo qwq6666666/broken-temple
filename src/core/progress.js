@@ -1,13 +1,11 @@
 // 新手引導：分頁漸進解鎖與「下一步」提示。解鎖旗標存進存檔，轉生後也保留。
-import { REALMS } from '../data/realms.js';
 import { GOALS } from '../data/goals.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { canAfford } from './resources.js';
-import { upgradeCost, isCapped } from './buildings.js';
+import { upgradeCost, isCapped, slots } from './buildings.js';
 import { nextRealm, breakCost, canBreak } from './realm.js';
 import { canBurst } from './burst.js';
 import { canRebirth } from './dao.js';
-import { slots } from './buildings.js';
 import { isDone } from './goals.js';
 import { toast, cue } from './events.js';
 import { nextChapter } from './stories.js';

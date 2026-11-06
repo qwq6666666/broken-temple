@@ -2,8 +2,8 @@
 import { qiPerSec, stonePerSec, realmOf } from '../core/economy.js';
 import { fmt, fmtRate } from '../core/format.js';
 import { bus } from '../core/events.js';
-import { LINES, pickLine, idlePool } from '../data/lines.js';
-import { $, setHTML, setText, RES } from './dom.js';
+import { pickLine, idlePool } from '../data/lines.js';
+import { $, setHTML, setText } from './dom.js';
 import { mountScene, updateScene } from './sectView.js';
 import { mountConceal, updateConceal } from './concealView.js';
 import { buildingPanel } from './buildingPanel.js';

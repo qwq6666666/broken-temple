@@ -41,4 +41,3 @@ export function reread(s, defId) {
   if (n >= 3) out.push(STORIES3[defId]);
   return out;
 }
-export const totalChapters = s => Object.values(s.stories).reduce((a, n) => a + n, 0);

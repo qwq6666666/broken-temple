@@ -1,9 +1,9 @@
 // 秘境：派弟子組隊探索。結果在到期時結算並等待領取（離線也會完成）。
-import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R } from '../data/expeditions.js';
+import { EXPEDITIONS_BY_ID, EXP_RULES as R } from '../data/expeditions.js';
 import { ARTIFACTS } from '../data/artifacts.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { chance, pick, randInt } from './rng.js';
-import { stat, isSpecialtyMatch, expStat } from './discipleMath.js';
+import { expStat } from './discipleMath.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { rollSurrender } from './endure.js';
 import { toast, cue } from './events.js';

@@ -1,7 +1,7 @@
 // 忍：路人隨機造訪嘲諷，玩家二選一（忍氣吞聲 / 亮一手）。
 import { CONFIG } from '../config.js';
 import { FOE } from '../data/enemies.js';
-import { FACTIONS_BY_ID, FACTION_OF_SECT } from '../data/factions.js';
+import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_RULES as FR } from '../data/factions.js';
 import { ELEMENTS } from '../data/elements.js';
 import { VISITOR_TYPES, SURNAMES, GIVEN, PERSONALITIES, PERSONALITY_KEYS } from '../data/visitors.js';
 import { LINES, pickLine } from '../data/lines.js';
@@ -15,7 +15,6 @@ import { quote, toast, cue } from './events.js';
 import { pickNemesis, makeNemesisVisitor } from './nemesis.js';
 import { addRep, tierOfSect, tierOf } from './factions.js';
 import { mutSum } from './mutators.js';
-import { FACTION_RULES as FR } from '../data/factions.js';
 
 const scheduleNext = s => {
   s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000 / Math.max(0.2, 1 + mutSum(s, 'visitFreq'));   // 輪迴詞條影響頻率

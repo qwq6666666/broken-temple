@@ -1,7 +1,7 @@
 // 宿敵錄：已解鎖劇情、見過的嘲諷、擊敗後的故事與專屬法寶。
 import { NEMESES, AWAKEN } from '../data/nemeses.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
-import { isDefeated, nemState, unlocked, condText, present, awakeLv, canAwaken, awakenNeedText } from '../core/nemesis.js';
+import { isDefeated, unlocked, condText, present, awakeLv, canAwaken, awakenNeedText } from '../core/nemesis.js';
 import { esc, crow } from './dom.js';
 
 export function nemesisPanel(s, ui) {
