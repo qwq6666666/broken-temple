@@ -50,6 +50,7 @@ if (process.env.HI_MIN || process.env.HI_REWARD) for (const e of EXPEDITIONS) if
   if (process.env.HI_MIN) e.minutes = Math.round(e.minutes * Number(process.env.HI_MIN));
   if (process.env.HI_REWARD) for (const k of ['qiSec', 'stoneSec']) if (e.reward[k]) e.reward[k] *= Number(process.env.HI_REWARD);
 }
+if (process.env.NOPRESS) { CONFIG.endure.bookStep = 0; CONFIG.endure.chargeStep = 0; }      // NOPRESS=1：關掉積怨壓力（對照用）
 if (process.env.TOKSCALE) CONFIG.gacha.burstTokenScale = Number(process.env.TOKSCALE);     // TOKSCALE=0.3：引爆招賢令 ×0.3（量收藏節奏）
 const REBIRTH = process.argv.includes('rebirth');   // 化神後自動轉生並購買道心商店，印出每一輪耗時
 
@@ -156,7 +157,11 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   }
   for (const d of s.disciples) { const c = D.levelCost(s, d).qi; if (D.canLevel(s, d) && c < s.res.qi * 0.25) D.levelUp(s, d.uid); }
   // 忍（機器人永遠忍）
-  if (s.visitor.current) endure.endure(s);
+  if (s.visitor.current) {
+    const a = endure.assess(s, s.visitor.current);
+    if (FLAG('showmix') && a.showKind === 'beat' && (s.endureStreak >= 2 || s.grudges.length >= 8)) endure.showOff(s);     // showmix：能碾壓且積怨偏高時亮一手（洩壓＋威名）
+    else endure.endure(s);
+  }
   // 招募
   for (const r of [...s.recruits]) if (s.res.stone > (R.breakCost(s)?.stone ?? 0) * 1.5 + 10) X.recruit(s, r.uid);
   // 引爆：偽裝滿且仇人 ≥3

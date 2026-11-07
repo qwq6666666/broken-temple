@@ -7,8 +7,8 @@ import { VISITOR_TYPES, SURNAMES, GIVEN, PERSONALITIES, PERSONALITY_KEYS } from 
 import { LINES, pickLine } from '../data/lines.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { pick, randInt, randFloat, weighted, chance } from './rng.js';
-import { rareChance, stonePerSec, qiPerSec, traitSum } from './economy.js';
-import { ratioOf, verdictOf } from './conceal.js';
+import { rareChance, stonePerSec, qiPerSec, traitSum, fameLayers } from './economy.js';
+import { ratioOf, verdictOf, elementAdvantage } from './conceal.js';
 import { DISCIPLES } from '../data/disciples.js';
 import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { quote, toast, cue } from './events.js';
@@ -79,6 +79,15 @@ function pickTribute(s) {
 export const streakMult = s =>
   Math.min(CONFIG.endure.streakMaxMult, 1 + CONFIG.endure.streakStep * s.endureStreak);
 
+// 亮一手時，派駐弟子的五行是否克制對方（獎勵加成）
+const counterOf = (s, v) => elementAdvantage(s, v).mult > 1;
+
+// 積怨壓力：忍的損失倍率 = 憋屈（連續忍）× 復仇簿人數 × 偽裝值接近滿格；上限 maxMult。亮一手只會歸零憋屈部分
+export const endurePressure = s => {
+  const E = CONFIG.endure;
+  return Math.min(E.maxMult, streakMult(s) * (1 + E.bookStep * s.grudges.length) * (1 + E.chargeStep * Math.min(1, s.disguise.value / CONFIG.conceal.max)));
+};
+
 // 評估眼前訪客：玩家打不打得過、亮一手會是什麼結果（供 ui 顯示）
 export function assess(s, v) {
   const verdict = verdictOf(ratioOf(s, v));
@@ -89,7 +98,7 @@ export function assess(s, v) {
   else if (verdict === 'fail') { showKind = 'rash'; showMult = CONFIG.endure.rashLossMult; }
   else showKind = 'beat';
   const escape = !!v.nemesisId && verdict === 'narrow';          // 宿敵險勝時會脫身
-  return { verdict, escape, showKind, showMult, endureMult: streakMult(s), winText: T.showOff.winText };
+  return { verdict, escape, showKind, showMult, endureMult: endurePressure(s), counter: counterOf(s, v), winText: T.showOff.winText };
 }
 
 // 「承受損失」：約 N 秒靈石產出 或 隨機一棟建築暫停 5 分鐘；mult 為倍率。回傳說明文字（無損失則 null）
@@ -105,7 +114,7 @@ function applyLoss(s, mult = 1) {
   }
   if (built.length) {
     const [id, b] = pick(built);
-    const ms = CONFIG.endure.loss.pauseMs * mult * Math.max(0.2, 1 - traitSum(s, 'pauseCut'));   // 特性：暫停縮短
+    const ms = Math.min(CONFIG.endure.pauseMaxMs, CONFIG.endure.loss.pauseMs * mult) * Math.max(0.2, 1 - traitSum(s, 'pauseCut'));   // 特性：暫停縮短
     b.pausedUntil = s.t + ms;
     return `${BUILDINGS_BY_ID[id].name}暫停產出 ${Math.round(ms / 60000)} 分鐘`;
   }
@@ -124,7 +133,7 @@ function toBook(s, v) {
 // 忍氣吞聲：偽裝值 +1、承受損失（含憋屈值倍率）、仇人入簿
 export function endure(s) {
   const v = s.visitor.current; if (!v) return null;
-  const mult = streakMult(s);
+  const mult = endurePressure(s);                     // 先算再入簿（人數、偽裝值以忍之前為準）
   toBook(s, v);
   s.endureStreak++; s.stats.endures = (s.stats.endures || 0) + 1;
   s.disguise.value = Math.min(CONFIG.conceal.max, s.disguise.value + CONFIG.endure.disguiseGain);
@@ -153,17 +162,20 @@ export function showOff(s) {
   const line = pick(PERSONALITIES[v.personality].counter);
   s.endureStreak = 0;
   if (a.showKind === 'beat') {
-    const w = T.showOff.win, got = {}, bonus = 1 + traitSum(s, 'showOffReward');   // 特性：即時獎勵加成
+    const counter = counterOf(s, v), cm = counter ? CONFIG.endure.counterMult : 1;
+    const w = T.showOff.win, got = {}, bonus = (1 + traitSum(s, 'showOffReward')) * cm;   // 特性：即時獎勵加成；五行克制 ×2
     if (w.token) got.token = Math.max(w.token, Math.round(w.token * bonus));
     if (w.qiSec) got.qi = qiPerSec(s) * w.qiSec * bonus;
     if (w.stoneSec) got.stone = Math.max(1, stonePerSec(s) * w.stoneSec * bonus);
     for (const [k, n] of Object.entries(got)) s.res[k] += n;
-    if (w.surrender && chance(w.surrender)) {
+    if (w.surrender && chance(Math.min(1, w.surrender * (counter ? 1.5 : 1)))) {
       const def = rollSurrender(s);
       s.recruits.push({ uid: s.nextUid++, defId: def.id, from: v.name });
       got.surrender = def;
     }
     s.stats.beats = (s.stats.beats || 0) + 1;
+    const F = CONFIG.endure.fame; s.fame = { n: Math.min(F.max, fameLayers(s) + 1), until: s.t + F.ms };      // 威名 +1 層（到期後從頭算）
+    got.fame = s.fame.n; got.counter = counter;
     addRep(s, v.sect, 1);                              // 當場打臉也累積威望
     s.visitor.current = null; scheduleNext(s);
     quote(pickLine(LINES.show));

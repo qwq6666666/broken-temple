@@ -1944,5 +1944,35 @@ t('全部升級：結果與逐棟最便宜優先一致，且不超過上限', ()
 });
 
 
+
+t('積怨壓力：忍的損失倍率隨復仇簿人數與偽裝值升高並封頂；亮一手洩掉憋屈', () => {
+  const s = createState(); const base = E.endurePressure(s);
+  assert.equal(base, 1);
+  s.grudges = Array.from({ length: 10 }, (_, i) => visitor('former', 0, { id: i + 1 })); s.disguise.value = CONFIG.conceal.max;
+  const hi = E.endurePressure(s);
+  assert.ok(Math.abs(hi - (1 + CONFIG.endure.bookStep * 10) * (1 + CONFIG.endure.chargeStep)) < 1e-9);
+  s.endureStreak = 99; assert.equal(E.endurePressure(s), CONFIG.endure.maxMult);                    // 封頂
+});
+
+t('亮一手打臉：威名層數疊加、限時、提高產出；五行克制時即時獎勵 ×2；轉生清掉威名', () => {
+  const s = createState(); s.realmIdx = 6; s.buildings.alchemy.lv = 10; s.buildings.temple.lv = 10;
+  const q0 = eco.qiPerSec(s);
+  for (let i = 0; i < 7; i++) {
+    withVisitor(s, visitor('former', 0)); const r = E.showOff(s); assert.equal(r.outcome, 'beat');
+  }
+  assert.equal(s.fame.n, CONFIG.endure.fame.max);                                                  // 最多 5 層
+  assert.ok(Math.abs(eco.qiPerSec(s) / q0 - (1 + CONFIG.endure.fame.bonus * CONFIG.endure.fame.max)) < 1e-9);
+  s.t += CONFIG.endure.fame.ms + 1; assert.ok(Math.abs(eco.qiPerSec(s) / q0 - 1) < 1e-9);          // 到期失效
+  withVisitor(s, visitor('former', 0)); E.showOff(s); assert.equal(s.fame.n, 1);                   // 到期後從頭算
+  const m = maxedRun(); m.fame = { n: 3, until: 9e15 }; Dao.rebirth(m); assert.equal(m.fame.n, 0);
+  const bad = createState(); bad.fame = { n: 99, until: 'x' }; assert.equal(sanitize(bad).fame.n, CONFIG.endure.fame.max);
+});
+
+t('忍的建築暫停有上限', () => {
+  const s = createState(); s.buildings.temple.lv = 10; s.res.stone = 0; s.t = 1000;
+  const txt = E.applyLoss(s, 50);
+  assert.ok(s.buildings.temple.pausedUntil - s.t <= CONFIG.endure.pauseMaxMs + 1, txt);
+});
+
 console.log(`\n${n} 項測試通過`);
 if (failed.length) { console.log(`\n${failed.length} 項失敗：\n - ` + failed.join('\n - ')); process.exit(1); }

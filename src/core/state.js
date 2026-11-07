@@ -23,6 +23,7 @@ export function createState() {
     artifacts: [],                          // 已獲得的功法法寶 id
     settings: { loss: true },               // 承受損失開關
     tokenAcc: 0,
+    fame: { n: 0, until: 0 },               // 威名：亮一手打臉累積的產出加成（層數、到期時間）
     endureStreak: 0,                        // 連續忍氣吞聲次數（憋屈值）
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）
     reincarnation: { count: 0, shop: {} },  // 轉生次數、道心商店等級

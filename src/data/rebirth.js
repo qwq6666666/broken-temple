@@ -16,4 +16,4 @@ export const REBIRTH_RESET = ['靈氣、靈石、招賢令', '境界與建築（
 export const KEEP_KEYS = REBIRTH_KEEP.flatMap(g => g.keys || []);
 
 // 轉生時回到初始值的頂層欄位（t 與 res 另有特殊處理）。新增狀態欄位時，必須歸入 REBIRTH_KEEP 或這裡，測試會檢查。
-export const RESET_KEYS = ['t', 'res', 'realmIdx', 'buildings', 'disguise', 'grudges', 'visitor', 'incident', 'tokenAcc', 'endureStreak', 'meditateReadyAt', 'run', 'expeditions', 'mutator', 'returners', 'specs', 'tokBuy', 'burstActive'];
+export const RESET_KEYS = ['t', 'res', 'realmIdx', 'buildings', 'disguise', 'grudges', 'visitor', 'incident', 'tokenAcc', 'endureStreak', 'fame', 'meditateReadyAt', 'run', 'expeditions', 'mutator', 'returners', 'specs', 'tokBuy', 'burstActive'];

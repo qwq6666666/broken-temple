@@ -136,9 +136,9 @@ function visitorCard(s, entering = false) {
   const L = CONFIG.endure.loss;
   const lossOn = s.settings.loss;
   const endureText = `偽裝值 +${CONFIG.endure.disguiseGain}，記入復仇簿（保留連鎖與大獎勵）`
-    + (lossOn ? `；損失約 ${L.stoneSec} 秒靈石或建築暫停 ${L.pauseMs / 60000} 分${a.endureMult > 1 ? `　<b class="gold">憋屈 ×${a.endureMult.toFixed(2)}</b>` : ''}` : '（已關閉損失）');
+    + (lossOn ? `；損失約 ${L.stoneSec} 秒靈石或建築暫停 ${L.pauseMs / 60000} 分${a.endureMult > 1 ? `　<b class="gold">積怨 ×${a.endureMult.toFixed(2)}</b>` : ''}` : '（已關閉損失）');
   const showText = {
-    beat: `${a.winText}（對方不入簿、不加偽裝值）`,
+    beat: `${a.winText}（不入簿、不加偽裝值）<br><b class="gold">威名 +1</b>：靈氣、靈石 +${Math.round(CONFIG.endure.fame.bonus * 100)}%（${CONFIG.endure.fame.ms / 60000} 分鐘，最多 ${CONFIG.endure.fame.max} 層）・憋屈歸零${a.counter ? `<br><b class="gold">五行克制：即時獎勵 ×${CONFIG.endure.counterMult}</b>` : ''}`,
     rash: `<b class="red">⚠ 逞強</b>：打不過還亮，損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,
     nemesis: `<b class="red">⚠ 宿敵不能當場打倒</b>：損失 ×${a.showMult}，對方入簿（留到引爆再算帳，要碾壓才算擊敗）`,
     offend: `<b class="red">⚠ 長老得罪不起</b>：損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,

@@ -78,6 +78,7 @@ export function sanitize(s) {
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   if (!OFFLINE_EVENTS_BY_ID[s.offlineLast]) s.offlineLast = null;
+  s.fame = { n: Math.max(0, Math.min(CONFIG.endure.fame.max, Math.floor(num(isPlain(s.fame) ? s.fame.n : 0)))), until: Math.max(0, num(isPlain(s.fame) ? s.fame.until : 0)) };
   s.dshards = Object.fromEntries(Object.entries(isPlain(s.dshards) ? s.dshards : {}).filter(([id, n]) => DISCIPLES_BY_ID[id] && Number.isFinite(n) && n > 0).map(([id, n]) => [id, Math.floor(n)]));
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };

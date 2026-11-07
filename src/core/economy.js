@@ -46,8 +46,11 @@ export function perSec(s, res) {
     const p = d.produce[res];
     if (p && isActive(s, d.id)) base += produceAt(s.buildings[d.id].lv, p) * buildingMult(s, d.id);       // 等級 × 每級產出（舊刻度）÷ 刻度 × 里程碑倍率
   }
-  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult') + traitSum(s, res + 'Mult'));
+  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult') + traitSum(s, res + 'Mult')) * fameMult(s);
 }
+// 威名：亮一手打臉累積；到期後失效
+export const fameLayers = s => (s.fame && s.t < s.fame.until ? s.fame.n : 0);
+export const fameMult = s => 1 + CONFIG.endure.fame.bonus * fameLayers(s);
 export const qiPerSec = s => perSec(s, 'qi');
 export const stonePerSec = s => perSec(s, 'stone');
 
