@@ -83,7 +83,8 @@ export const CONFIG = {
   visitor: {
     firstSec: 25,              // 第一位訪客出現時間
     minSec: 50, maxSec: 100,   // 之後每位訪客的間隔
-    maxGrudges: 15,            // 復仇簿上限（滿了就不再來人）
+    maxGrudges: 12,            // 復仇簿容量（滿了就不再來人）；長老、宿敵占 2 格（見 data/visitors 的 size）
+    dismissSec: 30,            // 逐出一位仇人（不給獎勵、騰出名額）的花費：約 N 秒靈石產出
     rareWeightScale: 4,        // 稀有類型權重 × (1 + 稀有機率 × 此值)
   },
 
@@ -111,7 +112,9 @@ export const CONFIG = {
   },
 
   enemy: {
-    growthPerMin: 0.04,        // 仇人每分鐘成長的境界序號（約 25 分鐘一小階）
+    growthPerMin: 0.05,        // 仇人每分鐘成長的境界序號（約 20 分鐘一小階），再乘個性倍率
+    bitterMin: 60,             // 在簿上待滿這麼久（分鐘）成長加速到 +50%（怨毒），逐漸逼你處理
+    bitterMax: 0.5,
     alertMult: 0.7,            // 「警覺」仇人的爆擊獎勵倍率
     maxLevel: 13,
   },

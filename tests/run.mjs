@@ -1974,5 +1974,31 @@ t('忍的建築暫停有上限', () => {
   assert.ok(s.buildings.temple.pausedUntil - s.t <= CONFIG.endure.pauseMaxMs + 1, txt);
 });
 
+
+t('復仇簿容量：長老與宿敵占 2 格；滿了就不再來人；逐出要花靈石、宿敵不能逐出', () => {
+  const s = createState(); s.realmIdx = 3; s.res.stone = 1000;
+  s.grudges = [visitor('former', 0, { id: 1 }), visitor('elder', 6, { id: 2 }), visitor('former', 0, { id: 3, nemesisId: 'jiao' })];
+  assert.equal(C.bookUsed(s), 1 + 2 + 2);
+  const c = E.dismissCost(s); assert.ok(c.stone >= 1);
+  assert.equal(E.dismiss(s, 3), null);                                       // 宿敵不能逐出
+  const r = E.dismiss(s, 2); assert.ok(r && s.grudges.length === 2 && s.res.stone === 1000 - c.stone);
+  assert.equal(C.bookUsed(s), 3);
+  s.res.stone = 0; assert.equal(E.dismiss(s, 1), null);                      // 靈石不夠
+  while (C.bookUsed(s) < CONFIG.visitor.maxGrudges) s.grudges.push(visitor('former', 0, { id: 100 + s.grudges.length }));
+  s.visitor.current = null; s.visitor.nextAt = 0; s.t = 1; E.tick(s); assert.equal(s.visitor.current, null);   // 滿了不來人
+});
+
+t('仇人成長：個性倍率不同、在簿上越久越快（怨毒）、存檔保留在簿時間', () => {
+  const a = visitor('former', 3, { id: 1, personality: '暴躁' }), b = visitor('former', 3, { id: 2, personality: '虛偽' });
+  assert.ok(C.growthOf(a) > C.growthOf(b));
+  const old = { ...a, age: CONFIG.enemy.bitterMin * 60000 }; assert.equal(C.isBitter(old), true); assert.equal(C.isBitter(a), false);
+  assert.ok(Math.abs(C.growthOf(old) / C.growthOf(a) - (1 + CONFIG.enemy.bitterMax)) < 1e-9);
+  const s = createState(); s.grudges = [{ ...a }, { ...b }]; const l0 = s.grudges.map(g => g.lvl);
+  C.tick(s, 10 * 60000);
+  assert.ok(s.grudges[0].lvl - l0[0] > s.grudges[1].lvl - l0[1]);
+  assert.ok(s.grudges[0].age >= 10 * 60000);
+  assert.ok(sanitize(Object.assign(createState(), { grudges: [{ ...a, age: 'x' }] })).grudges[0].age === 0);
+});
+
 console.log(`\n${n} 項測試通過`);
 if (failed.length) { console.log(`\n${failed.length} 項失敗：\n - ` + failed.join('\n - ')); process.exit(1); }

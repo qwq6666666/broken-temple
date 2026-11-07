@@ -62,6 +62,7 @@ function sanitizeGrudge(g) {
   out.element = ELEMENTS.includes(out.element) ? out.element : elementFromName(out.name);
   out.awaken = out.nemesisId ? Math.max(0, Math.min(3, Math.floor(num(Number(out.awaken))))) : 0;
   out.lvl = Math.max(0, num(Number(out.lvl)));
+  out.age = Math.max(0, num(Number(out.age)));
   out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');
   out.alert = !!out.alert; out.spare = !!out.spare;
   out.ripe = Math.max(0, Math.min(RIPE.max, Math.floor(num(Number(out.ripe))))); out.foe = Math.max(0, Math.min(99, Math.floor(num(Number(out.foe)))));

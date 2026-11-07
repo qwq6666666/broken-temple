@@ -8,7 +8,7 @@ import { LINES, pickLine } from '../data/lines.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { pick, randInt, randFloat, weighted, chance } from './rng.js';
 import { rareChance, stonePerSec, qiPerSec, traitSum, fameLayers } from './economy.js';
-import { ratioOf, verdictOf, elementAdvantage } from './conceal.js';
+import { ratioOf, verdictOf, elementAdvantage, bookUsed } from './conceal.js';
 import { DISCIPLES } from '../data/disciples.js';
 import { SURRENDER_WEIGHTS } from '../data/gachaRates.js';
 import { quote, toast, cue } from './events.js';
@@ -51,7 +51,7 @@ function makeVisitor(s) {
 export function tick(s) {
   if (s.burstActive || s.visitor.current) return;
   if (s.t < s.visitor.nextAt) return;
-  if (s.grudges.length >= CONFIG.visitor.maxGrudges) { scheduleNext(s); return; }
+  if (bookUsed(s) >= CONFIG.visitor.maxGrudges) { scheduleNext(s); return; }
   // 回頭客：到時間就回來（優先於宿敵與隨機訪客）
   const ri = s.returners.findIndex(r => s.t >= r.dueAt);
   if (ri >= 0) { const [r] = s.returners.splice(ri, 1); s.visitor.current = makeReturner(s, r); toast(`回頭客：${r.name}（${r.mode === 'plead' ? '來求和' : '來復仇'}）`, 'warn'); cue('visitor'); return; }
@@ -141,6 +141,17 @@ export function endure(s) {
   quote(pickLine(LINES.endure));
   toast(`已記入復仇簿：${v.name}` + (loss ? `（${loss}）` : ''), 'warn');
   return { loss, mult };
+}
+
+// 逐出：花一點靈石把一位仇人請出復仇簿（不給獎勵、不計威望），騰出名額。宿敵不能逐出；引爆中不能
+export const dismissCost = s => ({ stone: Math.max(1, Math.floor(stonePerSec(s) * CONFIG.visitor.dismissSec)) });
+export function dismiss(s, gid) {
+  const i = s.grudges.findIndex(g => g.id === gid), g = s.grudges[i];
+  if (!g || g.nemesisId || s.burstActive) return null;
+  const c = dismissCost(s); if (s.res.stone < c.stone) return null;
+  s.res.stone -= c.stone; s.grudges.splice(i, 1);
+  s.stats.dismissed = (s.stats.dismissed || 0) + 1;
+  return { name: g.name, cost: c.stone };
 }
 
 // 降服：從非 N 池抽一位（優先抽未擁有的）；供當場降服與爆擊降服共用

@@ -45,7 +45,7 @@ function check() {
   for (const d of s.disciples) { if (d.at && !s.buildings[d.at]) bad('assign-to-missing-building', d.at); if (d.at && Ex.away(s, d.uid)) bad('assigned-and-away', String(d.uid)); }
   const slotsUsed = {}; for (const d of s.disciples) if (d.at) slotsUsed[d.at] = (slotsUsed[d.at] || 0) + 1;
   for (const [b, n] of Object.entries(slotsUsed)) if (n > B.slots(s, b)) bad('building-over-capacity', `${b} ${n}>${B.slots(s, b)}`);
-  if (s.grudges.length > CONFIG.visitor.maxGrudges) bad('grudges-over-max', String(s.grudges.length));
+  if (conceal.bookUsed(s) > CONFIG.visitor.maxGrudges + 1) bad('grudges-over-max', String(s.grudges.length));
   const gids = s.grudges.map(g => g.id); if (new Set(gids).size !== gids.length) bad('dup-grudge-id', gids.join(','));
   for (const u of s.squad) if (!s.disciples.some(d => d.uid === u)) bad('squad-ghost', String(u));
   if (s.squad.length > 3) bad('squad-over-3', String(s.squad.length));

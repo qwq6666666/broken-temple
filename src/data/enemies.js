@@ -14,13 +14,13 @@ export const RARE_EXTRA = { token: 1, stone: 3 };   // 護山大陣觸發的稀�
 // 個性偏好：決定這個人被擊敗時「多給什麼」（不改戰鬥，只改收穫與風險）。
 // 乘數鍵：qi/stone/token/surrender/artifact/all；growth＝成長速度；shard＝額外碎片。
 export const PERSONALITY_BIAS = {
-  勢利: { stone: 1.5, qi: 0.8, label: '靈石 ×1.5' },
-  傲慢: { qi: 1.4, stone: 0.9, label: '靈氣 ×1.4' },
-  刻薄: { shard: 1, label: '額外 +1 碎片' },
-  虛偽: { surrender: 1.5, label: '更容易降服' },
-  暴躁: { growth: 1.5, all: 1.25, label: '成長快 ×1.5・獎勵 +25%' },
-  陰險: { artifact: 1.5, label: '更容易掉法寶' },
-  狂妄: { token: 1.5, label: '招賢令 ×1.5' },
+  勢利: { stone: 1.5, qi: 0.8, growth: 0.8, label: '靈石 ×1.5・成長慢' },
+  傲慢: { qi: 1.4, stone: 0.9, growth: 1.2, label: '靈氣 ×1.4・成長稍快' },
+  刻薄: { shard: 1, growth: 1.3, label: '額外 +1 碎片・成長快' },
+  虛偽: { surrender: 1.5, growth: 0.7, label: '更容易降服・成長慢' },
+  暴躁: { growth: 1.8, all: 1.25, label: '成長極快 ×1.8・獎勵 +25%' },
+  陰險: { artifact: 1.5, growth: 1.4, label: '更容易掉法寶・成長快' },
+  狂妄: { token: 1.5, growth: 1.1, label: '招賢令 ×1.5' },
 };
 // 放過養成：本次引爆被放過的仇人「熟成」一次：獎勵 +25%（最多 4 次）、境界 +0.3；仍占復仇簿名額
 export const RIPE = { per: 0.25, max: 4, lvl: 0.3 };

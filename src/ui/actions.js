@@ -123,6 +123,7 @@ export function bindActions(s, ui, rerender) {
       const r = E.showOff(s);
       if (r) { toast(r.line, r.outcome === 'beat' ? 'good' : 'info'); sfx(r.outcome === 'beat' ? 'crush' : 'show'); }
     },
+    dismiss: el => { const r = E.dismiss(s, +el.dataset.gid); if (r) { sfx('click'); toast(`已請「${r.name}」離開（−${r.cost} 靈石），名額 +1`, 'info'); } else toast('靈石不夠，或這位不能逐出', 'warn'); },
     recruit: el => {
       const r = X.recruit(s, +el.dataset.uid);
       if (r) { toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧬專屬碎片 +${r.shards}${r.uni ? `、🧩+${r.uni}` : ''}`, 'good'); sfx('coin'); }
