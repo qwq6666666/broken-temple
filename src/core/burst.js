@@ -5,27 +5,22 @@ import { ENEMY_REWARDS, REALM_SCALE, RARE_EXTRA, PERSONALITY_BIAS, RIPE, FOE, WE
 import { COUNTER_SPEC } from '../data/squad.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { PERSONALITIES } from '../data/visitors.js';
-import { ARTIFACTS } from '../data/artifacts.js';
+import { ARTIFACTS, ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { LINES, pickLine } from '../data/lines.js';
-import { lvlLabel } from '../data/realms.js';
-import { pick, randInt, chance, weighted } from './rng.js';
-import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst } from './economy.js';
+import { lvlLabel, powerOfLvl } from '../data/realms.js';
+import { pick, randInt, chance } from './rng.js';
+import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst, combatPower } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf, elementOfGrudge, elementAdvantage } from './conceal.js';
 import { squadOf, squadVs, bestSquad, squadPool } from './squad.js';
-import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_RULES as FR2, FACTION_TIERS } from '../data/factions.js';
-import { tierOf } from './factions.js';
+import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_RULES as FR, FACTION_TIERS } from '../data/factions.js';
 import { MERIT } from '../data/materials.js';
-import { powerOfLvl } from '../data/realms.js';
-import { combatPower } from './economy.js';
 import { note } from './chronicle.js';
 import { quote } from './events.js';
 import { isNemesis, nemOf, nemState, lineFor } from './nemesis.js';
-import { addRep, rewardMult, tierOfSect } from './factions.js';
-import { FACTION_RULES as FR } from '../data/factions.js';
+import { addRep, rewardMult, tierOfSect, tierOf } from './factions.js';
 import { AWAKEN, ROMAN } from '../data/nemeses.js';
-import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
 import { addDisciple } from './disciples.js';
-import { rollSurrender, applyLoss } from './endure.js';
+import { rollSurrender } from './endure.js';
 import { canAfford, pay } from './resources.js';
 
 export const canBurst = s => disguiseFull(s) && s.grudges.length > 0 && !s.burstActive && !s.visitor.current;
@@ -106,13 +101,14 @@ export function burst(s) {
   const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward') + towerBurst(s);
   const total = { qi: 0, stone: 0, token: 0 }, reps = {}, comebacks = [];
   const surrendered = [], artifacts = [], nemesesDefeated = [];
+  let tokCarry = 0;                                   // 招賢令的小數餘數跨仇人累計（乘 burstTokenScale 後每人常不到 1 張，逐人四捨五入會全變 0）
   // 3) 發獎勵
   for (const e of entries) {
     if (e.verdict === 'fail') continue;
     const r = rewardFor(s, e.g, e.verdict);
     const sw = fsum[FACTION_OF_SECT[e.g.sect]] || 1; e.sweep = sw;
     const k = cm * cMult * art * sw;
-    r.qi *= k; r.stone *= k; r.token = Math.round(r.token * cMult * art * sw);
+    r.qi *= k; r.stone *= k; const tk = tokCarry + r.token * cMult * art * sw * CONFIG.gacha.burstTokenScale; r.token = Math.floor(tk + 1e-9); tokCarry = tk - r.token;
     total.qi += r.qi; total.stone += r.stone; total.token += r.token; s.res.shard += r.shard || 0; total.shard = (total.shard || 0) + (r.shard || 0);
     if (r.surrender) {
       const def = rollSurrender(s);
@@ -160,6 +156,7 @@ export function burst(s) {
       }
     }
   }
+  total.token += Math.round(tokCarry);
   s.res.qi += total.qi; s.res.stone += total.stone; s.res.token += total.token;
   total.merit = entries.reduce((a, e) => a + (e.verdict === 'fail' ? 0 : MERIT.perDefeat * (e.nemesis ? MERIT.nemesis : 1)), 0); s.res.merit += total.merit;
   // 3.5) 反噬：戰力遠不如的長老會反擊（損失靈石、一棟建築暫停；最多一次暫停）
@@ -227,7 +224,7 @@ export function toggleSpare(s, gid) {
 }
 
 // 一網打盡：同一勢力一次擊敗 ≥ at 人，每人獎勵加成
-const sweepMult = n => (n >= FR2.sweep.at ? 1 + Math.min(FR2.sweep.max, FR2.sweep.per * (n - FR2.sweep.at + 1)) : 1);
+const sweepMult = n => (n >= FR.sweep.at ? 1 + Math.min(FR.sweep.max, FR.sweep.per * (n - FR.sweep.at + 1)) : 1);
 // 依勢力彙整一組結果：人數、威望預估、是否升階、一網打盡倍率
 export function factionSummary(s, entries) {
   const by = {};
@@ -239,7 +236,7 @@ export function factionSummary(s, entries) {
   }
   return Object.values(by).map(f => {
     const def = FACTIONS_BY_ID[f.id], cur = s.factions[f.id] || 0, before = tierOf(s, f.id);
-    const after = FR2.thresholds.filter(t => cur + f.rep >= t).length, next = FR2.thresholds[after];
+    const after = FR.thresholds.filter(t => cur + f.rep >= t).length, next = FR.thresholds[after];
     return { ...f, name: def.name, emoji: def.emoji, tierBefore: before, tierAfter: after, tierName: FACTION_TIERS[after], toNext: next ? next - cur - f.rep : 0, nextName: FACTION_TIERS[after + 1] || '', sweep: sweepMult(f.n) };
   });
 }

@@ -1,9 +1,9 @@
 // 秘境：派弟子組隊探索。結果在到期時結算並等待領取（離線也會完成）。
-import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R } from '../data/expeditions.js';
+import { EXPEDITIONS_BY_ID, EXP_RULES as R, matIdOf } from '../data/expeditions.js';
 import { ARTIFACTS } from '../data/artifacts.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { chance, pick, randInt } from './rng.js';
-import { stat, isSpecialtyMatch, expStat } from './discipleMath.js';
+import { expStat } from './discipleMath.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { rollSurrender } from './endure.js';
 import { toast, cue } from './events.js';
@@ -44,7 +44,7 @@ export function start(s, expId, uids) {
 export function tick(s) {
   for (const x of s.expeditions) {
     if (x.status !== 'running' || s.t < x.endAt) continue;
-    const e = EXPEDITIONS_BY_ID[x.id], ok = chance(x.chance), k = ok ? 1 : R.failShare, rw = e.reward, xm = exRewardMult(s, x.id), out = { qi: 0, stone: 0, mat: 0, matId: x.id };
+    const e = EXPEDITIONS_BY_ID[x.id], ok = chance(x.chance), k = ok ? 1 : R.failShare, rw = e.reward, xm = exRewardMult(s, x.id), out = { qi: 0, stone: 0, mat: 0, matId: matIdOf(e) };
     if (rw.qiSec) out.qi = qiPerSec(s) * rw.qiSec * k * xm;
     if (rw.stoneSec) out.stone = Math.max(1, stonePerSec(s) * rw.stoneSec * k * xm);
     if (ok) {

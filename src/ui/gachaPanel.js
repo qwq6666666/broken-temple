@@ -13,7 +13,7 @@ export function gachaCard(r, i = 0, flip = false) {
   return `<div class="gcard ${flip ? 'flip' : ''} ${r.rarity === 'SSR' || r.rarity === 'UR' ? 'glowy' : ''}" style="--rc:${c};--i:${i}">
     <div class="gr">${r.rarity}</div><div class="ge">${r.def.emoji}</div>
     <b>${esc(r.def.name)}</b><small>${esc(r.def.specialty)}・${esc(r.def.element)}</small><small class="trait on">✦ ${esc(traitText(r.def.trait.key, r.def.trait.value))}</small>
-    <small class="dim">${r.isNew ? '新弟子！' : `重複 → 🧩${r.shards}`}${r.pity ? '・保底' : ''}</small></div>`;
+    <small class="dim">${r.isNew ? '新弟子！' : `重複 → 🧬專屬碎片 +${r.shards}${r.uni ? `　🧩+${r.uni}` : ''}`}${r.pity ? '・保底' : ''}</small></div>`;
 }
 
 const pityBar = (label, cur, max) => `<div class="pity"><small>${label} <b>${cur}/${max}</b></small><div class="gbar"><div style="width:${Math.min(100, Math.floor(cur / max * 100))}%"></div></div></div>`;

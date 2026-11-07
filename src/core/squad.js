@@ -32,7 +32,7 @@ export const clearSquad = s => { s.squad = []; };
 // 推薦陣容：窮舉所有 ≤3 人組合，使「預計擊敗的人數優先、其次總戰力比」最大。
 // score 由呼叫端提供（避免循環依賴）：score(members) → 數值。
 export function bestSquad(s, score) {
-  const pool = [...s.disciples].sort((a, b) => memberPeak(s, b) - memberPeak(s, a)).slice(0, 14);
+  const pool = [...s.disciples].sort((a, b) => avgBonus(s, b, memberVs(b, NO_FOE).total) - avgBonus(s, a, memberVs(a, NO_FOE).total)).slice(0, 14);
   let best = [], bestV = score([]);
   const n = pool.length;
   for (let i = 0; i < n; i++) {
@@ -46,11 +46,11 @@ export function bestSquad(s, score) {
   }
   return best.map(d => d.uid);
 }
+const NO_FOE = { element: '', personality: '' };   // 沒有仇人時，以稀有度底分排序
 // 候選排序用：這位弟子對目前所有仇人的平均加成
-const memberPeak = (s, d) => s.grudges.length ? s.grudges.reduce((a, g) => a + memberVs(d, g).total, 0) / s.grudges.length : memberVs(d, { element: '', personality: '' }).total;
+const avgBonus = (s, d, idle = 0) => s.grudges.length ? s.grudges.reduce((a, g) => a + memberVs(d, g).total, 0) / s.grudges.length : idle;
 
 // 候選名單：每位弟子對目前所有仇人的平均加成，高到低（已出戰者一律列入）
 export function squadPool(s) {
-  const avg = d => s.grudges.length ? s.grudges.reduce((a, g) => a + memberVs(d, g).total, 0) / s.grudges.length : 0;
-  return s.disciples.map(d => ({ d, avg: avg(d), on: (s.squad || []).includes(d.uid) })).sort((a, b) => (b.on - a.on) || b.avg - a.avg).slice(0, 16);
+  return s.disciples.map(d => ({ d, avg: avgBonus(s, d), on: (s.squad || []).includes(d.uid) })).sort((a, b) => (b.on - a.on) || b.avg - a.avg).slice(0, 16);
 }

@@ -3,7 +3,7 @@ import { MATERIALS, REALM_MATS } from '../data/materials.js';
 import { BRANCHES } from '../data/branches.js';
 import { EXPLORATION, EX_KEYS } from '../data/exploration.js';
 import { exLevel, exXp, exNext, pendingEvents } from '../core/exploration.js';
-import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R, reqLines } from '../data/expeditions.js';
+import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R, reqLines, matIdOf } from '../data/expeditions.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
@@ -12,7 +12,7 @@ import { slotCount, isUnlocked, freeDisciples, successChance, teamPower, reqChec
 import { fmt } from '../core/format.js';
 import { esc, crow } from './dom.js';
 
-const rewardText = (rw, id) => [`${MATERIALS[id].icon}${MATERIALS[id].name}`, rw.qiSec && '✨靈氣', rw.stoneSec && '💎靈石', rw.artifact && `法寶${Math.round(rw.artifact * 100)}%`, rw.recruit && `弟子${Math.round(rw.recruit * 100)}%`].filter(Boolean).join('　');
+const rewardText = (rw, id) => [`${MATERIALS[matIdOf(EXPEDITIONS_BY_ID[id])].icon}${MATERIALS[matIdOf(EXPEDITIONS_BY_ID[id])].name}`, rw.qiSec && '✨靈氣', rw.stoneSec && '💎靈石', rw.artifact && `法寶${Math.round(rw.artifact * 100)}%`, rw.recruit && `弟子${Math.round(rw.recruit * 100)}%`].filter(Boolean).join('　');
 const wantText = w => [w.specialty && `專長：${w.specialty}`, w.element && `五行：${w.element}`].filter(Boolean).join('、');
 
 const reqTags = (s, e, uids) => {
@@ -49,38 +49,52 @@ export function expeditionPanel(s, ui) {
     if (!open) sub = `需突破至 ${esc(REALMS[e.unlockRealm].name)}`;
     else {
       const bt = bestTeam(s, e.id), lines = reqLines(e);
-      sub = `${bt ? `預估成功率 <b class="gold">${Math.round(bt.chance * 100)}%</b>` : '<span class="red">目前湊不出合法隊伍</span>'}${lines.length ? `・限制：${esc(lines.join('、'))}` : ''}`;
+      sub = `${bt ? `成功率 <b class="gold">${Math.round(bt.chance * 100)}%</b>` : '<span class="red">湊不出合法隊伍</span>'}${lines.length ? ` <span class="tag" title="${esc(lines.join('、'))}">限制 ${lines.length}</span>` : ''}`;
     }
     return crow(ui, { key: 'e' + e.id, cls: `${sel ? 'sel' : ''} ${open ? '' : 'locked'}`, icon: open ? e.emoji : '🔒',
       title: `<b>${esc(e.name)}</b> <small class="dim">${e.minutes} 分鐘・難度 ${e.difficulty}</small>${open ? exBadge(s, e.id) : ''}`, sub,
       act: open ? `<button class="btn ${sel ? 'primary' : ''}" data-act="expPick" data-id="${e.id}">${sel ? '選擇中' : '派遣'}</button>` : '',
-      detail: open ? `<small>${esc(e.desc)}</small><small class="dim">推薦 ${esc(wantText(e.want))}（相合者貢獻更高）</small><small>獎勵：${rewardText(e.reward, e.id)}　<span class="dim">${esc(matUse(e.id))}</span></small>` : '' });
+      detail: open ? `<small>${esc(e.desc)}</small>${reqLines(e).length ? `<small>限制：${esc(reqLines(e).join('、'))}</small>` : ''}<small class="dim">推薦 ${esc(wantText(e.want))}（相合者貢獻更高）</small><small>獎勵：${rewardText(e.reward, e.id)}　<span class="dim">${esc(matUse(e.id))}</span></small>` : '' });
   }).join('');
 
   // 組隊：限制逐條打勾、推薦隊伍、候選依貢獻排序（相合者標色）
   let teamBox = '';
   if (picked && EXPEDITIONS_BY_ID[picked] && isUnlocked(s, EXPEDITIONS_BY_ID[picked])) {
     const e = EXPEDITIONS_BY_ID[picked], free = freeDisciples(s);
-    const sorted = [...free].sort((a, b) => memberScore(s, picked, b.uid) - memberScore(s, picked, a.uid));
-    const chips = sorted.map(d => {
-      const df = DISCIPLES_BY_ID[d.defId], on = team.includes(d.uid), match = (e.want.specialty && df.specialty === e.want.specialty) || (e.want.element && df.element === e.want.element);
-      return `<button class="chip-btn ${on ? 'on' : ''} ${match ? 'match' : ''}" style="--rc:${RARITIES[df.rarity].color}" data-act="expToggle" data-uid="${d.uid}">${df.emoji} ${esc(df.name)}<small>Lv${d.lv}・${esc(df.element)}・${esc(df.specialty)}${match ? '・相合' : ''}</small></button>`;
-    }).join('') || '<small class="dim">沒有可派遣的弟子（都在探索中，或還沒有弟子）。</small>';
+    const r0 = e.req || {};
+    const helps = d => { const df = DISCIPLES_BY_ID[d.defId]; return !!((r0.anyElement && r0.anyElement.includes(df.element)) || (r0.specialty && df.specialty === r0.specialty)); };
+    const isMatch = d => { const df = DISCIPLES_BY_ID[d.defId]; return !!((e.want.specialty && df.specialty === e.want.specialty) || (e.want.element && df.element === e.want.element)); };
+    // 符合限制的排前面 → 相合 → 貢獻高
+    const sorted = [...free].sort((a, b) => (helps(b) - helps(a)) || (isMatch(b) - isMatch(a)) || memberScore(s, picked, b.uid) - memberScore(s, picked, a.uid));
+    const tile = d => {
+      const df = DISCIPLES_BY_ID[d.defId], on = team.includes(d.uid), match = isMatch(d);
+      return `<button class="etile rar-${df.rarity} ${on ? 'on' : ''} ${match ? 'match' : ''}" style="--rc:${RARITIES[df.rarity].color}" data-act="expToggle" data-uid="${d.uid}" aria-pressed="${on}" aria-label="${esc(df.name)}，${esc(df.element)}系${esc(df.specialty)}，等級 ${d.lv}${match ? '，相合' : ''}">
+        <span class="eem">${df.emoji}</span><span class="enm">${esc(df.name)}</span><span class="eel e-${esc(df.element)}">${esc(df.element)}</span>
+        <span class="elv"><small>Lv</small>${d.lv}</span><span class="esp">${esc(df.specialty.slice(0, 1))}</span>${match ? '<span class="emt" title="相合：貢獻更高">✦</span>' : ''}${on ? '<span class="eck">✓</span>' : ''}</button>`;
+    };
+    const need = sorted.filter(helps), rest = sorted.filter(d => !helps(d)), split = need.length && rest.length;
+    const group = (title, list) => list.length ? `${title ? `<small class="egroup">${title}（${list.length}）</small>` : ''}<div class="etiles">${list.map(tile).join('')}</div>` : '';
+    const chips = free.length ? (split ? group('✔ 符合限制的弟子', need) + group('其他弟子', rest) : group('', sorted)) : '<small class="dim">沒有可派遣的弟子（都在探索中，或還沒有弟子）。</small>';
     const rc = reqCheck(s, e, team), legal = team.length && rc.ok, can = legal && used < slots, ch = team.length ? successChance(s, picked, team) : 0;
     const bt = bestTeam(s, picked);
-    teamBox = `<div class="teambox"><b>組隊：${esc(e.name)}</b> <small class="dim">（最多 ${R.maxTeam} 位；出發後隊員會從建築撤下）</small>
-      ${(e.req ? `<div class="chips">${reqTags(s, e, team)}</div>` : '')}
-      <div class="row"><button class="btn" data-act="expAuto" ${bt ? '' : 'disabled'}>⚡ 推薦隊伍${bt ? `（成功率 ${Math.round(bt.chance * 100)}%）` : ''}</button>
-        ${team.length ? '<button class="btn mini" data-act="expClear">清空</button>' : ''}</div>
-      <div class="chips">${chips}</div>
-      <div class="row">${team.length ? `<span>隊伍戰力 <b class="gold">${fmt(teamPower(s, picked, team))}</b> / 難度 ${e.difficulty}　成功率 <b class="gold">${Math.round(ch * 100)}%</b></span>` : '<small class="dim">請選擇隊員，或按「推薦隊伍」</small>'}
-        <button class="btn ${can ? 'primary' : ''}" data-act="expGo" ${can ? '' : 'disabled'}>${used >= slots ? '探索位已滿' : team.length && !rc.ok ? '不符合限制' : '出發'}</button></div></div>`;
+    const slotsHtml = Array.from({ length: R.maxTeam }, (_, i) => {
+      const d = s.disciples.find(x => x.uid === team[i]), df = d && DISCIPLES_BY_ID[d.defId];
+      return d ? `<button class="tslot full" style="--rc:${RARITIES[df.rarity].color}" data-act="expToggle" data-uid="${d.uid}" title="點一下移出隊伍" aria-label="移出 ${esc(df.name)}">${df.emoji}<b>${esc(df.name)}</b><small>Lv${d.lv}・${esc(df.element)}${esc(df.specialty.slice(0, 1))}</small></button>` : '<span class="tslot empty">空位</span>';
+    }).join('');
+    teamBox = `<div class="teambox"><div class="teambar">
+      <div class="tbtop"><b>組隊：${esc(e.name)}</b><span class="tbacts"><button class="btn mini" data-act="expAuto" ${bt ? '' : 'disabled'}>⚡ 推薦${bt ? ` ${Math.round(bt.chance * 100)}%` : ''}</button>${team.length ? '<button class="btn mini" data-act="expClear">清空</button>' : ''}</span></div>
+      <div class="tslots">${slotsHtml}</div>
+      ${e.req ? `<div class="chips">${reqTags(s, e, team)}</div>` : ''}
+      <div class="tbgo">${team.length ? `<span class="tbstat">戰力 <b class="gold">${fmt(teamPower(s, picked, team))}</b> / 難度 ${e.difficulty}　成功率 <b class="gold">${Math.round(ch * 100)}%</b></span>` : '<small class="dim">選隊員，或按「推薦」</small>'}
+        <button class="btn ${can ? 'primary' : ''}" data-act="expGo" ${can ? '' : 'disabled'}>${used >= slots ? '探索位已滿' : team.length && !rc.ok ? '不符合限制' : '出發'}</button></div></div>
+      <small class="dim">最多 ${R.maxTeam} 位；出發後隊員會從建築撤下。右上＝五行　左下＝專長（劍／丹／陣／農／體）　✦＝相合（貢獻更高）</small>
+      ${chips}</div>`;
   }
   return `${pendingBox(ui, s)}<p class="hint">🧭 探索位 ${used}/${slots}。派遣中的弟子無法派駐。</p>${claimAll}${doneRows}${runRows}${teamBox}<h3 class="sub">秘境</h3>${realms}`;
 }
 
 // ── 探索度 ──
-const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每升一級解鎖一則發現事件，且該秘境獎勵 +10%">探索 Lv${lv}${nx ? `（${exXp(s, id)}/${nx} 次）` : '・圓滿'}</span>`; };
+const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每升一級解鎖一則發現事件，且該秘境獎勵 +10%">探索 Lv${lv}${nx ? ` ${exXp(s, id)}/${nx}` : '・圓滿'}</span>`; };
 function pendingBox(ui, s) {
   const list = pendingEvents(s); if (!list.length) return '';
   return `<div class="exfind"><b class="gold">📜 新的發現（${list.length}）</b>` + list.map(({ id, lv }) => {
@@ -95,7 +109,7 @@ const rewardPreview = r => Object.entries(r).map(([k, v]) => ({ merit: `🏅${v}
 
 // 這個秘境的材料拿來做什麼
 function matUse(id) {
-  const k = 'mat_' + id, uses = [];
+  const k = 'mat_' + matIdOf(EXPEDITIONS_BY_ID[id]), uses = [];
   for (const [i, c] of Object.entries(REALM_MATS)) if (c[k]) uses.push(`突破到${REALMS[i].name}`);
   for (const b of Object.values(BRANCHES)) if (b.cost[k]) uses.push(`弟子進階「${b.name}」`);
   return uses.length ? `材料用途：${uses.join('、')}` : '';

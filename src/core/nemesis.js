@@ -2,7 +2,6 @@
 import { CONFIG } from '../config.js';
 import { NEMESES, NEMESES_BY_ID, AWAKEN, ROMAN } from '../data/nemeses.js';
 import { REALMS } from '../data/realms.js';
-import { PERSONALITIES } from '../data/visitors.js';
 import { randInt, randFloat, pick } from './rng.js';
 import { FACTIONS_BY_ID, FACTION_TIERS } from '../data/factions.js';
 import { tierOf } from './factions.js';
@@ -60,4 +59,3 @@ export function makeNemesisVisitor(s, n) {
 export function lineFor(n, verdict, escaped) {
   return pick(verdict === 'crush' ? n.kneel : escaped ? n.narrow : n.fail);
 }
-export const fallbackLine = g => pick(PERSONALITIES[g.personality].fail);

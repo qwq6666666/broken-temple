@@ -7,6 +7,7 @@ export async function run(b, URL, devices, PLAT) {
   await p.goto(URL + '?speed=1'); await p.waitForTimeout(700);
   const tap = async sel => { const el = await p.$(sel); if (!el) return false; try { mobile ? await el.tap({ timeout: 2000 }) : await el.click({ timeout: 2000 }); } catch { await el.evaluate(e => e.click()); } await p.waitForTimeout(200); return true; };
   const S = (f, a) => p.evaluate(f, a);
+  const tapEl = async el => { try { mobile ? await el.tap({ timeout: 2000 }) : await el.click({ timeout: 2000 }); } catch { await el.evaluate(e => e.click()); } };
   const hide = () => S(() => document.getElementById('overlay').classList.remove('on'));
   const go = tab => S(t => { __game.ui.tab = t; }, tab).then(() => p.waitForTimeout(350));
   // 準備資料
@@ -18,13 +19,43 @@ export async function run(b, URL, devices, PLAT) {
     for (const k of ['gacha', 'disciples', 'goals', 'avenge', 'expedition', 'factions', 'nemesis', 'dao', 'buildings', 'realm']) s.unlocked[k] = true;
     s.stats.bursts = 3; s.stats.endures = 40; G.pull(s, 40);
     s.disciples.forEach((d, i) => { d.lv = 10; });
-    for (const id of Object.keys(s.buildings)) s.buildings[id].lv = 5;
+    for (const id of Object.keys(s.buildings)) s.buildings[id].lv = 50;
     s.artifacts = ['yinqi', 'tuna', 'huxin', 'qian_abacus']; s.achv.done = ['a1'];
     s.grudges = Array.from({ length: 5 }, (_, i) => ({ id: 700 + i, name: '仇人' + i, type: ['former', 'rival', 'elder', 'trader', 'rival'][i], sect: ['青雲宗', '赤焰谷', '萬劍山莊', '南海商隊', '落霞宗'][i], role: '弟子', personality: ['傲慢', '勢利', '刻薄', '虛偽', '暴躁'][i], lvl: 5 + i, alert: false, element: ['金', '木', '水', '火', '土'][i] }));
     s.disguise.value = 20; s.visitor.nextAt = 1e15; s.visitor.current = null;
   });
   await p.waitForTimeout(800); await hide();
 
+  // 建築批量升級：列表與點建築彈出的面板都能「×10」「最大」；資源每幀變動（按鈕狀態在變）時也要點得到
+  await S(() => { const s = __game.state; s.res.qi = 1e15; s.res.stone = 1e12; for (const id of ['temple', 'field', 'alchemy', 'library']) s.buildings[id].lv = 20; });
+  await go('buildings'); await hide();
+  const lvSum = () => S(() => Object.values(__game.state.buildings).reduce((a, b) => a + b.lv, 0));
+  let t0 = await lvSum(); await tap('[data-act=upgradeN][data-n="10"]:not([disabled])'); await p.waitForTimeout(200);
+  let t1 = await lvSum(); rec('upgradeN ×10 連升十級（列表）', t1 - t0 === 10, `升了 ${t1 - t0} 級`);
+  await tap('[data-act=upgradeN][data-n=max]:not([disabled])'); await p.waitForTimeout(200);
+  let t2 = await lvSum(); const capOK = await S(() => { const B = __game.state.buildings, cap = 10 + Math.floor(__game.state.realmIdx * 6.93); return Object.values(B).every(b => b.lv <= cap); });
+  rec('upgradeN 最大 升到上限（列表）', t2 - t1 > 10 && capOK, `再升 ${t2 - t1} 級`);
+  await S(() => { const s = __game.state; s.buildings.alchemy.lv = 20; s.res.qi = 1e15; s.res.stone = 1e12; __game.ui.selBuilding = 'alchemy'; window.__churn = setInterval(() => { __game.state.res.qi += 7; }, 25); }); await p.waitForTimeout(500);
+  const hasPop = await S(() => !!document.querySelector('.bpop-card [data-act=upgradeN]')); rec('點建築彈出面板有批量按鈕', hasPop);
+  t0 = await S(() => __game.state.buildings.alchemy.lv); await tap('.bpop-card [data-act=upgradeN][data-n="10"]:not([disabled])'); await p.waitForTimeout(250);
+  t1 = await S(() => __game.state.buildings.alchemy.lv); rec('彈出面板 ×10（資源每幀變動中仍點得到）', t1 - t0 === 10, `升了 ${t1 - t0} 級`);
+  await S(() => { clearInterval(window.__churn); __game.ui.selBuilding = null; });
+  await S(() => { for (const id of Object.keys(__game.state.buildings)) __game.state.buildings[id].lv = 50; });
+  await p.waitForTimeout(300);
+  // 提示訊息：解鎖提示合併成一則、不擋點擊；建築列（手機）名稱不被擠成多行
+  await S(async () => { const E = await import('/src/core/events.js'); document.getElementById('toasts').innerHTML = ''; E.toast('🔓 新功能解鎖：宗門年表', 'good'); E.toast('🔓 新分頁解鎖：秘境', 'good'); E.toast('🔓 新功能解鎖：專長心得', 'good'); });
+  await p.waitForTimeout(200);
+  const tinfo = await S(() => ({ n: document.querySelectorAll('#toasts .toast').length, text: document.querySelector('#toasts .toast')?.textContent || '', pe: getComputedStyle(document.getElementById('toasts')).pointerEvents }));
+  rec('解鎖提示合併成一則', tinfo.n === 1 && /宗門年表/.test(tinfo.text) && /秘境/.test(tinfo.text) && /專長心得/.test(tinfo.text), `${tinfo.n} 則：${tinfo.text}`);
+  rec('提示不擋點擊（pointer-events: none）', tinfo.pe === 'none', tinfo.pe);
+  await go('buildings'); await hide();
+  const lay = await S(() => { const r = document.querySelector('.crow.brow'); if (!r) return null; const cm = r.querySelector('.cm').getBoundingClientRect(), ca = r.querySelector('.ca').getBoundingClientRect(), ct = r.querySelector('.ct'); const lh = parseFloat(getComputedStyle(ct).lineHeight) || 20; return { ctH: ct.getBoundingClientRect().height, lh, caBelow: ca.top >= cm.bottom - 2, caInside: ca.right <= r.getBoundingClientRect().right + 1 }; });
+  rec('建築列：名稱不超過兩行、按鈕不溢出' + (mobile ? '（手機另要求按鈕換到下一行）' : ''), !!lay && lay.ctH <= lay.lh * 2.2 && lay.caInside && (!mobile || lay.caBelow), JSON.stringify(lay));
+  // 提示條：要立刻處理的（有訪客）才黏在手機頂端
+  await S(() => { __game.state.visitor.current = { id: 960, name: '路人', type: 'former', sect: '青雲宗', role: '外門弟子', personality: '傲慢', lvl: 1, alert: false, element: '金', taunt: '喂。' }; }); await p.waitForTimeout(400);
+  const hs = await S(() => ({ cls: document.getElementById('hint').className, pos: getComputedStyle(document.getElementById('hint')).position }));
+  rec('有訪客時提示條標記為 urgent' + (mobile ? '並黏在頂端' : ''), /urgent/.test(hs.cls) && (!mobile || hs.pos === 'sticky'), JSON.stringify(hs));
+  await S(() => { __game.state.visitor.current = null; });
   // 弟子頁：排序、五行篩選、派駐/取消、升星、心得
   await go('people');
   await tap('[data-act=slotPick]'); const sp = await S(() => !!document.querySelector('[data-act=slotAssign]')); rec('slotPick 開啟候選', sp);
@@ -38,10 +69,37 @@ export async function run(b, URL, devices, PLAT) {
   rec('dElem 五行篩選', await S(() => __game.ui.dElem === '金'));
   if (sel) { await p.selectOption('select[data-change=dElem]', ''); }
   await tap('[data-act=unassign]'); rec('unassign 撤下', true, '已點擊（若無駐守則略過）');
-  // 升星（需展開卡片）
-  await S(() => document.querySelectorAll('#panel [data-act=toggleD]').forEach(x => x.click())); await p.waitForTimeout(300);
-  const star0 = await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0)); await tap('[data-act=starUp]:not([disabled])');
-  rec('starUp 升星', (await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0))) > star0);
+  // 弟子方塊牌：正方形、點開彈出面板（升級／升星／派駐都在面板裡）、上一位／下一位、Esc 關閉、右上「升」直接升一級
+  await S(() => { __game.ui.dFilter = 'all'; __game.ui.dElem = ''; }); await p.waitForTimeout(300);
+  const tl = await S(() => { const t = [...document.querySelectorAll('.dtile')]; if (!t.length) return null; const r = t[0].getBoundingClientRect(); return { n: t.length, w: Math.round(r.width), h: Math.round(r.height), cols: new Set(t.map(x => Math.round(x.getBoundingClientRect().left))).size }; });
+  rec('弟子顯示為方塊牌（正方形）' + (mobile ? '、手機一排三張' : ''), !!tl && Math.abs(tl.w - tl.h) <= 2 && (!mobile || tl.cols === 3), JSON.stringify(tl));
+  const lvSum0 = await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0));
+  const qk = await p.$('.dtile .dquick'); if (qk) { await tapEl(qk); await p.waitForTimeout(250); }
+  rec('右上「升」直接升一級（不開面板）', !!qk && (await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0))) === lvSum0 + 1 && (await S(() => __game.ui.dModal || null)) === null);
+  await tap('.dtile'); await p.waitForTimeout(300);
+  const m1 = await S(() => ({ open: !!document.querySelector('.dm-card'), uid: __game.ui.dModal, hasLv: !!document.querySelector('.dm-card [data-act=levelUp]'), hasStar: !!document.querySelector('.dm-card [data-act=starUp], .dm-card .tag.gold'), hasSel: !!document.querySelector('.dm-card select[data-change=assign]') }));
+  rec('點方塊牌開彈出面板', m1.open && m1.hasLv && m1.hasStar && m1.hasSel, JSON.stringify(m1));
+  await tap('.dm-card [data-act=dNav][data-d="1"]'); await p.waitForTimeout(200);
+  rec('彈出面板「下一位」切換弟子', (await S(() => __game.ui.dModal)) !== m1.uid);
+  await tap('.dm-card [data-act=dNav][data-d="-1"]'); await p.waitForTimeout(200);
+  rec('彈出面板「上一位」回到原本那位', (await S(() => __game.ui.dModal)) === m1.uid);
+  // 升星：挑一位付得起的，開他的面板按升星
+  const sid = await S(async () => { const D = await import('/src/core/disciples.js'); return __game.state.disciples.find(d => D.canStar(__game.state, d))?.uid ?? null; });
+  const star0 = await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0));
+  if (sid) { await S(u => { __game.ui.dModal = u; }, sid); await p.waitForTimeout(300); await tap('.dm-card [data-act=starUp]:not([disabled])'); await p.waitForTimeout(250); }
+  rec('starUp 升星（彈出面板）', !!sid && (await S(() => __game.state.disciples.reduce((a, d) => a + (d.star || 0), 0))) > star0);
+  // 資源每幀變動時，面板上的按鈕仍點得到（面板不會被重繪吃掉點擊）
+  await S(() => { const s = __game.state; s.res.qi = 1e15; window.__churn2 = setInterval(() => { __game.state.res.qi += 5; }, 25); }); await p.waitForTimeout(300);
+  const lv0 = await S(() => __game.state.disciples.find(d => d.uid === __game.ui.dModal)?.lv);
+  await tap('.dm-card [data-act=levelUp]:not([disabled])'); await p.waitForTimeout(250);
+  rec('彈出面板升級（資源每幀變動中仍點得到）', (await S(() => __game.state.disciples.find(d => d.uid === __game.ui.dModal)?.lv)) === lv0 + 1);
+  await S(() => clearInterval(window.__churn2));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(250);
+  rec('Esc 關閉彈出面板', !(await S(() => !!document.querySelector('.dm-card'))) && (await S(() => __game.ui.dModal || null)) === null);
+  await tap('.dtile'); await p.waitForTimeout(200); await tap('.dm-back'); await p.waitForTimeout(200);
+  rec('點背景關閉彈出面板', !(await S(() => !!document.querySelector('.dm-card'))));
+  const la0 = await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0)); await tap('[data-act=levelAll]:not([disabled])'); await p.waitForTimeout(250);
+  rec('levelAll 全部升級', (await S(() => __game.state.disciples.reduce((a, d) => a + d.lv, 0))) > la0);
   // 專長心得
   await S(() => { __game.state.unlocked.f_insight = true; }); await p.waitForTimeout(300);
   await S(() => { document.querySelector('#panel [data-key="insight"]')?.click(); }); await p.waitForTimeout(200);
@@ -65,7 +123,8 @@ export async function run(b, URL, devices, PLAT) {
   await hide();
   // 求和：rejectPlea
   await S(() => { __game.state.visitor.current = { id: 950, name: '求和者', type: 'rival', sect: '赤焰谷', role: '弟子', personality: '虛偽', lvl: 9, alert: false, element: '火', returning: 'plead', taunt: '求您手下留情。' }; __game.ui.tab = 'buildings'; }); await p.waitForTimeout(500);
-  const g0 = await S(() => __game.state.grudges.length); await tap('[data-act=rejectPlea]'); rec('rejectPlea 讓他滾', (await S(() => __game.state.grudges.length)) === g0 + 1);
+  const g0 = await S(() => __game.state.grudges.length); await tap('[data-act=rejectPlea]'); await p.waitForTimeout(300);      // 點擊後狀態有延遲，等一下再判斷（手機偶發競態）
+  rec('rejectPlea 讓他滾', (await S(() => __game.state.grudges.length)) === g0 + 1);
   // 法寶稱號：equipTitle（需成就）
   await S(async () => { const A = await import('/src/data/achievements.js'); const s = __game.state; s.achv.done = A.ACHIEVEMENTS.slice(0, 3).map(a => a.id); });
   await S(() => { __game.state.unlocked.f_achv = true; }); await go('goals'); await S(() => { const r = [...document.querySelectorAll('#panel .cmain')].find(x => /成就/.test(x.textContent)); r && r.click(); }); await p.waitForTimeout(400);
@@ -93,5 +152,6 @@ export async function run(b, URL, devices, PLAT) {
   // 離線事件 offlineChoose 已於 targeted3 驗證
   rec('頁面錯誤', errs.length === 0, errs.slice(0, 2).join(';'));
   await c.close();
+  if (process.env.E2E_VERBOSE) console.log(R.map(x => `  ${x[1] ? '✓' : '✗'} ${PLAT} ${x[0]} ${x[2]}`).join('\n'));      // E2E_VERBOSE=1：列出每一項
   return R.filter(x => !x[1]).map(x => `${PLAT} ${x[0]} ${x[2]}`);
 }

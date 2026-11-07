@@ -10,7 +10,8 @@ import { perm as daoPerm } from './dao.js';
 import { insightPerm } from './insight.js';
 import { gloryPerm } from './glory.js';
 import { explorePerm } from './exploration.js';
-import { contribution, stat, powerStat, traitOf, traitValue } from './discipleMath.js';
+import { contribution, powerStat, traitOf, traitValue } from './discipleMath.js';
+import { lvEff, produceAt } from './buildingMath.js';
 
 export const realmOf = s => REALMS[s.realmIdx];
 
@@ -43,37 +44,40 @@ export function perSec(s, res) {
   let base = res === 'qi' ? CONFIG.innateQiPerSec : 0;
   for (const d of BUILDINGS) {
     const p = d.produce[res];
-    if (p && isActive(s, d.id)) base += s.buildings[d.id].lv * p * buildingMult(s, d.id);
+    if (p && isActive(s, d.id)) base += produceAt(s.buildings[d.id].lv, p) * buildingMult(s, d.id);       // 等級 × 每級產出（舊刻度）÷ 刻度 × 里程碑倍率
   }
-  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult') + traitSum(s, res + 'Mult'));
+  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult') + traitSum(s, res + 'Mult')) * fameMult(s);
 }
+// 威名：亮一手打臉累積；到期後失效
+export const fameLayers = s => (s.fame && s.t < s.fame.until ? s.fame.n : 0);
+export const fameMult = s => 1 + CONFIG.endure.fame.bonus * fameLayers(s);
 export const qiPerSec = s => perSec(s, 'qi');
 export const stonePerSec = s => perSec(s, 'stone');
 
 // 打坐一次獲得的靈氣：取「保底」與「N 秒產出」較大者，所以後期仍有意義但不會超越被動產出太多
 export const clickPower = s => {
-  const floor = (CONFIG.click.base + s.buildings.temple.lv * CONFIG.click.perTempleLevel) * realmOf(s).mult;
+  const floor = (CONFIG.click.base + lvEff(s.buildings.temple.lv) * CONFIG.click.perTempleLevel) * realmOf(s).mult;
   return Math.max(floor, qiPerSec(s) * CONFIG.click.productionSec) * (1 + artifactSum(s, 'clickMult'));
 };
 
 // 藏經閣：弟子升級折扣（含法寶）
 export const discipleDiscount = s =>
   Math.min(CONFIG.disciple.discountMax,
-    s.buildings.library.lv * CONFIG.disciple.libraryDiscountPerLevel * buildingMult(s, 'library')
-    + s.buildings.hall.lv * 0.02 * buildingMult(s, 'hall')                                // 傳功殿
+    lvEff(s.buildings.library.lv) * CONFIG.disciple.libraryDiscountPerLevel * buildingMult(s, 'library')
+    + lvEff(s.buildings.hall.lv) * 0.02 * buildingMult(s, 'hall')                                // 傳功殿
     + artifactSum(s, 'discipleDiscount'));
 
 // 護山大陣：稀有事件機率
 export const rareChance = s =>
   Math.min(0.95, CONFIG.building_effect.rareBase
-    + s.buildings.array.lv * CONFIG.building_effect.rarePerLevel * buildingMult(s, 'array')
-    + s.buildings.beast.lv * 0.02 * buildingMult(s, 'beast')                              // 靈獸園
+    + lvEff(s.buildings.array.lv) * CONFIG.building_effect.rarePerLevel * buildingMult(s, 'array')
+    + lvEff(s.buildings.beast.lv) * 0.02 * buildingMult(s, 'beast')                              // 靈獸園
     + traitSum(s, 'rare') + daoPerm(s, 'rare'));
 
 // 玩家戰力：境界 × 演武場 × 持有弟子屬性 × 法寶（影響「碾壓」判定）
 export function combatPower(s) {
-  const arena = (1 + s.buildings.arena.lv * CONFIG.building_effect.arenaPowerPerLevel * buildingMult(s, 'arena'))
-    * (1 + s.buildings.tower.lv * 0.06 * buildingMult(s, 'tower'));                     // 鎮魔塔
+  const arena = (1 + lvEff(s.buildings.arena.lv) * CONFIG.building_effect.arenaPowerPerLevel * buildingMult(s, 'arena'))
+    * (1 + lvEff(s.buildings.tower.lv) * 0.06 * buildingMult(s, 'tower'));                     // 鎮魔塔
   const owned = 1 + CONFIG.disciple.ownedPowerFactor * s.disciples.reduce((a, d) => a + powerStat(d), 0);
   return realmOf(s).power * arena * owned * (1 + artifactSum(s, 'powerMult') + traitSum(s, 'power'));
 }
@@ -85,7 +89,7 @@ export function tick(s, dt) {
   s.res.qi += qiPerSec(s) * sec;
   s.res.stone += stonePerSec(s) * sec;
   s.tokenAcc += dt;
-  const step = CONFIG.gacha.tokenTrickleSec * 1000 / (1 + daoPerm(s, 'tokenRate') + s.buildings.beast.lv * 0.08 * buildingMult(s, 'beast'));   // 道心：招賢名聲
+  const step = CONFIG.gacha.tokenTrickleSec * 1000 / (1 + daoPerm(s, 'tokenRate') + lvEff(s.buildings.beast.lv) * 0.08 * buildingMult(s, 'beast'));   // 道心：招賢名聲
   if (s.tokenAcc >= step) {
     const n = Math.floor(s.tokenAcc / step);
     s.res.token += n; s.tokenAcc -= n * step;
@@ -93,4 +97,4 @@ export function tick(s, dt) {
 }
 
 // 鎮魔塔：爆擊獎勵加成
-export const towerBurst = s => s.buildings.tower.lv * 0.03 * buildingMult(s, 'tower');
+export const towerBurst = s => lvEff(s.buildings.tower.lv) * 0.03 * buildingMult(s, 'tower');

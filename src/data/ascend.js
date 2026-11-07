@@ -68,7 +68,6 @@ export const TRIALS = [
 export const TRIALS_BY_ID = Object.fromEntries(TRIALS.map(t => [t.id, t]));
 
 // ── 道果：九劫全渡後開啟，道心商店中可持續升級的永久加成（見 data/daoShop.js 的 gate: 'ascend'）──
-export const FRUIT_INTRO = '九劫已過，道果初成。道果沒有上限，只有越來越貴的價錢——這是給走得最遠的人的長路。';
 
 // 本輪統計：s.stats 的累計值減去轉生當下的基準（舊存檔沒有基準時，視為從頭累計，只會更寬鬆）
 export const runMs = s => Math.max(0, s.t - (s.run.startT || 0));

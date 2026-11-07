@@ -1,5 +1,6 @@
 // 藏：偽裝值隨時間增加、蓄力倍率、仇人成長、差距指標。
 import { CONFIG } from '../config.js';
+import { VISITOR_TYPES } from '../data/visitors.js';
 import { PERSONALITY_BIAS } from '../data/enemies.js';
 import { KE, elementFromName } from '../data/elements.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
@@ -20,8 +21,17 @@ export function tick(s, dt) {
   d.value = Math.min(CONFIG.conceal.max, d.value + dt * (1 + traitSum(s, 'disguiseRate') + daoPerm(s, 'disguiseRate')) / (CONFIG.conceal.timeGainSec * 1000));
   d.chargeMs += dt;
   const grow = CONFIG.enemy.growthPerMin * dt / 60000;
-  for (const g of s.grudges) g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + grow * (PERSONALITY_BIAS[g.personality]?.growth || 1));
+  for (const g of s.grudges) {
+    g.age = (g.age || 0) + dt;
+    g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + grow * growthOf(g));
+  }
 }
+// 成長倍率 = 個性倍率 × 怨毒（在簿上越久越快，bitterMin 分鐘達上限）
+export const growthOf = g => (PERSONALITY_BIAS[g.personality]?.growth || 1) * (1 + CONFIG.enemy.bitterMax * Math.min(1, (g.age || 0) / (CONFIG.enemy.bitterMin * 60000)));
+export const isBitter = g => (g.age || 0) >= CONFIG.enemy.bitterMin * 60000;
+// 復仇簿佔用格數：長老與宿敵占 2 格
+export const grudgeSize = g => (g.nemesisId ? 2 : VISITOR_TYPES[g.type]?.size || 1);
+export const bookUsed = s => s.grudges.reduce((a, g) => a + grudgeSize(g), 0);
 
 // 單一仇人的預估結果：'crush' | 'narrow' | 'fail'
 // 五行克制：已派駐弟子裡，每位剋制該仇人的 +3%、被他剋制的 −2%（夾在 0.85～1.20）。舊存檔沒有五行的仇人用名字推一個。

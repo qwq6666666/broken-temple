@@ -23,6 +23,7 @@ export function createState() {
     artifacts: [],                          // 已獲得的功法法寶 id
     settings: { loss: true },               // 承受損失開關
     tokenAcc: 0,
+    fame: { n: 0, until: 0 },               // 威名：亮一手打臉累積的產出加成（層數、到期時間）
     endureStreak: 0,                        // 連續忍氣吞聲次數（憋屈值）
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）
     reincarnation: { count: 0, shop: {} },  // 轉生次數、道心商店等級
@@ -32,6 +33,7 @@ export function createState() {
     factions: {},                           // 勢力威望 {factionId: rep}（跨轉生保留）
     returners: [],                          // 日後可能回頭的仇人（本輪）
     specs: {},                              // 建築專精 {buildingId: optionId}（本輪）
+    dshards: {},                            // 弟子專屬碎片 {defId: n}：抽到重複弟子時獲得，只能用來替該弟子升星（跨轉生保留）
     stories: {},                            // 已讀弟子故事章數 {defId: n}
     unlocked: {},                           // 已解鎖的分頁（新手引導）
     seenIntro: false,                       // 是否看過開場說明
@@ -43,6 +45,7 @@ export function createState() {
     foes: {},                               // 仇人記憶 {名字: {beaten: 擊敗次數}}（跨轉生保留）
     squad: [],                              // 出戰陣容（弟子 uid，最多 3 人，跨轉生保留）
     insight: {},                            // 專長心得層數 {專長: 0~3}（跨轉生保留）
+    offlineLast: null,                      // 上一次離線歸來事件的 id（避免連續重複，跨轉生保留）
     weekly: { claimed: -1 },                // 已領取每週挑戰獎勵的週序號（跨轉生保留）
     equipped: [],                           // 裝備欄中的法寶 id（跨轉生保留）
     achv: { done: [], title: null },        // 成就與裝備中的稱號（跨轉生保留）

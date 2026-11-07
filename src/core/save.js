@@ -17,6 +17,7 @@ import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { GLORY_LEVELS } from '../data/glory.js';
 import { RIPE } from '../data/enemies.js';
 import { MAT_KEYS } from '../data/materials.js';
+import { OFFLINE_EVENTS_BY_ID } from '../data/offlineEvents.js';
 import { EXPLORATION } from '../data/exploration.js';
 import { INSIGHTS, INSIGHT_MAX } from '../data/insights.js';
 import { ELEMENTS, elementFromName } from '../data/elements.js';
@@ -26,7 +27,7 @@ import { COMMISSION_BY_KIND } from '../data/commissions.js';
 import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { PERSONALITIES, VISITOR_TYPES } from '../data/visitors.js';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 const isPlain = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(base, saved) {
@@ -41,6 +42,11 @@ function merge(base, saved) {
 // 舊版存檔升級（之後改資料結構時在這裡加）
 function migrate(data) {
   // v1 → v2：新增 reincarnation / run 欄位，由 merge() 以預設值補齊，資料本身不需轉換
+  // v2 → v3：建築等級刻度由 10 級放大為 100 級，舊等級 ×10
+  const ver = Number.isFinite(Number(data.version)) ? Number(data.version) : 1;      // 缺少或壞掉的版本視為最舊
+  if (ver < 3 && data.state?.buildings && typeof data.state.buildings === 'object') {
+    for (const b of Object.values(data.state.buildings)) if (b && Number.isFinite(b.lv)) b.lv = Math.floor(b.lv) * CONFIG.building.levelScale;
+  }
   data.version = SAVE_VERSION;
   return data;
 }
@@ -56,6 +62,7 @@ function sanitizeGrudge(g) {
   out.element = ELEMENTS.includes(out.element) ? out.element : elementFromName(out.name);
   out.awaken = out.nemesisId ? Math.max(0, Math.min(3, Math.floor(num(Number(out.awaken))))) : 0;
   out.lvl = Math.max(0, num(Number(out.lvl)));
+  out.age = Math.max(0, num(Number(out.age)));
   out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');
   out.alert = !!out.alert; out.spare = !!out.spare;
   out.ripe = Math.max(0, Math.min(RIPE.max, Math.floor(num(Number(out.ripe))))); out.foe = Math.max(0, Math.min(99, Math.floor(num(Number(out.foe)))));
@@ -71,6 +78,9 @@ export function sanitize(s) {
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
+  if (!OFFLINE_EVENTS_BY_ID[s.offlineLast]) s.offlineLast = null;
+  s.fame = { n: Math.max(0, Math.min(CONFIG.endure.fame.max, Math.floor(num(isPlain(s.fame) ? s.fame.n : 0)))), until: Math.max(0, num(isPlain(s.fame) ? s.fame.until : 0)) };
+  s.dshards = Object.fromEntries(Object.entries(isPlain(s.dshards) ? s.dshards : {}).filter(([id, n]) => DISCIPLES_BY_ID[id] && Number.isFinite(n) && n > 0).map(([id, n]) => [id, Math.floor(n)]));
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };
   s.foes = Object.fromEntries(Object.entries(isPlain(s.foes) ? s.foes : {}).filter(([k, v]) => isPlain(v)).slice(0, 300).map(([k, v]) => [k, { beaten: Math.max(0, Math.min(99, Math.floor(num(Number(v.beaten))))) }]));
@@ -97,12 +107,16 @@ export function sanitize(s) {
   s.grudges = (Array.isArray(s.grudges) ? s.grudges : []).map(sanitizeGrudge).filter(Boolean);
   for (const id of Object.keys(s.buildings)) {
     if (!BUILDINGS_BY_ID[id]) { delete s.buildings[id]; continue; }
-    s.buildings[id].lv = Math.max(0, Math.min(10, Math.floor(num(s.buildings[id].lv))));
+    s.buildings[id].lv = Math.max(0, Math.min(CONFIG.building.hardMax, Math.floor(num(s.buildings[id].lv))));
   }
   for (const id of Object.keys(s.nemeses)) if (!NEMESES_BY_ID[id]) delete s.nemeses[id];
   for (const id of Object.keys(s.reincarnation.shop)) {
     const it = DAO_SHOP_BY_ID[id];
-    if (!it) delete s.reincarnation.shop[id]; else s.reincarnation.shop[id] = Math.max(0, Math.min(it.maxLv, Math.floor(num(s.reincarnation.shop[id]))));
+    if (!it) { delete s.reincarnation.shop[id]; continue; }
+    const saved = Math.max(0, Math.floor(num(s.reincarnation.shop[id])));
+    s.reincarnation.shop[id] = Math.min(it.maxLv, saved);
+    // 上限調降（例如守廟靈獸 10→6）時，超出的等級依當初的價格退還道心
+    for (let l = it.maxLv; l < saved && l < 1000; l++) s.res.daoHeart = num(s.res.daoHeart) + Math.ceil(it.baseCost * it.growth ** l);
   }
   // 事件／訪客：id 已不存在就清掉，否則事件會永遠卡住
   if (!isPlain(s.incident)) s.incident = { current: null, nextAt: s.t };

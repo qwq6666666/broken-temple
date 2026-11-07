@@ -3,7 +3,8 @@ import { VISITOR_TYPES } from '../data/visitors.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
-import { gapInfo } from '../core/conceal.js';
+import { gapInfo, growthOf, isBitter, grudgeSize, bookUsed } from '../core/conceal.js';
+import { dismissCost } from '../core/endure.js';
 import { nemOf } from '../core/nemesis.js';
 import { recruitCost, weakOf } from '../core/burst.js';
 import { PERSONALITY_BIAS } from '../data/enemies.js';
@@ -28,13 +29,15 @@ export function avengePanel(s, ui) {
     const detail = `<small class="gap">對方 <b>${esc(gap.enemy)}</b>，你 <b>${esc(gap.me)}</b> — ${esc(gap.text)}</small>
       <small>五行：<b>${esc(gap.element)}</b>　${esc(advTxt)}</small>
       <div class="tags"><span class="tag">${esc(t.label)}</span> <span class="tag">${esc(g.personality)}</span>
-        ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${PERSONALITY_BIAS[g.personality]?.label ? `<span class="tag" title="個性偏好">${esc(PERSONALITY_BIAS[g.personality].label)}</span>` : ''}${g.ripe ? `<span class="tag gold">熟成 ${g.ripe}・獎勵 +${g.ripe * 25}%</span>` : ''}${g.foe ? `<span class="tag ${g.foe >= 3 ? 'gold' : ''}">${g.foe >= 3 ? '老對頭' : '舊識'}・擊敗過 ${g.foe} 次</span>` : ''}${nem && weakOf(g) ? `<span class="tag">弱點：${esc(weakOf(g))}</span>` : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}</div>`;
+        ${g.alert ? '<span class="tag red">警覺 ×0.7</span>' : ''}${PERSONALITY_BIAS[g.personality]?.label ? `<span class="tag" title="個性偏好">${esc(PERSONALITY_BIAS[g.personality].label)}</span>` : ''}${g.ripe ? `<span class="tag gold">熟成 ${g.ripe}・獎勵 +${g.ripe * 25}%</span>` : ''}${g.foe ? `<span class="tag ${g.foe >= 3 ? 'gold' : ''}">${g.foe >= 3 ? '老對頭' : '舊識'}・擊敗過 ${g.foe} 次</span>` : ''}${nem && weakOf(g) ? `<span class="tag">弱點：${esc(weakOf(g))}</span>` : ''}${g.returnBonus ? '<span class="tag gold">回頭客 獎勵×1.5</span>' : ''}
+        ${grudgeSize(g) > 1 ? `<span class="tag" title="長老與宿敵在復仇簿占 2 格">占 ${grudgeSize(g)} 格</span>` : ''}${isBitter(g) ? '<span class="tag red" title="在簿上太久，成長加速">怨毒</span>' : ''}<span class="tag ${growthOf(g) >= 1.6 ? 'red' : ''}" title="每分鐘成長 ×${growthOf(g).toFixed(2)}（個性 × 怨毒）">成長 ×${growthOf(g).toFixed(1)}</span></div>
+      ${nem ? '' : `<div class="row"><button class="btn mini" data-act="dismiss" data-gid="${g.id}" ${s.res.stone >= dismissCost(s).stone ? '' : 'disabled'}>🚪 逐出（${dismissCost(s).stone} 靈石）</button><small class="dim">不給獎勵，騰出 ${grudgeSize(g)} 格名額</small></div>`}`;
     return crow(ui, { key: 'g' + g.id, cls: `${nem ? 'nemesis' : ''} vr-${escapes ? 'fail' : gap.verdict}`, icon: nem ? nem.emoji : t.emoji,
       title: `<b>${esc(g.name)}</b>`, badges: nem ? ` <span class="tag gold">${g.awaken ? '覺醒宿敵' : '宿敵'}</span>` : '',
       sub: `${esc(gap.enemy)}・${esc(gap.element)}${gap.adv.mult > 1 ? '↑' : gap.adv.mult < 1 ? '↓' : ''}・${sectRole(g.sect, g.role)}`, act: `<span class="verdict ${v.c}">${v.t}</span>`, detail });
   }).join('') || '<p class="hint">復仇簿是空的。等人來嘲諷，然後忍著。</p>';
   const summary = s.grudges.length
-    ? `<div class="vsum"><span>復仇簿 ${s.grudges.length}/${CONFIG.visitor.maxGrudges}</span><span class="verdict v-crush">碾壓 ${cnt.crush}</span><span class="verdict v-narrow">險勝 ${cnt.narrow}</span><span class="verdict v-fail">打不過 ${cnt.fail}</span></div>`
+    ? `<div class="vsum"><span>復仇簿 ${bookUsed(s)}/${CONFIG.visitor.maxGrudges}</span><span class="verdict v-crush">碾壓 ${cnt.crush}</span><span class="verdict v-narrow">險勝 ${cnt.narrow}</span><span class="verdict v-fail">打不過 ${cnt.fail}</span></div>`
     : '';
 
   const recruits = s.recruits.length ? `<h3>降服弟子（待招募）</h3>` + s.recruits.map(r => {
@@ -48,10 +51,10 @@ export function avengePanel(s, ui) {
     </div>`;
   }).join('') : '';
 
-  const arts = s.artifacts.length ? `<h3>功法法寶（永久）</h3><div class="arts">` + s.artifacts.map(id => {
+  const arts = s.artifacts.length ? crow(ui, { key: 'avArts', icon: '📜', title: `<b>功法法寶 ${s.artifacts.length}</b>`, sub: '永久加成；點開查看', detail: '<div class="arts">' + s.artifacts.map(id => {
     const a = ARTIFACTS_BY_ID[id];
     return `<span class="art" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`;
-  }).join('') + '</div>' : '';
+  }).join('') + '</div>' }) : '';
 
   return `${summary}${rows}${recruits}${arts}`;
 }

@@ -2,14 +2,14 @@
 import { qiPerSec, stonePerSec, realmOf } from '../core/economy.js';
 import { fmt, fmtRate } from '../core/format.js';
 import { bus } from '../core/events.js';
-import { LINES, pickLine, idlePool } from '../data/lines.js';
-import { $, setHTML, setText, RES } from './dom.js';
+import { pickLine, idlePool } from '../data/lines.js';
+import { $, setHTML, setText } from './dom.js';
 import { mountScene, updateScene } from './sectView.js';
 import { mountConceal, updateConceal } from './concealView.js';
 import { buildingPanel } from './buildingPanel.js';
 import { realmPanel } from './realmPanel.js';
 import { gachaPanel } from './gachaPanel.js';
-import { disciplePanel } from './disciplePanel.js';
+import { disciplePanel, disciplePopover } from './disciplePanel.js';
 import { avengePanel } from './avengePanel.js';
 import { goalPanel } from './goalPanel.js';
 import { nemesisPanel } from './nemesisPanel.js';
@@ -46,7 +46,7 @@ export function createRenderer(s, ui) {
   const sceneRefs = mountScene(sceneEl);
   initParticles(sceneEl);
   const concealRefs = mountConceal(concealEl);
-  const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar'), hintEl = $('#hint');
+  const panelEl = $('#panel'), tabsEl = $('#tabs'), resEl = $('#resbar'), hintEl = $('#hint'), dmodalEl = $('#dmodal');
   // 資源列骨架
   resEl.innerHTML = [['qi', '✨ 靈氣'], ['stone', '💎 靈石'], ['realm', '境界']]
     .map(([k, l]) => `<div class="res ${k === 'realm' ? 'realm' : ''}" data-k="${k}"><span>${l}</span><b></b><small></small></div>`).join('');
@@ -81,6 +81,7 @@ export function createRenderer(s, ui) {
 
     // 下一步提示（可關閉；在「說明」裡重新開啟）
     const hint = getPrefs().hints ? nextStep(s) : null;
+    hintEl.classList.toggle('urgent', !!hint && hint.goto === 'scene');      // 手機：只有「要立刻處理」的提示（訪客、引爆、求和）才黏在頂端
     setHTML(hintEl, hint ? `<span class="hbulb">💡 下一步</span><span class="htext">${hint.text}</span>${hint.tab ? `<button class="btn mini" data-act="tab" data-tab="${hint.tab}">前往</button>` : hint.goto ? '<button class="btn mini" data-act="gotoScene">前往</button>' : ''}<button class="hx" data-act="hideHints" title="隱藏提示">✕</button>` : '');
 
     updateScene(sceneEl, sceneRefs, s, ui);
@@ -105,6 +106,10 @@ export function createRenderer(s, ui) {
     const tip = tipId ? `<div class="tip ${ui.tipOpen ? 'open' : ''}"><button class="tiphead" data-act="toggleTip" aria-expanded="${!!ui.tipOpen}">💡 本頁說明 <span>${ui.tipOpen ? '▴' : '▾'}</span></button>${ui.tipOpen ? `<span class="tiptext">${TAB_TIPS[tipId]}</span>` : ''}<button class="btn mini" data-act="dismissTip" data-tab="${tipId}">知道了</button></div>` : '';
     const body = open.map(m => (open.length > 1 ? `<h3 class="sub">${SUB_TITLE[m] || ''}</h3>` : '') + PANELS[m](s, ui)).join('');
     setHTML(panelEl, tip + body);
+    // 弟子彈出面板（不在 #panel 裡，捲動與重繪互不影響）；離開弟子頁或弟子不存在就關掉
+    if (ui.tab !== 'people' || (ui.dModal && !s.disciples.some(d => d.uid === ui.dModal))) ui.dModal = null;
+    const dm = ui.dModal ? disciplePopover(s, ui) : '';
+    setHTML(dmodalEl, dm); document.body.classList.toggle('dm-open', !!dm);
   }
   return render;
 }

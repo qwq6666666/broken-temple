@@ -8,7 +8,7 @@ export const VISITOR_TYPES = {
   rival:  { id: 'rival',  label: '他宗弟子', emoji: '🤺', weight: 36, rare: false, offset: [0, 3],
             sects: ['赤焰谷', '落霞宗', '玄冰門', '百煉閣', '萬劍山莊'], roles: ['親傳弟子', '首席弟子', '真傳'],
             showOff: { win: { qiSec: 30, surrender: 0.25 }, winText: '當場折服：獲得少量靈氣，有機會直接降服為弟子' } },
-  elder:  { id: 'elder',  label: '長老', emoji: '🧙', weight: 12, rare: true, offset: [3, 5],
+  elder:  { id: 'elder',  label: '長老', emoji: '🧙', size: 2, weight: 12, rare: true, offset: [3, 5],
             sects: ['青雲宗', '赤焰谷', '天機閣', '萬劍山莊'], roles: ['長老', '護法長老', '執法長老'],
             showOff: { offends: true } },    // 長老得罪不起：不論勝負都吃虧
   trader: { id: 'trader', label: '商隊散修', emoji: '🐪', weight: 14, rare: true, offset: [-1, 2],

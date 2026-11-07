@@ -26,5 +26,12 @@ export const BONDS = [
   { id: 'night', name: '守夜人', a: 'laozhou', b: 'bingxin', effect: { pauseCut: 0.12 }, line: '兩個都不愛說話的守夜人，值班時整座廟安靜得連老鼠都不敢出聲。' },
   { id: 'dock', name: '碼頭兄弟', a: 'shuisheng', b: 'liuzi', effect: { showOffReward: 0.15 }, line: '一個撐船一個挑水，在哪兒都能吵起來。' },
   { id: 'elders', name: '老前輩們', a: 'taixu', b: 'xuantian', effect: { power: 0.06 }, line: '兩位活了不知道多久的前輩，湊一起只聊「當年」。' },
+  // ── 新增：第二批高稀有度弟子的緣分 ──
+  { id: 'orchard', name: '林下聽音', a: 'mulinyin', b: 'baixt', effect: { qiMult: 0.05 }, line: '兩個都聽得懂植物的人，田裡的靈苗長得像在排隊。' },
+  { id: 'oldtree', name: '老樹新苗', a: 'cangwu', b: 'xiaocui', effect: { stoneMult: 0.06 }, line: '一個是老樹，一個是孤兒，一起蹲在田埂上看天。' },
+  { id: 'wall', name: '沉默之牆', a: 'tiebuyu', b: 'laozhou', effect: { pauseCut: 0.12 }, line: '兩面牆站在一起，連風都學會了繞路。' },
+  { id: 'mountshield', name: '山與盾', a: 'zhenyue', b: 'shigan', effect: { endureLoss: 0.12 }, line: '一個背山，一個擋刀，後面的人終於能打個盹。' },
+  { id: 'tide', name: '潮汐星圖', a: 'guixu', b: 'luoshen', effect: { rare: 0.06 }, line: '一個讀潮，一個讀星，合起來幾乎沒有看不見的東西。' },
+  { id: 'bragging', name: '吹牛二人組', a: 'moxiaotian', b: 'liuzi', effect: { showOffReward: 0.15 }, line: '一個吹牛一個接話，場面上沒人能贏他們。' },
   { id: 'redice', name: '谷裡谷外', a: 'chiyuan', b: 'zhaoling', effect: { pauseCut: 0.12 }, line: '一個是陣法天才，一個是畫陣膽小鬼，剛好互相教學。' },
 ];

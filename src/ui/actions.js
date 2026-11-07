@@ -24,11 +24,10 @@ import * as Ex from '../core/expeditions.js';
 import { toast, quote } from '../core/events.js';
 import { LINES } from '../data/lines.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
-import { RARITY_ORDER } from '../data/gachaRates.js';
 import { playBreakthrough, playBurst, closeOverlay, showBurstPreview, showRebirthConfirm, showHelp, showOfflineResult, showStory, showStoryLog, showAscend } from './overlay.js';
-import { sfx, unlock, applyVolume } from './audio.js';
+import { sfx, unlock } from './audio.js';
 import { getPrefs, setPref } from './prefs.js';
-import { ghostOut, ripple, pulse } from './fx.js';
+import { ghostOut, ripple } from './fx.js';
 import { burstAt, converge, centerOf } from './particles.js';
 import { playPull } from './pullFx.js';
 import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from './saveMenu.js';
@@ -36,7 +35,7 @@ import { saveNow, openExport, copyExport, openImport, doImport, resetSave } from
 export function bindActions(s, ui, rerender) {
   const act = {
     tab: el => {
-      ui.tab = el.dataset.tab; ui.lastPull = null;        // 招賢結果只顯示一次：離開分頁就清掉
+      ui.tab = el.dataset.tab; ui.lastPull = null; ui.dModal = null;        // 招賢結果只顯示一次：離開分頁就清掉；弟子彈出面板也關掉
       // 手機版：全景在上、內容在下，切換分頁後自動捲到內容區
       if (globalThis.matchMedia?.('(max-width: 860px)').matches) setTimeout(() => document.getElementById('right')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
     },
@@ -75,6 +74,7 @@ export function bindActions(s, ui, rerender) {
     },
     closeBuilding: () => { ui.selBuilding = null; },
     upgrade: el => { if (B.upgrade(s, el.dataset.id)) sfx('upgrade'); },
+    upgradeN: el => { const n = B.upgradeN(s, el.dataset.id, el.dataset.n === 'max' ? Infinity : +el.dataset.n); if (n) { sfx('upgrade'); toast(`升了 ${n} 級`, 'good'); } },
     breakthrough: async () => {
       if (ui.busy) return;
       const res = R.breakthrough(s);
@@ -123,9 +123,10 @@ export function bindActions(s, ui, rerender) {
       const r = E.showOff(s);
       if (r) { toast(r.line, r.outcome === 'beat' ? 'good' : 'info'); sfx(r.outcome === 'beat' ? 'crush' : 'show'); }
     },
+    dismiss: el => { const r = E.dismiss(s, +el.dataset.gid); if (r) { sfx('click'); toast(`已請「${r.name}」離開（−${r.cost} 靈石），名額 +1`, 'info'); } else toast('靈石不夠，或這位不能逐出', 'warn'); },
     recruit: el => {
       const r = X.recruit(s, +el.dataset.uid);
-      if (r) { toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧩${r.shards}`, 'good'); sfx('coin'); }
+      if (r) { toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧬專屬碎片 +${r.shards}${r.uni ? `、🧩+${r.uni}` : ''}`, 'good'); sfx('coin'); }
     },
     // 第一步：先看預覽（可以反悔）
     burst: () => {
@@ -156,12 +157,19 @@ export function bindActions(s, ui, rerender) {
     help: () => showHelp(false),
     autoAssign: () => { const r = autoAssign(s); if (r.placed) { sfx('upgrade'); toast(`已補位 ${r.placed} 位弟子`, 'good'); } else toast(r.total ? '沒有空著的駐守位' : '沒有未派駐的弟子', 'info'); },
     dSort: el => { ui.dSort = el.dataset.v; }, dFilter: el => { ui.dFilter = el.dataset.v; },
-    toggleD: el => { ui.dOpen = { ...(ui.dOpen || {}), [el.dataset.uid]: !(ui.dOpen || {})[el.dataset.uid] }; },
+    openD: el => { ui.dModal = +el.dataset.uid; sfx('click'); },
+    closeD: () => { ui.dModal = null; },
+    dNav: el => {                                                      // 彈出面板：上一位／下一位（依目前排序與篩選的順序，循環）
+      const order = (ui.dOrder && ui.dOrder.includes(ui.dModal)) ? ui.dOrder : s.disciples.map(d => d.uid);
+      const i = order.indexOf(ui.dModal); if (i < 0) return;
+      ui.dModal = order[(i + +el.dataset.d + order.length) % order.length]; sfx('click');
+    },
+    levelAll: () => { const n = D.levelUpAll(s); if (n) { sfx('upgrade'); toast(`共升級 ${n} 級`, 'good'); } },
     toggleBonds: () => { ui.bondsOpen = !ui.bondsOpen; },
     slotPick: el => { ui.pickB = el.dataset.b && ui.pickB !== el.dataset.b ? el.dataset.b : null; },
     slotAssign: el => { if (D.assign(s, +el.dataset.uid, el.dataset.b)) sfx('click'); else toast('駐守位已滿或弟子在探索中', 'warn'); },
     unassign: el => { D.assign(s, +el.dataset.uid, null); },
-    toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: !(ui.rowOpen || {})[el.dataset.key] }; },
+    toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: !(el.dataset.open !== undefined ? el.dataset.open === 'true' : !!(ui.rowOpen || {})[el.dataset.key]) }; },       // data-open＝畫面上目前狀態（含預設展開）；沒有就用 ui.rowOpen
     upgradeAll: () => { const n = B.upgradeAll(s); if (n) { sfx('upgrade'); toast(`共升級 ${n} 級`, 'good'); } },
     equipTitle: el => { Ach.equip(s, s.achv.title === el.dataset.id ? null : el.dataset.id); },
     offlineChoose: el => {
@@ -193,6 +201,11 @@ export function bindActions(s, ui, rerender) {
     toggleHints: el => { setPref('hints', el.checked); },
     toggleLoss: el => { s.settings.loss = el.checked; },
   };
+  // 鍵盤：Esc 關閉彈出面板；Enter／空白鍵可「按下」role=button 的方塊（弟子牌、精簡列）
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && ui.dModal) { ui.dModal = null; return; }
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target?.matches?.('[role=button][data-act]')) { ev.preventDefault(); ev.target.click(); }
+  });
   document.addEventListener('pointerdown', unlock, { once: false });
   document.addEventListener('pointerdown', e => { const b = e.target.closest?.('.btn'); if (b) ripple(b, e.clientX, e.clientY); });
   updateMenu();

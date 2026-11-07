@@ -9,6 +9,7 @@ import { rollSurrender } from './endure.js';
 import { canAfford, pay } from './resources.js';
 import { fmt } from './format.js';
 import { quote, toast, cue } from './events.js';
+import { lvEff } from './buildingMath.js';
 
 const scheduleNext = s => { s.incident.nextAt = s.t + randInt(T.minSec, T.maxSec) * 1000; };
 
@@ -42,7 +43,7 @@ export function tick(s) {
 
 // 結算效果；out 累積實際結果供摘要使用
 function applyEffects(s, e, out) {
-  const armor = e.armorByArray ? Math.max(0.2, 1 - s.buildings.array.lv * 0.08) : 1;
+  const armor = e.armorByArray ? Math.max(0.2, 1 - lvEff(s.buildings.array.lv) * 0.08) : 1;
   if (e.qiSec) { const n = qiPerSec(s) * e.qiSec; s.res.qi += n; out.push(`✨靈氣 +${fmt(n)}`); }
   if (e.stoneSec) { const n = Math.max(1, stonePerSec(s) * e.stoneSec); s.res.stone += n; out.push(`💎靈石 +${fmt(n)}`); }
   if (e.token) { s.res.token += e.token; out.push(`🎫招賢令 +${e.token}`); }

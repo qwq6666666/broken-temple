@@ -6,22 +6,25 @@ import { defOf, starOf } from './discipleMath.js';
 import { discipleDiscount } from './economy.js';
 import { perm } from './dao.js';
 import { slots } from './buildings.js';
+import { lvEff } from './buildingMath.js';
 import { canAfford, pay } from './resources.js';
 
-// 新增弟子；已擁有同一位 → 轉為碎片
+export const dshardsOf = (s, defId) => s.dshards?.[defId] || 0;
+// 新增弟子；已擁有同一位 → 轉為「該弟子的專屬碎片」（只能替他升星；通用碎片另有來源）
 export function addDisciple(s, defId) {
   const exist = s.disciples.find(d => d.defId === defId);
   if (exist) {
     const rar = RARITIES[defOf(exist).rarity];
-    s.res.shard += rar.shard;
-    return { isNew: false, shards: rar.shard, disciple: exist };
+    (s.dshards ||= {})[defId] = dshardsOf(s, defId) + rar.shard;
+    const uni = Math.round(rar.shard * CONFIG.disciple.dupUniversal); s.res.shard += uni;          // 另給少量通用碎片
+    return { isNew: false, shards: rar.shard, uni, disciple: exist };
   }
   const d = { uid: s.nextUid++, defId, lv: 1, at: null, star: 0 };
   s.disciples.push(d);
   return { isNew: true, shards: 0, disciple: d };
 }
 
-export const levelCap = s => CONFIG.disciple.baseLevelCap + s.buildings.arena.lv * CONFIG.disciple.capPerArenaLevel + s.buildings.hall.lv + perm(s, 'discipleCap');   // 演武場、傳功殿、專精
+export const levelCap = s => CONFIG.disciple.baseLevelCap + Math.floor(lvEff(s.buildings.arena.lv) * CONFIG.disciple.capPerArenaLevel + lvEff(s.buildings.hall.lv) + 1e-9) + perm(s, 'discipleCap');   // 演武場、傳功殿、專精
 // 個別弟子的等級上限：全域上限 + 每星 +2
 export const levelCapOf = (s, d) => levelCap(s) + CONFIG.disciple.starCap * starOf(d);
 
@@ -38,6 +41,18 @@ export function levelUp(s, uid) {
   return true;
 }
 
+// 全部升級：反覆挑「買得起且最便宜」的弟子升一級，直到沒有買得起的（最多 2000 次防呆）。回傳升了幾級
+export function levelUpAll(s) {
+  let n = 0;
+  for (; n < 2000; n++) {
+    const opts = s.disciples.filter(d => canLevel(s, d));
+    if (!opts.length) break;
+    opts.sort((a, b) => levelCost(s, a).qi - levelCost(s, b).qi);
+    levelUp(s, opts[0].uid);
+  }
+  return n;
+}
+
 export const assignedTo = (s, bid) => s.disciples.filter(d => d.at === bid);
 
 // 派駐：bid=null 為取消
@@ -52,16 +67,24 @@ export function assign(s, uid, bid) {
   return true;
 }
 
-// 升星：花碎片，屬性與特性 +25%、等級上限 +2；滿星回傳 null
+// 升星：屬性與特性 +25%、等級上限 +2；滿星回傳 null。
+// starCost 是需要的「弟子專屬碎片」數；不夠的部分可用通用碎片抵（每 1 片專屬碎片 = CONFIG.disciple.shardSwap 片通用碎片）
 export function starCost(d) {
   const tbl = CONFIG.disciple.starCost[defOf(d).rarity];
   return starOf(d) >= CONFIG.disciple.starMax ? null : { shard: tbl[starOf(d)] };
 }
-export const canStar = (s, d) => { const c = starCost(d); return !!c && canAfford(s, c); };
+// 實際支付方式：{ need 需要, own 用掉的專屬碎片, uni 要付的通用碎片, ok 付得起 }
+export function starPay(s, d) {
+  const c = starCost(d); if (!c) return null;
+  const own = Math.min(dshardsOf(s, d.defId), c.shard), uni = (c.shard - own) * CONFIG.disciple.shardSwap;
+  return { need: c.shard, own, uni, ok: s.res.shard >= uni };
+}
+export const canStar = (s, d) => !!starPay(s, d)?.ok;
 export function starUp(s, uid) {
   const d = s.disciples.find(x => x.uid === uid);
   if (!d || !canStar(s, d)) return false;
-  pay(s, starCost(d)); d.star = starOf(d) + 1;
+  const p = starPay(s, d);
+  s.dshards[d.defId] = dshardsOf(s, d.defId) - p.own; s.res.shard -= p.uni; d.star = starOf(d) + 1;
   return true;
 }
 

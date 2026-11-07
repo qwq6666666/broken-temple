@@ -2,13 +2,14 @@
 import { REALMS, TIER_NAMES } from '../data/realms.js';
 import { CONFIG } from '../config.js';
 import { nextRealm, breakCost, canBreak } from '../core/realm.js';
+import { capAtRealm, extraLevels } from '../core/buildings.js';
 import { fmt } from '../core/format.js';
 import { canRebirth, daoGain } from '../core/dao.js';
 import { mutatorOf } from '../core/mutators.js';
 import { esc, costChips, RES } from './dom.js';
 import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
 
-const capAt = i => Math.min(CONFIG.building.maxLevel, 1 + Math.floor(i * CONFIG.building.levelCapRealmFactor));
+const capAt = (s, i) => capAtRealm(i, extraLevels(s));
 
 // 分段大階：每個大境界一列，段內以小點表示層數（已過＝實心、目前＝金色、未到＝空心）
 function stages(s) {
@@ -23,7 +24,7 @@ function stages(s) {
 export function realmPanel(s) {
   const cur = REALMS[s.realmIdx], nx = nextRealm(s);
   const cost = nx ? breakCost(s) : null, ok = nx && canBreak(s);
-  const capNow = capAt(s.realmIdx), capNext = nx ? capAt(nx.idx) : capNow;
+  const capNow = capAt(s, s.realmIdx), capNext = nx ? capAt(s, nx.idx) : capNow;
   const showPower = s.grudges.length > 0 || !!s.unlocked.avenge;       // 戰力只有打臉預估用得到
   const diff = nx ? `<div class="diff"><span>產出 <b>×${fmt(cur.mult)}</b> → <b class="gold">×${fmt(nx.mult)}</b></span>
       ${capNext > capNow ? `<span>建築上限 <b>Lv${capNow}</b> → <b class="gold">Lv${capNext}</b></span>` : ''}</div>` : '';
@@ -46,7 +47,7 @@ function rebirthBox(s) {
   if (!canRebirth(s)) return '';
   return `<div class="card rebirth">
     <div class="big">☯️</div>
-    <div class="body"><b>轉生</b><br><small>重置建築、境界、資源與弟子等級，換取 <b class="gold">道心 ${fmt(daoGain(s))}</b>（本輪：引爆 ${s.run.bursts} 次、最大連鎖 ${s.run.maxChain}、擊敗宿敵 ${s.run.nemeses}、完成大事 ${s.run.goals}）。弟子收藏、法寶、大事、宿敵進度全部保留。</small></div>
+    <div class="body"><b>轉生</b> <span class="tag gold">道心 +${fmt(daoGain(s))}</span><br><small>本輪：引爆 ${s.run.bursts}・連鎖 ${s.run.maxChain}・宿敵 ${s.run.nemeses}・大事 ${s.run.goals}</small><br><small class="dim">重置建築、境界、資源、弟子等級；收藏、法寶、大事、宿敵保留。</small></div>
     <div class="act"><button class="btn primary" data-act="rebirth">轉生</button></div></div>`;
 }
 

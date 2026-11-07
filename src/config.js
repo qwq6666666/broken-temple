@@ -6,16 +6,23 @@ export const CONFIG = {
   maxFrameMs: 30 * 60 * 1000,  // 單次時間差上限（防止系統休眠後暴衝）
   debug: { timeScale: 1 },     // 時間倍率；網址加 ?speed=10 可加速測試
 
-  start: { qi: 0, stone: 0, token: 3, templeLevel: 1 },
+  start: { qi: 0, stone: 0, token: 3, templeLevel: 10 },    // 破廟開局 10 級（舊刻度的 1 級）
   // 打坐（引氣）：有冷卻。收益 = max(保底, 每秒靈氣 × productionSec)，主動最多約為被動產出的 +50%
   click: { cooldownMs: 8000, productionSec: 4, base: 1, perTempleLevel: 0.5 },
   innateQiPerSec: 0.5,                       // 破廟的基礎產出（不受暫停影響）
 
   building: {
-    maxLevel: 10,
-    costGrowth: 1.15,          // 成本 = 基礎成本 × costGrowth ^ 目前等級
-    slotEvery: 3,              // 每 N 級多一個弟子駐守位（1 + floor((lv-1)/N)）
-    levelCapRealmFactor: 0.7,  // 建築等級上限 = min(10, 1 + floor(境界序號 × 0.7))，境界不夠就升不上去
+    maxLevel: 100,             // 境界給的等級上限（化神時）。道心商店「擴建」可再往上加（見 data/daoShop.js 的 expand）
+    hardMax: 1000,             // 絕對上限（存檔清理用）：100 + 擴建 90 級 × 10
+    levelScale: 10,            // 刻度：舊版滿級 10 級，現在 100 級。資料裡的「每級成本／產出／效果」仍以舊刻度書寫，程式再除以這個值
+    costGrowth: 1.0141,        // 成本 = 基礎成本 ÷ levelScale × costGrowth ^ 目前等級（100 級合計成長仍約 1.15^10 ≈ 4 倍）
+    slotEvery: 30,             // 每 N 級多一個弟子駐守位（1 + floor((lv-1)/N)）：第 1／31／61／91 級
+    levelCapBase: 10,          // 凡人時的等級上限（相當於舊版第 1 級）
+    levelCapRealmFactor: 6.93, // 建築等級上限 = min(100, 10 + floor(境界序號 × 6.93))，境界不夠就升不上去
+    produceNorm: 1.4,          // 產出建築的每級產出 = 舊值 ÷ levelScale ÷ produceNorm（讓下面的里程碑倍率整體中性）
+    // 里程碑：等級達到時，會產出的建築（破廟／靈田／煉丹房）產出累計倍率。取不超過目前等級的最後一項
+    // 100 級之後每 100 級再 ×1.25（累計：200 級 2.5、1000 級約 14.9），讓擴建出來的等級有盼頭
+    milestones: [[10, 1.1], [25, 1.25], [50, 1.5], [75, 1.75], [100, 2], [200, 2.5], [300, 3.13], [400, 3.9], [500, 4.88], [600, 6.1], [700, 7.63], [800, 9.54], [900, 11.92], [1000, 14.9]],
   },
 
   // 補滿空位的建築價值權重（× 建築等級）：把弟子放進「實際產出價值高」的建築。0 表示不考慮（如不產出的建築）
@@ -44,6 +51,8 @@ export const CONFIG = {
     starBonus: 0.25,           // 每星：屬性與特性效果 +25%
     starCap: 2,                // 每星：該弟子等級上限 +2
     // 升到第 1/2/3 星所需碎片（依稀有度）；碎片與築基以上突破共用，需要取捨
+    dupUniversal: 0.25,        // 抽到重複弟子時，除了專屬碎片，另給「稀有度碎片數 × 此比例」的通用碎片（保留專長心得等的來源）
+    shardSwap: 2,              // 升星時，缺的「弟子碎片」可用通用碎片抵，每 1 片弟子碎片要 N 片通用碎片
     starCost: { N: [5, 15, 40], R: [8, 24, 60], SR: [12, 36, 90], SSR: [20, 60, 150], UR: [30, 90, 220] },
   },
 
@@ -52,7 +61,8 @@ export const CONFIG = {
     pitySR: 50,                // 50 抽保底 SR 以上
     pitySSR: 90,               // 90 抽保底 SSR 以上
     tenPull: 10,
-    tokenTrickleSec: 120,      // 每 120 秒自然獲得 1 招賢令
+    tokenTrickleSec: 240,      // 每 120 秒自然獲得 1 招賢令
+    burstTokenScale: 0.05,       // 引爆時每位仇人的招賢令乘數（宿敵獎勵不受影響）；引爆是招賢令的最大來源，調收藏節奏先動這裡
   },
 
   realm: {
@@ -73,14 +83,21 @@ export const CONFIG = {
   visitor: {
     firstSec: 25,              // 第一位訪客出現時間
     minSec: 50, maxSec: 100,   // 之後每位訪客的間隔
-    maxGrudges: 15,            // 復仇簿上限（滿了就不再來人）
+    maxGrudges: 12,            // 復仇簿容量（滿了就不再來人）；長老、宿敵占 2 格（見 data/visitors 的 size）
+    dismissSec: 30,            // 逐出一位仇人（不給獎勵、騰出名額）的花費：約 N 秒靈石產出
     rareWeightScale: 4,        // 稀有類型權重 × (1 + 稀有機率 × 此值)
   },
 
   endure: {
     disguiseGain: 1,           // 忍氣吞聲 +偽裝值
     streakStep: 0.25,          // 憋屈值：連續忍氣吞聲，損失倍率 +25%/次
-    streakMaxMult: 3,          // 損失倍率上限 ×3（亮一手或引爆後歸零）
+    streakMaxMult: 3,          // 連續忍的倍率上限 ×3（亮一手或引爆後歸零）
+    bookStep: 0.04,            // 積怨壓力：復仇簿每多 1 人，忍的損失 +4%
+    chargeStep: 0.6,           // 積怨壓力：偽裝值越接近滿格越痛（滿格時 +60%）
+    maxMult: 6,                // 忍的損失總倍率上限（憋屈 × 積怨）
+    pauseMaxMs: 15 * 60 * 1000, // 建築暫停時間上限
+    fame: { max: 5, ms: 15 * 60 * 1000, bonus: 0.04 },   // 亮一手打臉得「威名」：每層靈氣、靈石 +4%，最多 5 層，15 分鐘（再打臉重新計時）
+    counterMult: 2,            // 亮一手時，若派駐弟子五行克制對方：即時獎勵 ×2、降服機率 ×1.5
     rashLossMult: 2,           // 打不過卻亮一手（逞強）：損失 ×2
     elderLossMult: 3,          // 得罪長老：損失 ×3
     loss: { stoneSec: 20, pauseMs: 5 * 60 * 1000 },   // 損失：約 20 秒的靈石產出（隨進度縮放，不會卡死囤積）或 建築暫停 5 分鐘
@@ -95,13 +112,16 @@ export const CONFIG = {
   },
 
   enemy: {
-    growthPerMin: 0.04,        // 仇人每分鐘成長的境界序號（約 25 分鐘一小階）
+    growthPerMin: 0.05,        // 仇人每分鐘成長的境界序號（約 20 分鐘一小階），再乘個性倍率
+    bitterMin: 60,             // 在簿上待滿這麼久（分鐘）成長加速到 +50%（怨毒），逐漸逼你處理
+    bitterMax: 0.5,
     alertMult: 0.7,            // 「警覺」仇人的爆擊獎勵倍率
     maxLevel: 13,
   },
 
   offline: {
     capMs: 8 * 3600 * 1000,    // 離線收益最多算 8 小時
+    maxEfficiency: 0.8,        // 離線效率上限（含道心「守廟靈獸」）；守廟靈獸最高級數 = (0.8 − efficiency) ÷ 每級，由測試檢查一致
     efficiency: 0.5,           // 離線產出效率（資源與招賢令）；偽裝蓄力與仇人成長照常進行
     minMs: 60 * 1000,          // 離開不到 1 分鐘不結算
     stepMs: 60 * 1000,         // 結算步長

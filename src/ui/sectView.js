@@ -1,29 +1,24 @@
 // 宗門全景：建築外觀隨等級里程碑改變、老祖對話、訪客卡、打坐按鈕。
-import { BUILDINGS } from '../data/buildings.js';
-import { VISITOR_TYPES, PERSONALITIES } from '../data/visitors.js';
-import { lvlLabel } from '../data/realms.js';
+import { BUILDINGS, BUILDINGS_BY_ID } from '../data/buildings.js';
+import { VISITOR_TYPES } from '../data/visitors.js';
+import { lvlLabel, REALMS } from '../data/realms.js';
 import { CONFIG } from '../config.js';
-import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked } from '../core/buildings.js';
+import { stageOf, stageIndex, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked, extraLevels, maxLevelOf } from '../core/buildings.js';
+import { upgradeButtons, milestoneText } from './buildingPanel.js';
 import { SPECS, SPEC_LEVEL, specText } from '../data/specs.js';
-import { FACTION_RULES as FR } from '../data/factions.js';
 import { tierOfSect, repOf } from '../core/factions.js';
-import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_TIERS } from '../data/factions.js';
-import { stonePerSec } from '../core/economy.js';
-import { chosenSpec, canChoose as canSpec } from '../core/spec.js';
-import { BUILDINGS_BY_ID } from '../data/buildings.js';
-import { REALMS } from '../data/realms.js';
+import { FACTION_RULES as FR, FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_TIERS } from '../data/factions.js';
+import { stonePerSec, realmOf, clickPower } from '../core/economy.js';
+import { chosenSpec } from '../core/spec.js';
 import { drawBuilding, POS, DRAW_ORDER, BACKDROP } from './sceneArt.js';
-import { realmOf } from '../core/economy.js';
-import { clickPower } from '../core/economy.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
-import { fmt, fmtTime } from '../core/format.js';
+import { fmt } from '../core/format.js';
 import { cooldownLeft, cooldownMs } from '../core/meditate.js';
 import { elementAdvantage, elementOfGrudge } from '../core/conceal.js';
 import { assess } from '../core/endure.js';
 import { nemOf } from '../core/nemesis.js';
 import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
-import { costChips } from './dom.js';
-import { esc, setHTML, setText, sectRole } from './dom.js';
+import { costChips, esc, setHTML, setText, sectRole } from './dom.js';
 
 export function mountScene(root) {
   const blds = DRAW_ORDER.map(id => {
@@ -77,7 +72,7 @@ export function updateScene(root, refs, s, ui) {
   for (const d of BUILDINGS) {
     const b = s.buildings[d.id], t = refs.tileEls[d.id], si = stageIndex(d.id, b.lv);
     const built = b.lv > 0, paused = built && s.t < b.pausedUntil;
-    setClass(t.el, `bld ${isBuildingUnlocked(s, d.id) ? '' : 'locked'} ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${b.lv >= CONFIG.building.maxLevel ? 'maxed' : ''} ${ui.selBuilding === d.id ? 'sel' : ''} st-${si}${t.el._pop ? ' popup' : ''}`);
+    setClass(t.el, `bld ${isBuildingUnlocked(s, d.id) ? '' : 'locked'} ${built ? '' : 'unbuilt'} ${paused ? 'paused' : ''} ${isMax(s, d.id) ? 'maxed' : ''} ${ui.selBuilding === d.id ? 'sel' : ''} st-${si}${t.el._pop ? ' popup' : ''}`);
     if (t.si !== si) { t.si = si; t.art.innerHTML = drawBuilding(d.id, si); }
     setText(t.chip, built ? 'Lv' + b.lv : '建造');
     const crew = s.disciples.filter(x => x.at === d.id).slice(0, 4);
@@ -111,13 +106,13 @@ function buildingPopover(s, id) {
   const crew = s.disciples.filter(x => x.at === id), paused = b.lv > 0 && s.t < b.pausedUntil;
   const max = isMax(s, id), capped = isCapped(s, id), can = canUpgrade(s, id);
   const action = max ? '<span class="tag gold">已滿級</span>'
-    : capped ? `<span class="tag red">需突破至 ${esc(REALMS[realmNeededFor(b.lv + 1)].name)}</span>`
-    : `<div class="costs">${costChips(s, upgradeCost(s, id))}</div><button class="btn ${can ? 'primary' : ''}" data-act="upgrade" data-id="${id}" ${can ? '' : 'disabled'}>${b.lv === 0 ? '建造' : '升級'}</button>`;
+    : capped ? `<span class="tag red">需突破至 ${esc(REALMS[realmNeededFor(b.lv + 1, extraLevels(s))].name)}</span>`
+    : `<div class="costs">${costChips(s, upgradeCost(s, id))}</div>${upgradeButtons(s, id)}`;
   return `<div class="bpop-card"><button class="hx" data-act="closeBuilding" title="關閉">✕</button>
-    <div class="row"><span class="bigemoji">${st.emoji}</span><b>${esc(d.name)}</b> <span class="lv">Lv ${b.lv}/${CONFIG.building.maxLevel}</span>
+    <div class="row"><span class="bigemoji">${st.emoji}</span><b>${esc(d.name)}</b> <span class="lv">Lv ${b.lv}/${maxLevelOf(s)}</span>
       <span class="tag">專長：${esc(d.specialty)}</span>${paused ? '<span class="tag red">⏸ 暫停產出中</span>' : ''}</div>
     <small>${esc(d.desc)}</small>
-    <small class="dim">${esc(st.label)}${next ? `　→　Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}</small>
+    <small class="dim">${esc(st.label)}${next ? `　→　Lv${next.lv}：${esc(next.label)}` : '（已臻極致）'}</small>${milestoneText(d, b.lv)}
     ${specBlock(s, id)}
     <div class="bpop-foot">
       <small>駐守 ${crew.length}/${slots(s, id)}：${crew.length ? crew.map(x => `${DISCIPLES_BY_ID[x.defId].emoji}${esc(DISCIPLES_BY_ID[x.defId].name)}`).join('、') : '<span class="dim">無（到「弟子」分頁派駐）</span>'}</small>
@@ -141,9 +136,9 @@ function visitorCard(s, entering = false) {
   const L = CONFIG.endure.loss;
   const lossOn = s.settings.loss;
   const endureText = `偽裝值 +${CONFIG.endure.disguiseGain}，記入復仇簿（保留連鎖與大獎勵）`
-    + (lossOn ? `；損失約 ${L.stoneSec} 秒靈石或建築暫停 ${L.pauseMs / 60000} 分${a.endureMult > 1 ? `　<b class="gold">憋屈 ×${a.endureMult.toFixed(2)}</b>` : ''}` : '（已關閉損失）');
+    + (lossOn ? `；損失約 ${L.stoneSec} 秒靈石或建築暫停 ${L.pauseMs / 60000} 分${a.endureMult > 1 ? `　<b class="gold">積怨 ×${a.endureMult.toFixed(2)}</b>` : ''}` : '（已關閉損失）');
   const showText = {
-    beat: `${a.winText}（對方不入簿、不加偽裝值）`,
+    beat: `${a.winText}（不入簿、不加偽裝值）<br><b class="gold">威名 +1</b>：靈氣、靈石 +${Math.round(CONFIG.endure.fame.bonus * 100)}%（${CONFIG.endure.fame.ms / 60000} 分鐘，最多 ${CONFIG.endure.fame.max} 層）・憋屈歸零${a.counter ? `<br><b class="gold">五行克制：即時獎勵 ×${CONFIG.endure.counterMult}</b>` : ''}`,
     rash: `<b class="red">⚠ 逞強</b>：打不過還亮，損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,
     nemesis: `<b class="red">⚠ 宿敵不能當場打倒</b>：損失 ×${a.showMult}，對方入簿（留到引爆再算帳，要碾壓才算擊敗）`,
     offend: `<b class="red">⚠ 長老得罪不起</b>：損失 ×${a.showMult}，對方警覺入簿（日後獎勵 ×${CONFIG.enemy.alertMult}）`,

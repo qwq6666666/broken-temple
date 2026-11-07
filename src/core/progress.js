@@ -1,13 +1,11 @@
 // 新手引導：分頁漸進解鎖與「下一步」提示。解鎖旗標存進存檔，轉生後也保留。
-import { REALMS } from '../data/realms.js';
 import { GOALS } from '../data/goals.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { canAfford } from './resources.js';
-import { upgradeCost, isCapped } from './buildings.js';
+import { upgradeCost, isCapped, slots } from './buildings.js';
 import { nextRealm, breakCost, canBreak } from './realm.js';
 import { canBurst } from './burst.js';
 import { canRebirth } from './dao.js';
-import { slots } from './buildings.js';
 import { isDone } from './goals.js';
 import { toast, cue } from './events.js';
 import { nextChapter } from './stories.js';
@@ -74,11 +72,11 @@ export function nextStep(s) {
   if (s.visitor.current?.returning === 'plead') return { text: s.visitor.current.tribute ? '勢力派人進貢：收下貢禮（威望 +3），或婉拒。' : '舊敵來求和：收下賠禮，或讓他滾。', goto: 'scene' };
   if (s.visitor.current) return { text: '有人來訪：忍氣吞聲（記入復仇簿），打得過也可「亮一手」。', goto: 'scene' };
   if (canBurst(s)) return { text: '偽裝值已滿，按「💥 不裝了」！', goto: 'scene' };
-  if (alch.lv === 0) {
+  if (alch.lv < 10 && !canBreak(s)) {
     const c = upgradeCost(s, 'alchemy');
     return canAfford(s, c)
-      ? { text: '建造「煉丹房」產靈石，突破要用。', tab: 'buildings' }
-      : { text: `累積 ${Math.ceil(c.qi)} 靈氣建「煉丹房」（可打坐加快）。` };
+      ? { text: alch.lv === 0 ? '建造「煉丹房」並升到 Lv10 產靈石，突破要用（可用 ×10 一次多升）。' : '把「煉丹房」升到 Lv10，靈石才夠突破用（可用 ×10 一次多升）。', tab: 'buildings' }
+      : { text: `累積 ${Math.ceil(c.qi)} 靈氣升「煉丹房」（可打坐加快）。` };
   }
   if (canBreak(s)) return { text: `靈石夠了，到「境界」突破 ${nextRealm(s).name}！`, tab: 'realm' };
   if (s.ascend.ready.length) return { text: '有天劫條件達成了，到「境界」的「天劫」按「渡劫」領獎勵與後日談。', tab: 'realm' };
@@ -99,7 +97,7 @@ export function nextStep(s) {
     const can = Object.values(BRANCHES).some(b => canAfford(s, b.cost));
     return can ? { text: '有弟子 Lv10 了，可以二選一進階。', tab: 'disciples' } : { text: '有弟子 Lv10 了，進階需要秘境材料（洞府殘玉或靈泉露），派隊伍去探索。', tab: 'expedition' };
   }
-  if (hasFeature(s, 'insight') && INSIGHTS.some(i => canLearn(s, i.spec) && insightActive(s, i.spec))) return { text: '有專長心得可以領悟（用碎片，該專長弟子要派駐中）。', tab: 'disciples' };
+  if (hasFeature(s, 'insight') && INSIGHTS.some(i => canLearn(s, i.spec) && insightActive(s, i.spec))) return { text: '有專長心得可以領悟（用通用碎片，該專長弟子要派駐中）。', tab: 'disciples' };
   if (s.artifacts.length && s.equipped.length < Math.min(EQUIP_SLOTS, s.artifacts.length)) return { text: '裝備欄還有空位：裝上法寶可獲得共鳴加成。', tab: 'goals' };
   const g = GOALS.find(x => !isDone(s, x.id));
   return g ? { text: `宗門大事：${g.name} — ${g.desc}`, tab: 'goals' } : null;
