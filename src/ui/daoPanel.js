@@ -26,9 +26,20 @@ export function daoPanel(s, ui) {
       act: max ? '<span class="tag gold">已滿級</span>' : `<div class="costs">${costChips(s, shopCost(s, it.id))}</div><button class="btn ${can ? 'primary' : ''}" data-act="daoBuy" data-id="${it.id}" ${can ? '' : 'disabled'}>修習</button>`,
       detail: `<small class="dim">每級 ${esc(fmtVal(it, it.perLevel))}</small>` });
   };
-  const grp = ids => DAO_SHOP.filter(it => ids.includes(it.id)).map(mk).join('');
+  // 分組可折疊：預設只展開「第一個有買得起項目」的組，其餘收起；玩家點過就依玩家的
+  const canG = ids => DAO_SHOP.some(it => ids.includes(it.id) && unlockedItem(s, it.id) && canBuy(s, it.id));
+  const firstOpen = GROUPS.findIndex(g => canG(g[1]));
+  const groupBox = ([title, ids], gi) => {
+    const items = DAO_SHOP.filter(it => ids.includes(it.id)), key = 'daoG' + gi;
+    const buyable = items.filter(it => unlockedItem(s, it.id) && canBuy(s, it.id)).length;
+    const saved = ui.rowOpen && ui.rowOpen[key], open = saved === undefined ? gi === firstOpen : !!saved;
+    const bought = items.reduce((a, it) => a + shopLevel(s, it.id), 0);
+    return `<div class="dgroup ${open ? 'open' : ''}"><div class="dghead" data-act="toggleRow" data-key="${key}" role="button" tabindex="0" aria-expanded="${open}">
+      <b>${title}</b><span class="dgsum">${buyable ? `<span class="tag gold">可修習 ${buyable}</span> ` : ''}<small class="dim">已修 ${bought} 級</small> <span class="cx">${open ? '▴' : '▾'}</span></span></div>
+      ${open ? items.map(mk).join('') : ''}</div>`;
+  };
   const extra = DAO_SHOP.filter(it => !it.gate && !KNOWN.has(it.id)).map(it => it.id);
-  const rows = [...GROUPS, ...(extra.length ? [['其他', extra]] : [])].map(([title, ids]) => `<h3 class="sub">${title}</h3>${grp(ids)}`).join(''), fruit = DAO_SHOP.filter(it => it.gate).map(mk).join('');
+  const rows = [...GROUPS, ...(extra.length ? [['其他', extra]] : [])].map(groupBox).join(''), fruit = DAO_SHOP.filter(it => it.gate).map(mk).join('');
   const ex = EXCHANGES.map(e => {
     const can = canAfford(s, { daoHeart: e.cost });
     return crow(ui, { key: 'dx' + e.id, cls: can ? 'affordable' : '', icon: e.icon, title: `<b>${esc(e.name)}</b>`, sub: esc(e.desc),

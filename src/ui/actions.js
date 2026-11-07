@@ -168,7 +168,7 @@ export function bindActions(s, ui, rerender) {
     slotPick: el => { ui.pickB = el.dataset.b && ui.pickB !== el.dataset.b ? el.dataset.b : null; },
     slotAssign: el => { if (D.assign(s, +el.dataset.uid, el.dataset.b)) sfx('click'); else toast('駐守位已滿或弟子在探索中', 'warn'); },
     unassign: el => { D.assign(s, +el.dataset.uid, null); },
-    toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: !(ui.rowOpen || {})[el.dataset.key] }; },
+    toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: el.getAttribute('aria-expanded') !== 'true' }; },
     upgradeAll: () => { const n = B.upgradeAll(s); if (n) { sfx('upgrade'); toast(`共升級 ${n} 級`, 'good'); } },
     equipTitle: el => { Ach.equip(s, s.achv.title === el.dataset.id ? null : el.dataset.id); },
     offlineChoose: el => {

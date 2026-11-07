@@ -799,3 +799,9 @@ body.dm-open { overflow: hidden; }
 .tslot.full { border: 2px solid var(--rc); background: rgba(217,182,74,.14); color: var(--paper); cursor: pointer; } .tslot.full b { font-size: .78em; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; } .tslot.full small { font-size: .66em; color: var(--dim); }
 .egroup { color: var(--dim); font-size: .78em; margin-top: 2px; }
 .teambar .chips { margin: 0; }
+
+/* 道心商店分組（可折疊） */
+.dgroup { margin-bottom: 6px; }
+.dghead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-height: 40px; }
+.dgroup.open .dghead { border-color: var(--gold); margin-bottom: 6px; }
+.dgsum { display: flex; align-items: center; gap: 6px; }
