@@ -750,7 +750,7 @@ t('道心：轉生次數自動加成、打坐冷卻、招賢令、離線上限�
   s.reincarnation.shop.cd = 4; assert.equal(M.cooldownMs(s), CONFIG.click.cooldownMs - 2000);
   s.reincarnation.shop.cd = 6; s.reincarnation.shop.cd = 99; assert.ok(M.cooldownMs(s) >= 2000);
   const a = createState(), b = createState(); b.reincarnation.shop.token = 5;
-  eco.tick(a, 90000); eco.tick(b, 90000); assert.ok(b.res.token > a.res.token);
+  eco.tick(a, 1200000); eco.tick(b, 1200000); assert.ok(b.res.token > a.res.token);
   const o1 = createState(), o2 = createState(); o2.reincarnation.shop = { offcap: 2, offeff: 4 };
   assert.equal(applyOffline(o2, 100 * 3600000).usedMs, CONFIG.offline.capMs + 2 * 3600000);
   assert.ok(applyOffline(o2, 3600000).efficiency > applyOffline(o1, 3600000).efficiency);
@@ -954,7 +954,7 @@ t('鎮魔塔／傳功殿／靈獸園的效果', () => {
   assert.equal(D.levelCap(s), cap0 + 4); assert.ok(Math.abs(eco.discipleDiscount(s) - dis0 - 0.08) < 1e-9);
   const r0 = eco.rareChance(s); s.buildings.beast.lv = 50; assert.ok(Math.abs(eco.rareChance(s) - r0 - 0.10) < 1e-9);
   const a = createState(), b = createState(); b.buildings.beast.lv = 100;
-  eco.tick(a, 90000); eco.tick(b, 90000); assert.ok(b.res.token > a.res.token);
+  eco.tick(a, 300000); eco.tick(b, 300000); assert.ok(b.res.token > a.res.token);
 });
 
 t('專精：升到 Lv5 才能選、二選一、效果生效、轉生後重選', () => {
