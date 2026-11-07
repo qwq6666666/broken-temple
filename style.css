@@ -789,3 +789,13 @@ body.dm-open { overflow: hidden; }
 .etile .esp { position: absolute; left: 4px; bottom: 3px; font-size: .8em; font-weight: bold; padding: 0 5px; border-radius: 4px; background: rgba(0,0,0,.55); color: var(--paper); }
 .etile .emt { position: absolute; right: 4px; bottom: 3px; color: var(--jade); font-size: .85em; }
 .etile.match { border-color: var(--jade); } .etile .eck { position: absolute; right: 4px; bottom: 3px; color: var(--gold); font-weight: bold; } .etile.on .emt { display: none; }
+
+/* 組隊：頂部固定隊伍欄 */
+.teambar { position: sticky; top: 0; z-index: 6; background: var(--panel); border-bottom: 1px solid var(--line); margin: -10px -12px 0; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 6px 10px -6px rgba(0,0,0,.6); border-radius: 10px 10px 0 0; }
+.tbtop, .tbgo { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; } .tbacts { display: flex; gap: 6px; } .tbstat { font-size: .9em; }
+.tslots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tslot { min-height: 48px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font: inherit; line-height: 1.15; min-width: 0; padding: 2px 4px; }
+.tslot.empty { border: 1px dashed var(--line); color: var(--dim); font-size: .8em; }
+.tslot.full { border: 2px solid var(--rc); background: rgba(217,182,74,.14); color: var(--paper); cursor: pointer; } .tslot.full b { font-size: .78em; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; } .tslot.full small { font-size: .66em; color: var(--dim); }
+.egroup { color: var(--dim); font-size: .78em; margin-top: 2px; }
+.teambar .chips { margin: 0; }

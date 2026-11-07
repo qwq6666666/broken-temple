@@ -61,22 +61,34 @@ export function expeditionPanel(s, ui) {
   let teamBox = '';
   if (picked && EXPEDITIONS_BY_ID[picked] && isUnlocked(s, EXPEDITIONS_BY_ID[picked])) {
     const e = EXPEDITIONS_BY_ID[picked], free = freeDisciples(s);
-    const sorted = [...free].sort((a, b) => memberScore(s, picked, b.uid) - memberScore(s, picked, a.uid));
-    const chips = sorted.map(d => {
-      const df = DISCIPLES_BY_ID[d.defId], on = team.includes(d.uid), match = (e.want.specialty && df.specialty === e.want.specialty) || (e.want.element && df.element === e.want.element);
+    const r0 = e.req || {};
+    const helps = d => { const df = DISCIPLES_BY_ID[d.defId]; return !!((r0.anyElement && r0.anyElement.includes(df.element)) || (r0.specialty && df.specialty === r0.specialty)); };
+    const isMatch = d => { const df = DISCIPLES_BY_ID[d.defId]; return !!((e.want.specialty && df.specialty === e.want.specialty) || (e.want.element && df.element === e.want.element)); };
+    // 符合限制的排前面 → 相合 → 貢獻高
+    const sorted = [...free].sort((a, b) => (helps(b) - helps(a)) || (isMatch(b) - isMatch(a)) || memberScore(s, picked, b.uid) - memberScore(s, picked, a.uid));
+    const tile = d => {
+      const df = DISCIPLES_BY_ID[d.defId], on = team.includes(d.uid), match = isMatch(d);
       return `<button class="etile rar-${df.rarity} ${on ? 'on' : ''} ${match ? 'match' : ''}" style="--rc:${RARITIES[df.rarity].color}" data-act="expToggle" data-uid="${d.uid}" aria-pressed="${on}" aria-label="${esc(df.name)}，${esc(df.element)}系${esc(df.specialty)}，等級 ${d.lv}${match ? '，相合' : ''}">
         <span class="eem">${df.emoji}</span><span class="enm">${esc(df.name)}</span><span class="eel e-${esc(df.element)}">${esc(df.element)}</span>
         <span class="elv"><small>Lv</small>${d.lv}</span><span class="esp">${esc(df.specialty.slice(0, 1))}</span>${match ? '<span class="emt" title="相合：貢獻更高">✦</span>' : ''}${on ? '<span class="eck">✓</span>' : ''}</button>`;
-    }).join('') || '<small class="dim">沒有可派遣的弟子（都在探索中，或還沒有弟子）。</small>';
+    };
+    const need = sorted.filter(helps), rest = sorted.filter(d => !helps(d)), split = need.length && rest.length;
+    const group = (title, list) => list.length ? `${title ? `<small class="egroup">${title}（${list.length}）</small>` : ''}<div class="etiles">${list.map(tile).join('')}</div>` : '';
+    const chips = free.length ? (split ? group('✔ 符合限制的弟子', need) + group('其他弟子', rest) : group('', sorted)) : '<small class="dim">沒有可派遣的弟子（都在探索中，或還沒有弟子）。</small>';
     const rc = reqCheck(s, e, team), legal = team.length && rc.ok, can = legal && used < slots, ch = team.length ? successChance(s, picked, team) : 0;
     const bt = bestTeam(s, picked);
-    teamBox = `<div class="teambox"><b>組隊：${esc(e.name)}</b> <small class="dim">（最多 ${R.maxTeam} 位；出發後隊員會從建築撤下）</small>
-      ${(e.req ? `<div class="chips">${reqTags(s, e, team)}</div>` : '')}
-      <div class="row"><button class="btn" data-act="expAuto" ${bt ? '' : 'disabled'}>⚡ 推薦隊伍${bt ? `（成功率 ${Math.round(bt.chance * 100)}%）` : ''}</button>
-        ${team.length ? '<button class="btn mini" data-act="expClear">清空</button>' : ''}</div>
-      <div class="etiles">${chips}</div><small class="dim">右上＝五行　左下＝專長（劍／丹／陣／農／體）　✦＝相合（貢獻更高）</small>
-      <div class="row">${team.length ? `<span>隊伍戰力 <b class="gold">${fmt(teamPower(s, picked, team))}</b> / 難度 ${e.difficulty}　成功率 <b class="gold">${Math.round(ch * 100)}%</b></span>` : '<small class="dim">請選擇隊員，或按「推薦隊伍」</small>'}
-        <button class="btn ${can ? 'primary' : ''}" data-act="expGo" ${can ? '' : 'disabled'}>${used >= slots ? '探索位已滿' : team.length && !rc.ok ? '不符合限制' : '出發'}</button></div></div>`;
+    const slotsHtml = Array.from({ length: R.maxTeam }, (_, i) => {
+      const d = s.disciples.find(x => x.uid === team[i]), df = d && DISCIPLES_BY_ID[d.defId];
+      return d ? `<button class="tslot full" style="--rc:${RARITIES[df.rarity].color}" data-act="expToggle" data-uid="${d.uid}" title="點一下移出隊伍" aria-label="移出 ${esc(df.name)}">${df.emoji}<b>${esc(df.name)}</b><small>Lv${d.lv}・${esc(df.element)}${esc(df.specialty.slice(0, 1))}</small></button>` : '<span class="tslot empty">空位</span>';
+    }).join('');
+    teamBox = `<div class="teambox"><div class="teambar">
+      <div class="tbtop"><b>組隊：${esc(e.name)}</b><span class="tbacts"><button class="btn mini" data-act="expAuto" ${bt ? '' : 'disabled'}>⚡ 推薦${bt ? ` ${Math.round(bt.chance * 100)}%` : ''}</button>${team.length ? '<button class="btn mini" data-act="expClear">清空</button>' : ''}</span></div>
+      <div class="tslots">${slotsHtml}</div>
+      ${e.req ? `<div class="chips">${reqTags(s, e, team)}</div>` : ''}
+      <div class="tbgo">${team.length ? `<span class="tbstat">戰力 <b class="gold">${fmt(teamPower(s, picked, team))}</b> / 難度 ${e.difficulty}　成功率 <b class="gold">${Math.round(ch * 100)}%</b></span>` : '<small class="dim">選隊員，或按「推薦」</small>'}
+        <button class="btn ${can ? 'primary' : ''}" data-act="expGo" ${can ? '' : 'disabled'}>${used >= slots ? '探索位已滿' : team.length && !rc.ok ? '不符合限制' : '出發'}</button></div></div>
+      <small class="dim">最多 ${R.maxTeam} 位；出發後隊員會從建築撤下。右上＝五行　左下＝專長（劍／丹／陣／農／體）　✦＝相合（貢獻更高）</small>
+      ${chips}</div>`;
   }
   return `${pendingBox(ui, s)}<p class="hint">🧭 探索位 ${used}/${slots}。派遣中的弟子無法派駐。</p>${claimAll}${doneRows}${runRows}${teamBox}<h3 class="sub">秘境</h3>${realms}`;
 }
