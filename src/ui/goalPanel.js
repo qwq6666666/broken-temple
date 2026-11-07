@@ -85,7 +85,7 @@ export function goalPanel(s, ui) {
         <small class="dim">${fmt(cur)}/${fmt(g.target)}　🎁 ${esc(rewardText(g.reward))}</small></div></div>`;
   };
   const todo = GOALS.filter(g => !isDone(s, g.id)), fin = GOALS.filter(g => isDone(s, g.id));
-  const byPct = [...todo].sort((a, b) => progress(s, b) / b.target - progress(s, a) / a.target), TOP = 6;
+  const byPct = [...todo].sort((a, b) => progress(s, b) / b.target - progress(s, a) / a.target), TOP = 3;
   const near = byPct.slice(0, TOP), later = byPct.slice(TOP);
   const rows = near.map(card).join('')
     + (later.length ? crow(ui, { key: 'goalslater', icon: '🎯', title: `<b>其餘 ${later.length} 項大事</b>`, sub: '進度較少，點開查看', detail: later.map(card).join('') }) : '')
@@ -99,6 +99,7 @@ export function goalPanel(s, ui) {
     : `<span class="art off">❔ 未獲得<small>長老被爆時掉落</small></span>`).join('');
   return `${gloryBox(s, ui)}${commissionBox(s)}${equipBox(s, ui)}${hasFeature(s, 'achv') ? achievementBox(s, ui) : ''}${hasFeature(s, 'chron') ? chronicleBox(s, ui) : ''}
     <h3 class="sub">🎯 宗門大事 ${done}/${GOALS.length}</h3>${rows}
-    <h3>弟子圖鑑 ${owned.size}/${DISCIPLES.length}</h3><div class="dexgrid">${dex}</div>
-    <h3>功法法寶圖鑑 ${s.artifacts.length}/${ARTIFACTS.length}</h3><div class="arts">${arts}</div>`;
+    <h3 class="sub">📚 圖鑑</h3>
+    ${crow(ui, { key: 'dexD', icon: '👥', title: `<b>弟子圖鑑 ${owned.size}/${DISCIPLES.length}</b>`, sub: '點開看收集進度', detail: `<div class="dexgrid">${dex}</div>` })}
+    ${crow(ui, { key: 'dexA', icon: '📜', title: `<b>功法法寶圖鑑 ${s.artifacts.length}/${ARTIFACTS.length}</b>`, sub: '點開看已獲得的法寶', detail: `<div class="arts">${arts}</div>` })}`;
 }

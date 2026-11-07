@@ -48,10 +48,10 @@ export function avengePanel(s, ui) {
     </div>`;
   }).join('') : '';
 
-  const arts = s.artifacts.length ? `<h3>功法法寶（永久）</h3><div class="arts">` + s.artifacts.map(id => {
+  const arts = s.artifacts.length ? crow(ui, { key: 'avArts', icon: '📜', title: `<b>功法法寶 ${s.artifacts.length}</b>`, sub: '永久加成；點開查看', detail: '<div class="arts">' + s.artifacts.map(id => {
     const a = ARTIFACTS_BY_ID[id];
     return `<span class="art" title="${esc(a.desc)}">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`;
-  }).join('') + '</div>' : '';
+  }).join('') + '</div>' }) : '';
 
   return `${summary}${rows}${recruits}${arts}`;
 }
