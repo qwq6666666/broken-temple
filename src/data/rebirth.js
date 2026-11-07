@@ -4,6 +4,7 @@ export const REBIRTH_KEEP = [
   { label: '弟子收藏與星級（等級與派駐、進階會重置）', keys: ['disciples', 'dshards', 'nextUid', 'nextGid', 'recruits'] },
   { label: '碎片、功勳、秘境材料', res: k => k === 'shard' || k === 'merit' || k.startsWith('mat_') },
   { label: '功法法寶與裝備', keys: ['artifacts', 'equipped'] },
+  { label: '歷史最高境界（舊路重走：之後突破打折）', keys: ['frontier'] },
   { label: '宗門大事、成就與稱號、年表、委託進度、宗門榮耀', keys: ['goalsDone', 'achv', 'chronicle', 'commissions', 'glory', 'weekly'] },
   { label: '專長心得、出戰陣容', keys: ['insight', 'squad'] },
   { label: '秘境探索度與發現事件', keys: ['explore', 'exMile'] },

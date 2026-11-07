@@ -1,10 +1,10 @@
 // 境界面板：目前境界與倍率、下一境界成本、突破按鈕。
 import { REALMS, TIER_NAMES } from '../data/realms.js';
 import { CONFIG } from '../config.js';
-import { nextRealm, breakCost, canBreak } from '../core/realm.js';
+import { nextRealm, breakCost, canBreak, oldPath, breakDiscount } from '../core/realm.js';
 import { capAtRealm, extraLevels } from '../core/buildings.js';
 import { fmt } from '../core/format.js';
-import { canRebirth, daoGain } from '../core/dao.js';
+import { canRebirth, daoGain, realmDaoFactor } from '../core/dao.js';
 import { mutatorOf } from '../core/mutators.js';
 import { esc, costChips, RES } from './dom.js';
 import { EXPEDITIONS_BY_ID } from '../data/expeditions.js';
@@ -32,7 +32,8 @@ export function realmPanel(s) {
     <div class="big">🧘</div>
     <div class="body">
       <div class="row"><b style="font-size:1.3em">${esc(cur.name)}</b> <span class="tag gold">產出 ×${fmt(cur.mult)}</span>${showPower ? ` <span class="tag">戰力 ×${fmt(cur.power)}</span>` : ''}</div>
-      ${nx ? `<small>下一境界：<b>${esc(nx.name)}</b></small>${diff}` : `<small>已臻化神。可以轉生，換取道心與永久加成了。</small>`}
+      ${nx ? `<small>下一境界：<b>${esc(nx.name)}</b>${oldPath(s, nx.idx) ? ` <span class="tag gold" title="走過的階：突破靈石 ×${CONFIG.realm.oldPath}（秘境材料仍需）">舊路重走 ×${breakDiscount(s, nx.idx).toFixed(2)}</span>` : ''}</small>${diff}` : `<small>已臻化神圓滿。可以轉生，換取道心與永久加成了。</small>`}
+      ${s.frontier > 0 ? `<small class="dim">歷史最高境界：${esc(REALMS[s.frontier].name)}（之後突破到此階以內，靈石打折）</small>` : ''}
     </div>
     ${nx ? `<div class="act breakact"><div class="costs lg">${costChips(s, cost)}</div>
       <button class="btn bigbtn ${ok ? 'primary' : ''}" data-act="breakthrough" ${ok ? '' : 'disabled'}>突破</button></div>` : ''}
@@ -47,7 +48,7 @@ function rebirthBox(s) {
   if (!canRebirth(s)) return '';
   return `<div class="card rebirth">
     <div class="big">☯️</div>
-    <div class="body"><b>轉生</b> <span class="tag gold">道心 +${fmt(daoGain(s))}</span><br><small>本輪：引爆 ${s.run.bursts}・連鎖 ${s.run.maxChain}・宿敵 ${s.run.nemeses}・大事 ${s.run.goals}</small><br><small class="dim">重置建築、境界、資源、弟子等級；收藏、法寶、大事、宿敵保留。</small></div>
+    <div class="body"><b>轉生</b> <span class="tag gold">道心 +${fmt(daoGain(s))}</span>${realmDaoFactor(s) < 1 ? ` <span class="tag" title="越高的境界轉生，道心越多；化神初期起為全額">境界 ×${realmDaoFactor(s).toFixed(2)}</span>` : realmDaoFactor(s) > 1 ? ` <span class="tag gold">境界 ×${realmDaoFactor(s).toFixed(2)}</span>` : ''}<br><small>本輪：引爆 ${s.run.bursts}・連鎖 ${s.run.maxChain}・宿敵 ${s.run.nemeses}・大事 ${s.run.goals}</small><br><small class="dim">重置建築、境界、資源、弟子等級；收藏、法寶、大事、宿敵保留。</small></div>
     <div class="act"><button class="btn primary" data-act="rebirth">轉生</button></div></div>`;
 }
 

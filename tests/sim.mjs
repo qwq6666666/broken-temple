@@ -31,7 +31,7 @@ import { meditate } from '../src/core/meditate.js';
 import { BUILDINGS } from '../src/data/buildings.js';
 import { ARTIFACTS_BY_ID as ARTS, EQUIP_SLOTS } from '../src/data/artifacts.js';
 import { isSpecialtyMatch } from '../src/core/discipleMath.js';
-import { REALMS } from '../src/data/realms.js';
+import { REALMS, fromLegacy } from '../src/data/realms.js';
 import * as Asc from '../src/core/ascend.js';
 import { NEMESES } from '../src/data/nemeses.js';
 
@@ -87,10 +87,10 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   // ascend：化神後有天劫待渡就渡（機器人沒有特別追條件，只是順勢達成的才算）；渡劫道心立刻進帳
   if (FLAG('ascend')) { Asc.tick(s); for (const id of [...s.ascend.ready]) { Asc.claim(s, id); once('天劫 ' + id + '（第 ' + (s.reincarnation.count + 1) + ' 世）', true); } }
   // 化神後轉生，並把道心花在商店
-  if ((FLAG('hunt') || FLAG('linger')) && s.realmIdx >= 13 && s.run.huntAt === undefined) s.run.huntAt = s.t;      // hunt：抵達化神的時間
+  if ((FLAG('hunt') || FLAG('linger')) && s.realmIdx >= 22 && s.run.huntAt === undefined) s.run.huntAt = s.t;      // hunt：抵達化神的時間
   const hunting = FLAG('hunt') && s.run.huntAt !== undefined && s.t - s.run.huntAt < HUNT_MIN * 60000 && (Nem.pickNemesis(s) || s.grudges.some(g => g.nemesisId) || s.visitor.current?.nemesisId);
   const lingering = FLAG('linger') && s.run.huntAt !== undefined && s.t - s.run.huntAt < (Number(process.env.LINGER) || 120) * 60000 && s.expeditions.length > 0;      // linger：化神後等派出去的秘境全部回來才轉生（上限 LINGER 分鐘，預設 120）
-  if (REBIRTH && Dao.canRebirth(s) && !hunting && !lingering) {
+  if (REBIRTH && Dao.canRebirth(s) && s.realmIdx >= Number(process.env.RB || 22) && !hunting && !lingering) {
     lives.push({ min: (s.t - lifeStart) / 60000, dao: Dao.daoGain(s), bursts: s.run.bursts, chain: s.run.maxChain, nd: NEMESES.filter(n => s.nemeses[n.id]?.defeated).length, side: NEMESES.filter(n => n.side && s.nemeses[n.id]?.defeated).length, aw: Object.values(s.nemeses).reduce((a, n) => a + (n.awakeLv || 0), 0), hs: Math.round((s.t - (s.run.huntAt ?? s.t)) / 60000), reach: ((s.run.huntAt ?? s.t) - lifeStart) / 60000, inc: RS('incidents'), endure: RS('endures'), exp: RS('expeditions') });
     Dao.rebirth(s, process.env.MUT || null); lifeStart = s.t;
     for (let again = true; again;) {
@@ -122,7 +122,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   if (!FLAG('noexp') && s.realmIdx >= 2 && step % 5 === 0) {
     for (let i = s.expeditions.length - 1; i >= 0; i--) if (s.expeditions[i].status === 'done') { const x = s.expeditions[i]; const cr = Ex.claim(s, i); s.simOK = s.simOK || {}; const o = s.simOK[x.id] ||= [0, 0]; o[cr?.success ? 0 : 1]++; if (cr?.artifact) s.simArt = (s.simArt || 0) + 1; if (cr?.recruit) s.simRec = (s.simRec || 0) + 1; (s.simExpLog ||= []).push(`  ↳ ${(s.t/3600000).toFixed(2)}h ${x.id} ${x.success ? '成功' : '失敗'} +${x.result.mat}`); }
     const want = {}, soon = {};                       // want：之後所有大境界的材料；soon：下一次突破就要用的
-    for (const [idx, c] of Object.entries(REALM_MATS)) if (Number(idx) > s.realmIdx) for (const [k, v] of Object.entries(c)) { want[k] = (want[k] || 0) + v; if (Number(idx) === s.realmIdx + 1 || Number(idx) === Math.max(10, s.realmIdx + 1)) soon[k] = (soon[k] || 0) + v; }
+    for (const [idx, c] of Object.entries(REALM_MATS)) if (fromLegacy(Number(idx)) > s.realmIdx) for (const [k, v] of Object.entries(c)) { want[k] = (want[k] || 0) + v; if (Number(idx) === s.realmIdx + 1 || Number(idx) === Math.max(10, s.realmIdx + 1)) soon[k] = (soon[k] || 0) + v; }
     if (FLAG('branch')) { want.mat_cave = (want.mat_cave || 0) + 2; want.mat_spring = (want.mat_spring || 0) + 2; }
     const HI = ['ruins', 'seal', 'rift'], pool = EXPEDITIONS.filter(e => !(FLAG('nohi') && HI.includes(e.id)));
     const mk = e => 'mat_' + matIdOf(e);

@@ -5,11 +5,11 @@ import { canAfford } from '../core/resources.js';
 import { fmt } from '../core/format.js';
 import { esc, costChips, crow } from './dom.js';
 
-const fmtVal = (it, v) => it.unit === '%' ? `+${Math.round(v * 100)}%` : it.unit === '秒' ? `-${v}秒` : `+${v}${it.unit === '小時' ? ' 小時' : it.unit === '級' ? ' 級' : ''}`;
+const fmtVal = (it, v) => it.neg ? `-${Math.round(v * 100)}%` : it.unit === '%' ? `+${Math.round(v * 100)}%` : it.unit === '秒' ? `-${v}秒` : `+${v}${it.unit === '小時' ? ' 小時' : it.unit === '級' ? ' 級' : ''}`;
 
 // 商店分組（未列入的非道果項目會補在「其他」，避免新增項目漏顯示）
 const GROUPS = [
-  ['✨ 修行加成', ['qi', 'stone', 'power']],
+  ['✨ 修行加成', ['qi', 'stone', 'power', 'breakcut']],
   ['💥 戰鬥與招賢', ['burst', 'disguise', 'token', 'cd']],
   ['🌙 離線與開局', ['offcap', 'offeff', 'startS', 'startT']],
   ['🏗️ 建築', ['expand']],

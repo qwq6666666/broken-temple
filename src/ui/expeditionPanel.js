@@ -7,7 +7,7 @@ import { EXPEDITIONS, EXPEDITIONS_BY_ID, EXP_RULES as R, reqLines, matIdOf } fro
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { ARTIFACTS_BY_ID } from '../data/artifacts.js';
-import { REALMS } from '../data/realms.js';
+import { REALMS, fromLegacy } from '../data/realms.js';
 import { slotCount, isUnlocked, freeDisciples, successChance, teamPower, reqCheck, bestTeam, memberScore } from '../core/expeditions.js';
 import { fmt } from '../core/format.js';
 import { esc, crow } from './dom.js';
@@ -46,7 +46,7 @@ export function expeditionPanel(s, ui) {
   const realms = EXPEDITIONS.map(e => {
     const open = isUnlocked(s, e), sel = picked === e.id;
     let sub;
-    if (!open) sub = `需突破至 ${esc(REALMS[e.unlockRealm].name)}`;
+    if (!open) sub = `需突破至 ${esc(REALMS[fromLegacy(e.unlockRealm)].name)}`;
     else {
       const bt = bestTeam(s, e.id), lines = reqLines(e);
       sub = `${bt ? `成功率 <b class="gold">${Math.round(bt.chance * 100)}%</b>` : '<span class="red">湊不出合法隊伍</span>'}${lines.length ? ` <span class="tag" title="${esc(lines.join('、'))}">限制 ${lines.length}</span>` : ''}`;
@@ -110,7 +110,7 @@ const rewardPreview = r => Object.entries(r).map(([k, v]) => ({ merit: `🏅${v}
 // 這個秘境的材料拿來做什麼
 function matUse(id) {
   const k = 'mat_' + matIdOf(EXPEDITIONS_BY_ID[id]), uses = [];
-  for (const [i, c] of Object.entries(REALM_MATS)) if (c[k]) uses.push(`突破到${REALMS[i].name}`);
+  for (const [i, c] of Object.entries(REALM_MATS)) if (c[k]) uses.push(`突破到${REALMS[fromLegacy(+i)].name}`);
   for (const b of Object.values(BRANCHES)) if (b.cost[k]) uses.push(`弟子進階「${b.name}」`);
   return uses.length ? `材料用途：${uses.join('、')}` : '';
 }

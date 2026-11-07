@@ -7,6 +7,7 @@
 //   cur/target  進度條；text 是畫面上的進度文字；failed 表示「本輪已不可能達成」（轉生後再試）。
 // 本輪統計請用 core/ascend.js 的 runStat（轉生當下會記錄基準）與 runMs（本輪經過時間）。
 import { fmtTime } from '../core/format.js';
+import { bigOf } from './realms.js';
 
 export const ASCEND_RULES = {
   minRealm: 13,                 // 化神
@@ -42,7 +43,7 @@ export const TRIALS = [
     story: ['心魔的第一句話', '心魔化作你最熟悉的樣子，開口只有一句：「你忍了那麼多次，不恨嗎？」你想了很久，回答：「恨。所以我記著。」心魔愣住，然後消散了。老祖輕聲道：「能把恨記成帳，而不是記成刀，你比我當年強。」'] },
   { id: 'hr2', heaven: 'heart', icon: '⏳', name: '速證大道', desc: '本輪開始起 2 小時內抵達化神',
     check: s => {
-      const left = ASCEND_RULES.speedLimitMs - runMs(s), reached = s.realmIdx >= ASCEND_RULES.minRealm;
+      const left = ASCEND_RULES.speedLimitMs - runMs(s), reached = bigOf(s) >= ASCEND_RULES.minRealm;
       return { cur: reached ? 1 : 0, target: 1, failed: left < 0, text: left < 0 ? '本輪已超時，轉生後再試' : `本輪還剩 ${fmtTime(left)}` };
     },
     reward: { dao: 10, perm: { powerMult: 0.04 } },

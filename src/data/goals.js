@@ -1,6 +1,6 @@
 // 宗門大事：階段目標。cur(s) 回傳目前進度，達到 target 即完成並發獎勵。
 // reward 可含 stone / token / qi（直接發放）與 perm（永久加成，鍵同法寶：qiMult、stoneMult、powerMult…）。
-import { REALMS } from './realms.js';
+import { REALMS, bigOf } from './realms.js';
 import { NEMESES } from './nemeses.js';
 import { ARTIFACTS, ARTIFACTS_BY_ID } from './artifacts.js';
 import { DISCIPLES } from './disciples.js';
@@ -10,7 +10,7 @@ const normalArts = s => s.artifacts.filter(id => !ARTIFACTS_BY_ID[id].unique).le
 const BASE6 = ['temple', 'field', 'alchemy', 'library', 'arena', 'array'];     // 後期建築不計入「全建築」目標
 const minBuilding = s => Math.min(...BASE6.map(id => s.buildings[id].lv));
 const maxStar = s => Math.max(0, ...s.disciples.map(d => d.star || 0));
-const realm = i => ({ cur: s => s.realmIdx, target: i });
+const realm = i => ({ cur: s => bigOf(s), target: i });
 
 export const GOALS = [
   { id: 'burst1',  name: '不裝了', desc: '完成第一次引爆', cur: s => s.stats.bursts, target: 1, reward: { token: 3, stone: 5 } },

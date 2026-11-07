@@ -4,7 +4,7 @@ import { CONFIG } from '../config.js';
 import { stageOf, upgradeCost, canUpgrade, isMax, isCapped, slots, realmNeededFor, isBuildingUnlocked, affordableLevels, milestoneMult, nextMilestone, extraLevels, maxLevelOf } from '../core/buildings.js';
 import { chosenSpec } from '../core/spec.js';
 import { specText } from '../data/specs.js';
-import { REALMS } from '../data/realms.js';
+import { REALMS, fromLegacy } from '../data/realms.js';
 import { esc, costChips, crow } from './dom.js';
 
 // 升級按鈕組：單升 + 批量（×10、最大）。批量按鈕只在買得起 2 級以上時可按
@@ -24,7 +24,7 @@ export function milestoneText(d, lv) {
 
 export function buildingPanel(s, ui) {
   const rows = BUILDINGS.map(d => {
-    if (!isBuildingUnlocked(s, d.id)) return crow(ui, { key: 'b' + d.id, cls: 'locked', icon: '🔒', title: `<b>${esc(d.name)}</b>`, sub: `需突破至 ${esc(REALMS[d.unlockRealm].name)}` });
+    if (!isBuildingUnlocked(s, d.id)) return crow(ui, { key: 'b' + d.id, cls: 'locked', icon: '🔒', title: `<b>${esc(d.name)}</b>`, sub: `需突破至 ${esc(REALMS[fromLegacy(d.unlockRealm)].name)}` });
     const lv = s.buildings[d.id].lv, st = stageOf(d.id, lv);
     const max = isMax(s, d.id), can = canUpgrade(s, d.id), next = d.stages.find(x => x.lv > lv), spec = chosenSpec(s, d.id);
     const act = max ? '<span class="tag gold">已滿級</span>'

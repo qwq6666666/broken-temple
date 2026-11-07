@@ -1,4 +1,5 @@
 // 器靈「老祖」的毒舌台詞。每類至少數句，隨機抽取。
+import { bigOf } from './realms.js';
 export const LINES = {
   idle: [
     '徒兒，這廟漏雨漏了三百年，你再不修，我就要長蘑菇了。',
@@ -54,7 +55,7 @@ LINES.idleFinal = ['九劫都過了？那……本座可以退休了嗎？……
 LINES.rebirth = ['輪迴一遭，這座破廟又換了新顏。……別急，這一次，你知道路了。', '重來一次。這回別再把靈石花在奇怪的地方。', '輪迴不是重來，是把上一世的帳，換個地方繼續算。', '本座在這裡等你。三千年都等了，不差這一輪。', '舊世已了，新世開張。老規矩：先修屋頂。'];
 // 目前進度能聽到的閒聊池
 export const idlePool = s => [...LINES.idle,
-  ...(s.realmIdx >= 10 ? LINES.idleMid : []), ...(s.realmIdx >= 13 ? LINES.idleLate : []),
+  ...(bigOf(s) >= 10 ? LINES.idleMid : []), ...(bigOf(s) >= 13 ? LINES.idleLate : []),
   ...(s.reincarnation.count >= 1 ? LINES.idleReb : []), ...((s.ascend?.done.length || 0) >= 1 ? LINES.idleAsc : []),
   ...((s.ascend?.done.length || 0) >= 9 ? LINES.idleFinal : [])];
 

@@ -1,7 +1,7 @@
 // 宿敵：條件判斷、登場、擊敗。
 import { CONFIG } from '../config.js';
 import { NEMESES, NEMESES_BY_ID, AWAKEN, ROMAN } from '../data/nemeses.js';
-import { REALMS } from '../data/realms.js';
+import { REALMS, bigOf, legacyF } from '../data/realms.js';
 import { randInt, randFloat, pick } from './rng.js';
 import { FACTIONS_BY_ID, FACTION_TIERS } from '../data/factions.js';
 import { tierOf } from './factions.js';
@@ -14,7 +14,7 @@ export const nemOf = g => NEMESES_BY_ID[g.nemesisId];
 // 條件是否達成（不含「是否已在場」）
 export function unlocked(s, n) {
   if (isDefeated(s, n.id)) return false;
-  if (s.realmIdx < (n.cond.minRealm || 0)) return false;
+  if (bigOf(s) < (n.cond.minRealm || 0)) return false;
   if (n.cond.faction && tierOf(s, n.cond.faction) < (n.cond.tier || 1)) return false;      // 勢力宿敵：該勢力威望要夠
   return !n.cond.prev || isDefeated(s, n.cond.prev);
 }
@@ -24,7 +24,7 @@ export const awakeLv = (s, id) => s.nemeses[id]?.awakeLv || 0;
 export const awakenRealm = n => Math.min(13, (n.cond.minRealm || 0) + AWAKEN.realmPlus);
 export function canAwaken(s, n) {
   const lv = awakeLv(s, n.id);
-  return isDefeated(s, n.id) && lv < AWAKEN.maxLv && s.reincarnation.count >= AWAKEN.needRebirth[lv] && s.realmIdx >= awakenRealm(n);
+  return isDefeated(s, n.id) && lv < AWAKEN.maxLv && s.reincarnation.count >= AWAKEN.needRebirth[lv] && bigOf(s) >= awakenRealm(n);
 }
 export const awakenNeedText = (s, n) => {
   const lv = awakeLv(s, n.id);
@@ -50,7 +50,7 @@ export function makeNemesisVisitor(s, n) {
   const awaken = isDefeated(s, n.id) ? (st.awakeLv || 0) + 1 : 0;            // 已擊敗過 → 這次是覺醒形態
   const taunt = awaken ? (n.awakenTaunts?.[awaken - 1] || AWAKEN.taunts[awaken - 1]) : n.intro[Math.min(st.met, n.intro.length - 1)];
   if (!awaken) st.met++;
-  const lvl = Math.max(0, Math.min(CONFIG.enemy.maxLevel, s.realmIdx + randInt(...n.offset) + awaken * AWAKEN.levelBoost)) + randFloat(0, 0.6);
+  const lvl = Math.max(0, Math.min(CONFIG.enemy.maxLevel, legacyF(s.realmIdx) + randInt(...n.offset) + awaken * AWAKEN.levelBoost)) + randFloat(0, 0.6);
   return { id: s.nextGid++, nemesisId: n.id, name: awaken ? `${n.name}・覺醒${ROMAN[awaken]}` : n.name, type: n.type, sect: n.sect, role: n.title,
            personality: n.personality, lvl, alert: false, taunt, awaken, element: n.element };
 }
