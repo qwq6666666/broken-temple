@@ -39,7 +39,8 @@ export function daoPanel(s, ui) {
       ${open ? items.map(mk).join('') : ''}</div>`;
   };
   const extra = DAO_SHOP.filter(it => !it.gate && !KNOWN.has(it.id)).map(it => it.id);
-  const rows = [...GROUPS, ...(extra.length ? [['其他', extra]] : [])].map(groupBox).join(''), fruit = DAO_SHOP.filter(it => it.gate).map(mk).join('');
+  const rows = [...GROUPS, ...(extra.length ? [['其他', extra]] : [])].map(groupBox).join(''), fruitItems = DAO_SHOP.filter(it => it.gate), fruitLocked = fruitItems.length && fruitItems.every(it => !unlockedItem(s, it.id));
+  const fruit = fruitLocked ? crow(ui, { key: 'dFruitLock', icon: '🔒', cls: 'locked', title: `<b>道果 ×${fruitItems.length}</b>`, sub: '渡過九重天劫後開放（見「天劫」）', detail: fruitItems.map(it => `<small>${it.icon} ${esc(it.name)}：${esc(it.desc)}</small>`).join('') }) : fruitItems.map(mk).join('');
   const ex = EXCHANGES.map(e => {
     const can = canAfford(s, { daoHeart: e.cost });
     return crow(ui, { key: 'dx' + e.id, cls: can ? 'affordable' : '', icon: e.icon, title: `<b>${esc(e.name)}</b>`, sub: esc(e.desc),
