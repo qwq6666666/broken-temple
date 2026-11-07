@@ -47,7 +47,7 @@ function rebirthBox(s) {
   if (!canRebirth(s)) return '';
   return `<div class="card rebirth">
     <div class="big">☯️</div>
-    <div class="body"><b>轉生</b><br><small>重置建築、境界、資源與弟子等級，換取 <b class="gold">道心 ${fmt(daoGain(s))}</b>（本輪：引爆 ${s.run.bursts} 次、最大連鎖 ${s.run.maxChain}、擊敗宿敵 ${s.run.nemeses}、完成大事 ${s.run.goals}）。弟子收藏、法寶、大事、宿敵進度全部保留。</small></div>
+    <div class="body"><b>轉生</b> <span class="tag gold">道心 +${fmt(daoGain(s))}</span><br><small>本輪：引爆 ${s.run.bursts}・連鎖 ${s.run.maxChain}・宿敵 ${s.run.nemeses}・大事 ${s.run.goals}</small><br><small class="dim">重置建築、境界、資源、弟子等級；收藏、法寶、大事、宿敵保留。</small></div>
     <div class="act"><button class="btn primary" data-act="rebirth">轉生</button></div></div>`;
 }
 

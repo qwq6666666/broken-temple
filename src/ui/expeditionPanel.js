@@ -49,12 +49,12 @@ export function expeditionPanel(s, ui) {
     if (!open) sub = `需突破至 ${esc(REALMS[e.unlockRealm].name)}`;
     else {
       const bt = bestTeam(s, e.id), lines = reqLines(e);
-      sub = `${bt ? `預估成功率 <b class="gold">${Math.round(bt.chance * 100)}%</b>` : '<span class="red">目前湊不出合法隊伍</span>'}${lines.length ? `・限制：${esc(lines.join('、'))}` : ''}`;
+      sub = `${bt ? `成功率 <b class="gold">${Math.round(bt.chance * 100)}%</b>` : '<span class="red">湊不出合法隊伍</span>'}${lines.length ? ` <span class="tag" title="${esc(lines.join('、'))}">限制 ${lines.length}</span>` : ''}`;
     }
     return crow(ui, { key: 'e' + e.id, cls: `${sel ? 'sel' : ''} ${open ? '' : 'locked'}`, icon: open ? e.emoji : '🔒',
       title: `<b>${esc(e.name)}</b> <small class="dim">${e.minutes} 分鐘・難度 ${e.difficulty}</small>${open ? exBadge(s, e.id) : ''}`, sub,
       act: open ? `<button class="btn ${sel ? 'primary' : ''}" data-act="expPick" data-id="${e.id}">${sel ? '選擇中' : '派遣'}</button>` : '',
-      detail: open ? `<small>${esc(e.desc)}</small><small class="dim">推薦 ${esc(wantText(e.want))}（相合者貢獻更高）</small><small>獎勵：${rewardText(e.reward, e.id)}　<span class="dim">${esc(matUse(e.id))}</span></small>` : '' });
+      detail: open ? `<small>${esc(e.desc)}</small>${reqLines(e).length ? `<small>限制：${esc(reqLines(e).join('、'))}</small>` : ''}<small class="dim">推薦 ${esc(wantText(e.want))}（相合者貢獻更高）</small><small>獎勵：${rewardText(e.reward, e.id)}　<span class="dim">${esc(matUse(e.id))}</span></small>` : '' });
   }).join('');
 
   // 組隊：限制逐條打勾、推薦隊伍、候選依貢獻排序（相合者標色）
@@ -94,7 +94,7 @@ export function expeditionPanel(s, ui) {
 }
 
 // ── 探索度 ──
-const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每升一級解鎖一則發現事件，且該秘境獎勵 +10%">探索 Lv${lv}${nx ? `（${exXp(s, id)}/${nx} 次）` : '・圓滿'}</span>`; };
+const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每升一級解鎖一則發現事件，且該秘境獎勵 +10%">探索 Lv${lv}${nx ? ` ${exXp(s, id)}/${nx}` : '・圓滿'}</span>`; };
 function pendingBox(ui, s) {
   const list = pendingEvents(s); if (!list.length) return '';
   return `<div class="exfind"><b class="gold">📜 新的發現（${list.length}）</b>` + list.map(({ id, lv }) => {
