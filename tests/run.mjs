@@ -753,8 +753,6 @@ t('道心：轉生次數自動加成、打坐冷卻、招賢令、離線上限�
   eco.tick(a, 1200000); eco.tick(b, 1200000); assert.ok(b.res.token > a.res.token);
   const o1 = createState(), o2 = createState(); o2.reincarnation.shop = { offcap: 2, offeff: 4 };
   assert.equal(applyOffline(o2, 100 * 3600000).usedMs, CONFIG.offline.capMs + 2 * 3600000);
-  const o3 = createState(); o3.reincarnation.count = 4; assert.equal(applyOffline(o3, 100 * 3600000).usedMs, CONFIG.offline.capMs + 2 * 3600000);   // 轉生 4 次 +2 小時
-  const o4 = createState(); o4.reincarnation.count = 99; assert.equal(applyOffline(o4, 100 * 3600000).usedMs, CONFIG.offline.capMs + 6 * 3600000);   // 上限 +6 小時
   assert.ok(applyOffline(o2, 3600000).efficiency > applyOffline(o1, 3600000).efficiency);
   const r = maxedRun(); r.reincarnation.shop = { startS: 2, startT: 3 }; Dao.rebirth(r);
   assert.equal(r.res.stone, CONFIG.start.stone + 30); assert.equal(r.res.token, CONFIG.start.token + 3);

@@ -9,7 +9,7 @@ export const DAO_SHOP = [
   { id: 'disguise',name: '藏鋒心法', icon: '🎭', key: 'disguiseRate', perLevel: 0.05, maxLv: 10, baseCost: 6,  growth: 1.4,  unit: '%', desc: '偽裝增速' },
   { id: 'token',   name: '招賢名聲', icon: '🎫', key: 'tokenRate',    perLevel: 0.10, maxLv: 10, baseCost: 5,  growth: 1.4,  unit: '%', desc: '招賢令自然增速' },
   { id: 'cd',      name: '吐納有道', icon: '🧘', key: 'cdCut',        perLevel: 0.5,  maxLv: 6,  baseCost: 4,  growth: 1.5,  unit: '秒', desc: '打坐冷卻縮短' },
-  { id: 'offcap',  name: '神遊太虛', icon: '🌙', key: 'offlineCap',   perLevel: 1,    maxLv: 8,  baseCost: 8,  growth: 1.5,  unit: '小時', desc: '離線收益上限（另有轉生次數自動加成）' },
+  { id: 'offcap',  name: '神遊太虛', icon: '🌙', key: 'offlineCap',   perLevel: 1,    maxLv: 8,  baseCost: 8,  growth: 1.5,  unit: '小時', desc: '離線收益上限' },
   { id: 'offeff',  name: '守廟靈獸', icon: '🐺', key: 'offlineEff',   perLevel: 0.05, maxLv: 10, baseCost: 8,  growth: 1.45, unit: '%', desc: '離線收益效率' },
   { id: 'startS',  name: '祖產傳承', icon: '🪙', key: 'startStone',   perLevel: 15,   maxLv: 20, baseCost: 3,  growth: 1.3,  unit: '靈石', desc: '轉生後開局靈石' },
   // 道果：九劫全渡後開放（gate: 'ascend'），上限很高、價格越來越貴——化神之後沒有終點的出口
