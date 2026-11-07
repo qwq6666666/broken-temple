@@ -775,3 +775,17 @@ body.dm-open { overflow: hidden; }
   .tab i.prog { display: none; }                       /* 手機：進度數字會壓到圖示，改看大事頁內的進度 */
   .stages { gap: 4px; margin-top: 8px; } .stage { flex: 1 1 30%; padding: 4px 6px; gap: 2px; }
 }
+
+/* 組隊：小方塊角色牌（右上五行、左下專長、中間等級） */
+.etiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+.etile { position: relative; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--rc); background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--rc) 22%, transparent), #0e1613 75%); color: var(--paper); font: inherit; cursor: pointer; padding: 0; overflow: hidden; min-width: 0; -webkit-tap-highlight-color: transparent; }
+.etile.rar-N { border-color: color-mix(in srgb, var(--rc) 55%, var(--line)); } .etile.rar-SR, .etile.rar-SSR, .etile.rar-UR { border-width: 3px; }
+.etile.on { background: rgba(217,182,74,.22); box-shadow: 0 0 0 2px var(--gold), 0 0 10px rgba(217,182,74,.5); }
+.etile .eem { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 36px; opacity: .22; }
+.etile .enm { position: absolute; top: 3px; left: 4px; right: 26px; font-size: .68em; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etile .eel { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .72em; font-weight: bold; color: #111; background: #bbb; }
+.e-金 { background: #e8d9a0 !important; } .e-木 { background: #7fcf8a !important; } .e-水 { background: #7fb6e8 !important; } .e-火 { background: #ef8a6a !important; } .e-土 { background: #c9a36a !important; }
+.etile .elv { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 1px; font-size: 1.5em; font-weight: bold; text-shadow: 0 1px 3px #000; } .etile .elv small { font-size: .45em; color: var(--dim); align-self: flex-end; margin-bottom: 10px; }
+.etile .esp { position: absolute; left: 4px; bottom: 3px; font-size: .8em; font-weight: bold; padding: 0 5px; border-radius: 4px; background: rgba(0,0,0,.55); color: var(--paper); }
+.etile .emt { position: absolute; right: 4px; bottom: 3px; color: var(--jade); font-size: .85em; }
+.etile.match { border-color: var(--jade); } .etile .eck { position: absolute; right: 4px; bottom: 3px; color: var(--gold); font-weight: bold; } .etile.on .emt { display: none; }
