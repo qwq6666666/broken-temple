@@ -94,11 +94,17 @@ export function affordableLevels(s, id, cap = Infinity) {
 // 全部升級：反覆挑「買得起且最便宜」的建築升一級，直到沒有買得起的（最多 3000 次防呆）。回傳升了幾級。
 export function upgradeAll(s) {
   let n = 0;
+  const costOf = id => (isBuildingUnlocked(s, id) && !isCapped(s, id) ? upgradeCost(s, id) : null);
+  const cost = Object.fromEntries(Object.keys(s.buildings).map(id => [id, costOf(id)]));      // 每棟的下一級成本只算一次；升級後只重算那一棟
   for (; n < 3000; n++) {
-    const opts = Object.keys(s.buildings).filter(id => canUpgrade(s, id)).map(id => [id, Object.values(upgradeCost(s, id)).reduce((a, v) => a + v, 0)]);
-    if (!opts.length) break;
-    opts.sort((a, b) => a[1] - b[1]);
-    upgrade(s, opts[0][0], true);
+    let pick = null, pv = Infinity;
+    for (const id of Object.keys(cost)) {
+      const c = cost[id]; if (!c || !canAfford(s, c)) continue;
+      const v = Object.values(c).reduce((a, x) => a + x, 0);
+      if (v < pv) { pv = v; pick = id; }
+    }
+    if (!pick) break;
+    upgrade(s, pick, true); cost[pick] = costOf(pick);
   }
   if (n) { quote(pickLine(LINES.upgrade)); cue('buildingUp', { id: null, stage: false }); }       // 只播一次，避免一口氣升上百級時台詞與音效洗版
   return n;

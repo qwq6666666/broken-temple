@@ -72,7 +72,7 @@ export function nextStep(s) {
   if (s.visitor.current?.returning === 'plead') return { text: s.visitor.current.tribute ? '勢力派人進貢：收下貢禮（威望 +3），或婉拒。' : '舊敵來求和：收下賠禮，或讓他滾。', goto: 'scene' };
   if (s.visitor.current) return { text: '有人來訪：忍氣吞聲（記入復仇簿），打得過也可「亮一手」。', goto: 'scene' };
   if (canBurst(s)) return { text: '偽裝值已滿，按「💥 不裝了」！', goto: 'scene' };
-  if (alch.lv < 10) {
+  if (alch.lv < 10 && !canBreak(s)) {
     const c = upgradeCost(s, 'alchemy');
     return canAfford(s, c)
       ? { text: alch.lv === 0 ? '建造「煉丹房」並升到 Lv10 產靈石，突破要用（可用 ×10 一次多升）。' : '把「煉丹房」升到 Lv10，靈石才夠突破用（可用 ×10 一次多升）。', tab: 'buildings' }

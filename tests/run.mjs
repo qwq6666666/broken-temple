@@ -53,6 +53,8 @@ import { STORIES, STORIES2 } from '../src/data/stories.js';
 import { BONDS } from '../src/data/bonds.js';
 import { TRAITS } from '../src/data/traits.js';
 import { DISCIPLES, DISCIPLES_BY_ID } from '../src/data/disciples.js';
+import { RARITIES } from '../src/data/gachaRates.js';
+import { DAO_SHOP_BY_ID } from '../src/data/daoShop.js';
 import * as Prog from '../src/core/progress.js';
 import { stepParticle, moteCount } from '../src/ui/particles.js';
 import { drawBuilding, POS, DRAW_ORDER, BACKDROP } from '../src/ui/sceneArt.js';
@@ -1888,6 +1890,59 @@ t('宿敵場上上限：同時最多 3 位；擊敗後才會再來；存檔與�
   const back = S.parse(S.serialize(m)).state; assert.ok(back.nemeses.jiao.defeated);
   const bad = createState(); bad.nemeses = { jiao: { met: 1, defeated: true }, nobody: { met: 1 } }; sanitize(bad); assert.ok(bad.nemeses.jiao && !bad.nemeses.nobody);
 });
+
+// ── 程式審查修正的回歸測試 ──
+t('引爆招賢令：乘 burstTokenScale 後的小數餘數跨仇人累計，不會逐人四捨五入成 0', () => {
+  const old = CONFIG.gacha.burstTokenScale; CONFIG.gacha.burstTokenScale = 0.1;
+  try {
+    let sum = 0, bursts = 0;
+    for (let i = 0; i < 40; i++) {
+      const s = createState(); s.realmIdx = 3; s.res.stone = 500; s.buildings.alchemy.lv = 10; s.disguise.value = 99; s.settings.loss = false;
+      s.grudges = [1, 2, 3, 4, 5].map(id => visitor('former', 0, { id }));
+      const r = X.burst(s); if (r) { sum += r.total.token; bursts++; }
+    }
+    assert.ok(bursts > 0 && sum > 0, `早期引爆應拿得到招賢令（${bursts} 次、共 ${sum} 張）`);
+  } finally { CONFIG.gacha.burstTokenScale = old; }
+});
+
+t('下一步提示：煉丹房未滿 10 級但已能突破時，優先提示突破', () => {
+  const s = createState(); s.unlocked.realm = true; s.res.qi = 1e9; s.res.stone = 1e9; s.buildings.alchemy.lv = 3; s.visitor.current = null; s.disguise.value = 0;
+  s.realmIdx = 0; s.res.stone = 1e9; assert.ok(R.canBreak(s), '前提：已能突破');
+  assert.equal(Prog.nextStep(s).tab, 'realm');
+});
+
+t('存檔：道心商店等級超過新上限時截斷並退還多花的道心；缺 version 的檔案被拒絕', () => {
+  const s = createState(); s.reincarnation.shop.offeff = 9; s.res.daoHeart = 0;
+  const c = S.sanitize(s); assert.equal(c.reincarnation.shop.offeff, 6);
+  const it = DAO_SHOP_BY_ID.offeff, want = [6, 7, 8].reduce((a, l) => a + Math.ceil(it.baseCost * it.growth ** l), 0);
+  assert.equal(c.res.daoHeart, want);
+  assert.equal(S.sanitize(c).res.daoHeart, want);                                   // 再清理一次不會重複退
+  assert.throws(() => S.parse(JSON.stringify({ savedAt: Date.now(), state: { res: {}, buildings: { temple: { lv: 3, pausedUntil: 0 } } } })));   // 缺 version 的檔在解析階段就拒絕（遷移內再保險）
+});
+
+t('離線效率上限由 CONFIG.offline.maxEfficiency 決定，且守廟靈獸最高級剛好到上限', () => {
+  const it = DAO_SHOP_BY_ID.offeff;
+  assert.ok(Math.abs(CONFIG.offline.efficiency + it.maxLv * it.perLevel - CONFIG.offline.maxEfficiency) < 1e-9);
+  const o = createState(); o.reincarnation.shop = { offeff: it.maxLv };
+  assert.ok(Math.abs(applyOffline(o, 3600000).efficiency - CONFIG.offline.maxEfficiency) < 1e-9);
+});
+
+t('抽到重複弟子：專屬碎片全額，另給少量通用碎片', () => {
+  const s = createState();
+  const def = DISCIPLES.find(d => d.rarity === 'SR'); D.addDisciple(s, def.id);
+  const r = D.addDisciple(s, def.id), rar = RARITIES.SR;
+  assert.equal(r.shards, rar.shard); assert.equal(r.uni, Math.round(rar.shard * CONFIG.disciple.dupUniversal));
+  assert.equal(s.dshards[def.id], rar.shard); assert.equal(s.res.shard, r.uni);
+});
+
+t('全部升級：結果與逐棟最便宜優先一致，且不超過上限', () => {
+  const s = createState(); s.realmIdx = 6; s.res.qi = 1e9; s.res.stone = 1e9;
+  const n = B.upgradeAll(s);
+  assert.ok(n > 0);
+  for (const id of Object.keys(s.buildings)) assert.ok(s.buildings[id].lv <= B.levelCap(s));
+  assert.equal(B.upgradeAll(s) >= 0, true);
+});
+
 
 console.log(`\n${n} 項測試通過`);
 if (failed.length) { console.log(`\n${failed.length} 項失敗：\n - ` + failed.join('\n - ')); process.exit(1); }

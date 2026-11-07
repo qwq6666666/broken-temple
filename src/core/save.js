@@ -43,7 +43,8 @@ function merge(base, saved) {
 function migrate(data) {
   // v1 → v2：新增 reincarnation / run 欄位，由 merge() 以預設值補齊，資料本身不需轉換
   // v2 → v3：建築等級刻度由 10 級放大為 100 級，舊等級 ×10
-  if (data.version < 3 && data.state?.buildings && typeof data.state.buildings === 'object') {
+  const ver = Number.isFinite(Number(data.version)) ? Number(data.version) : 1;      // 缺少或壞掉的版本視為最舊
+  if (ver < 3 && data.state?.buildings && typeof data.state.buildings === 'object') {
     for (const b of Object.values(data.state.buildings)) if (b && Number.isFinite(b.lv)) b.lv = Math.floor(b.lv) * CONFIG.building.levelScale;
   }
   data.version = SAVE_VERSION;
@@ -109,7 +110,11 @@ export function sanitize(s) {
   for (const id of Object.keys(s.nemeses)) if (!NEMESES_BY_ID[id]) delete s.nemeses[id];
   for (const id of Object.keys(s.reincarnation.shop)) {
     const it = DAO_SHOP_BY_ID[id];
-    if (!it) delete s.reincarnation.shop[id]; else s.reincarnation.shop[id] = Math.max(0, Math.min(it.maxLv, Math.floor(num(s.reincarnation.shop[id]))));
+    if (!it) { delete s.reincarnation.shop[id]; continue; }
+    const saved = Math.max(0, Math.floor(num(s.reincarnation.shop[id])));
+    s.reincarnation.shop[id] = Math.min(it.maxLv, saved);
+    // 上限調降（例如守廟靈獸 10→6）時，超出的等級依當初的價格退還道心
+    for (let l = it.maxLv; l < saved && l < 1000; l++) s.res.daoHeart = num(s.res.daoHeart) + Math.ceil(it.baseCost * it.growth ** l);
   }
   // 事件／訪客：id 已不存在就清掉，否則事件會永遠卡住
   if (!isPlain(s.incident)) s.incident = { current: null, nextAt: s.t };

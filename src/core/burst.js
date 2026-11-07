@@ -101,13 +101,14 @@ export function burst(s) {
   const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward') + towerBurst(s);
   const total = { qi: 0, stone: 0, token: 0 }, reps = {}, comebacks = [];
   const surrendered = [], artifacts = [], nemesesDefeated = [];
+  let tokCarry = 0;                                   // 招賢令的小數餘數跨仇人累計（乘 burstTokenScale 後每人常不到 1 張，逐人四捨五入會全變 0）
   // 3) 發獎勵
   for (const e of entries) {
     if (e.verdict === 'fail') continue;
     const r = rewardFor(s, e.g, e.verdict);
     const sw = fsum[FACTION_OF_SECT[e.g.sect]] || 1; e.sweep = sw;
     const k = cm * cMult * art * sw;
-    r.qi *= k; r.stone *= k; r.token = Math.round(r.token * cMult * art * sw * CONFIG.gacha.burstTokenScale);
+    r.qi *= k; r.stone *= k; const tk = tokCarry + r.token * cMult * art * sw * CONFIG.gacha.burstTokenScale; r.token = Math.floor(tk + 1e-9); tokCarry = tk - r.token;
     total.qi += r.qi; total.stone += r.stone; total.token += r.token; s.res.shard += r.shard || 0; total.shard = (total.shard || 0) + (r.shard || 0);
     if (r.surrender) {
       const def = rollSurrender(s);
@@ -155,6 +156,7 @@ export function burst(s) {
       }
     }
   }
+  total.token += Math.round(tokCarry);
   s.res.qi += total.qi; s.res.stone += total.stone; s.res.token += total.token;
   total.merit = entries.reduce((a, e) => a + (e.verdict === 'fail' ? 0 : MERIT.perDefeat * (e.nemesis ? MERIT.nemesis : 1)), 0); s.res.merit += total.merit;
   // 3.5) 反噬：戰力遠不如的長老會反擊（損失靈石、一棟建築暫停；最多一次暫停）

@@ -16,7 +16,8 @@ export function addDisciple(s, defId) {
   if (exist) {
     const rar = RARITIES[defOf(exist).rarity];
     (s.dshards ||= {})[defId] = dshardsOf(s, defId) + rar.shard;
-    return { isNew: false, shards: rar.shard, disciple: exist };
+    const uni = Math.round(rar.shard * CONFIG.disciple.dupUniversal); s.res.shard += uni;          // 另給少量通用碎片
+    return { isNew: false, shards: rar.shard, uni, disciple: exist };
   }
   const d = { uid: s.nextUid++, defId, lv: 1, at: null, star: 0 };
   s.disciples.push(d);

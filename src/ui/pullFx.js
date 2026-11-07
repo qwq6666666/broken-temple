@@ -61,7 +61,7 @@ async function reveal(el, results, ten) {
       <small>${esc(r.def.specialty)}・${esc(r.def.element)}・${esc(r.def.personality)}</small>
       <small class="trait on">✦ ${esc(traitText(r.def.trait.key, r.def.trait.value))}</small>
       <small class="rv-q">「${esc(r.def.quote)}」</small>
-      <span class="rv-tag ${r.isNew ? 'new' : ''}">${r.isNew ? '✨ 新弟子' : `重複 → 🧬${esc(r.def.name)}碎片 +${r.shards}`}${r.pity ? '・保底' : ''}</span></div>`;
+      <span class="rv-tag ${r.isNew ? 'new' : ''}">${r.isNew ? '✨ 新弟子' : `重複 → 🧬${esc(r.def.name)}碎片 +${r.shards}${r.uni ? `　🧩+${r.uni}` : ''}`}${r.pity ? '・保底' : ''}</span></div>`;
     sfx('pull', { r: ri });
     const cx = innerWidth / 2, cy = innerHeight / 2;
     if (ri >= 1) burstAt(cx, cy, { color: c, n: [0, 16, 28, 44, 64][ri], speed: [0, 130, 190, 260, 340][ri], size: ri >= 3 ? 4 : 3, life: 1 });

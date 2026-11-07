@@ -125,7 +125,7 @@ export function bindActions(s, ui, rerender) {
     },
     recruit: el => {
       const r = X.recruit(s, +el.dataset.uid);
-      if (r) { toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧬專屬碎片 +${r.shards}`, 'good'); sfx('coin'); }
+      if (r) { toast(r.isNew ? `${DISCIPLES_BY_ID[r.disciple.defId].name} 加入宗門！` : `已有此弟子，轉為 🧬專屬碎片 +${r.shards}${r.uni ? `、🧩+${r.uni}` : ''}`, 'good'); sfx('coin'); }
     },
     // 第一步：先看預覽（可以反悔）
     burst: () => {
@@ -168,7 +168,7 @@ export function bindActions(s, ui, rerender) {
     slotPick: el => { ui.pickB = el.dataset.b && ui.pickB !== el.dataset.b ? el.dataset.b : null; },
     slotAssign: el => { if (D.assign(s, +el.dataset.uid, el.dataset.b)) sfx('click'); else toast('駐守位已滿或弟子在探索中', 'warn'); },
     unassign: el => { D.assign(s, +el.dataset.uid, null); },
-    toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: el.getAttribute('aria-expanded') !== 'true' }; },
+    toggleRow: el => { ui.rowOpen = { ...(ui.rowOpen || {}), [el.dataset.key]: !(el.dataset.open !== undefined ? el.dataset.open === 'true' : !!(ui.rowOpen || {})[el.dataset.key]) }; },       // data-open＝畫面上目前狀態（含預設展開）；沒有就用 ui.rowOpen
     upgradeAll: () => { const n = B.upgradeAll(s); if (n) { sfx('upgrade'); toast(`共升級 ${n} 級`, 'good'); } },
     equipTitle: el => { Ach.equip(s, s.achv.title === el.dataset.id ? null : el.dataset.id); },
     offlineChoose: el => {

@@ -34,7 +34,7 @@ export function daoPanel(s, ui) {
     const buyable = items.filter(it => unlockedItem(s, it.id) && canBuy(s, it.id)).length;
     const saved = ui.rowOpen && ui.rowOpen[key], open = saved === undefined ? gi === firstOpen : !!saved;
     const bought = items.reduce((a, it) => a + shopLevel(s, it.id), 0);
-    return `<div class="dgroup ${open ? 'open' : ''}"><div class="dghead" data-act="toggleRow" data-key="${key}" role="button" tabindex="0" aria-expanded="${open}">
+    return `<div class="dgroup ${open ? 'open' : ''}"><div class="dghead" data-act="toggleRow" data-key="${key}" data-open="${open}" role="button" tabindex="0" aria-expanded="${open}">
       <b>${title}</b><span class="dgsum">${buyable ? `<span class="tag gold">可修習 ${buyable}</span> ` : ''}<small class="dim">已修 ${bought} 級</small> <span class="cx">${open ? '▴' : '▾'}</span></span></div>
       ${open ? items.map(mk).join('') : ''}</div>`;
   };

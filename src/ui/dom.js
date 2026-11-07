@@ -35,7 +35,7 @@ export function crow(ui, { key, cls = '', icon, title, badges = '', sub = '', ac
   const open = !!(ui.rowOpen && ui.rowOpen[key]);
   const can = !!detail;
   return `<div class="crow ${cls} ${open ? 'open' : ''}">
-    <div class="cmain" ${can ? `data-act="toggleRow" data-key="${key}" role="button" tabindex="0" aria-expanded="${open}"` : ''}>
+    <div class="cmain" ${can ? `data-act="toggleRow" data-key="${key}" data-open="${open}" role="button" tabindex="0" aria-expanded="${open}"` : ''}>
       <span class="ci">${icon}</span>
       <div class="cm"><div class="ct">${title}${badges}</div>${sub ? `<div class="cs">${sub}</div>` : ''}</div>
       ${act ? `<div class="ca">${act}</div>` : ''}${can ? `<span class="cx">${open ? '▴' : '▾'}</span>` : ''}
