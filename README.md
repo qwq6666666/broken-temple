@@ -68,3 +68,6 @@ ELEMENT=0 node tests/sim.mjs 12   # 關閉五行相生相剋／克制當比較�
 - 引爆的招賢令乘數 `CONFIG.gacha.burstTokenScale = 0.1`（原 1）；自然產出由每小時 30 張降為 15 張（`tokenTrickleSec` 120→240）。稀有度權重 SSR 4→3、UR 1→0.5（有保底）。
 - 機器人（接近最佳操作）集滿 41 位：原本約 2 小時；調整後中位數約 11 小時（9~20 小時，6 組種子）；一般玩家預估約 20~30 小時。
 - 量測：`TOKSCALE=0.1 JSON=1 node tests/sim.mjs 48 equip branch commission insight smart rebirth ascend`，看 SUMMARY 的 `tAll`（秒）。
+
+### 離線上限
+基礎 8 小時 + 轉生次數加成（每次 +0.5 小時，最多 +6）+ 道心商店「神遊太虛」（每級 +1 小時，最多 +8），合計最多 22 小時。效率基礎 50%，商店「守廟靈獸」最高 +50%。

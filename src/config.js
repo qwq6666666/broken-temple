@@ -111,6 +111,7 @@ export const CONFIG = {
 
   offline: {
     capMs: 8 * 3600 * 1000,    // 離線收益最多算 8 小時
+    rebirthHours: 0.5, rebirthHoursMax: 6,   // 每轉生一次離線上限 +0.5 小時，最多 +6 小時（再加道心商店「神遊太虛」最多 +8）
     efficiency: 0.5,           // 離線產出效率（資源與招賢令）；偽裝蓄力與仇人成長照常進行
     minMs: 60 * 1000,          // 離開不到 1 分鐘不結算
     stepMs: 60 * 1000,         // 結算步長

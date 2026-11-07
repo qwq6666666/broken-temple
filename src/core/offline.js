@@ -9,10 +9,16 @@ import * as expeditions from './expeditions.js';
 
 import { rollOfflineEvent } from './offlineEvent.js';
 
+// 離線上限 = 基礎 + 轉生次數加成（自動）+ 道心「神遊太虛」
+export function offlineCapMs(s) {
+  const O = CONFIG.offline;
+  return O.capMs + Math.min(O.rebirthHoursMax, s.reincarnation.count * O.rebirthHours) * 3600 * 1000 + perm(s, 'offlineCap') * 3600 * 1000;
+}
+
 export function applyOffline(s, elapsedMs) {
   const O = CONFIG.offline;
   if (!(elapsedMs >= O.minMs)) return null;
-  const capMs = O.capMs + perm(s, 'offlineCap') * 3600 * 1000;        // 道心：神遊太虛
+  const capMs = offlineCapMs(s);
   const eff = Math.min(1, O.efficiency + perm(s, 'offlineEff'));       // 道心：守廟靈獸
   const used = Math.min(elapsedMs, capMs);
   const before = { qi: s.res.qi, stone: s.res.stone, token: s.res.token, disguise: s.disguise.value, charge: s.disguise.chargeMs };
