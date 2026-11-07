@@ -22,9 +22,9 @@ export function daoPanel(s, ui) {
     if (!unlockedItem(s, it.id)) return crow(ui, { key: 'd' + it.id, cls: 'locked', icon: '🔒', title: `<b>${esc(it.name)}</b>`, sub: '渡過九重天劫後開放（見「天劫」）' });
     const lv = shopLevel(s, it.id), max = lv >= it.maxLv, can = canBuy(s, it.id);
     return crow(ui, { key: 'd' + it.id, cls: can ? 'affordable' : '', icon: it.icon, title: `<b>${esc(it.name)}</b> <span class="lv">Lv ${lv}/${it.maxLv}</span>`,
-      sub: `${esc(it.desc)}　目前 ${esc(fmtVal(it, lv * it.perLevel))}`,
+      sub: `${esc(it.desc)}　<b class="gold">${esc(fmtVal(it, lv * it.perLevel))}</b>`,
       act: max ? '<span class="tag gold">已滿級</span>' : `<div class="costs">${costChips(s, shopCost(s, it.id))}</div><button class="btn ${can ? 'primary' : ''}" data-act="daoBuy" data-id="${it.id}" ${can ? '' : 'disabled'}>修習</button>`,
-      detail: `<small>${esc(it.desc)}</small><small class="dim">每級 ${esc(fmtVal(it, it.perLevel))}　目前 <b class="gold">${esc(fmtVal(it, lv * it.perLevel))}</b></small>` });
+      detail: `<small class="dim">每級 ${esc(fmtVal(it, it.perLevel))}</small>` });
   };
   const grp = ids => DAO_SHOP.filter(it => ids.includes(it.id)).map(mk).join('');
   const extra = DAO_SHOP.filter(it => !it.gate && !KNOWN.has(it.id)).map(it => it.id);

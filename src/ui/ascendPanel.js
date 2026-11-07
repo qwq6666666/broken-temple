@@ -22,7 +22,7 @@ function row(s, ui, tr) {
 
 export function ascendPanel(s, ui) {
   const n = doneCount(s), ready = readyCount(s);
-  const head = `<p class="hint">⚡ 九重天劫　已渡 ${n}/${TRIALS.length}${ready ? `　<b class="gold">${ready} 劫待渡</b>` : ''}。條件要在<b>化神</b>時成立，多半看「本輪」的表現——轉生後可以再試。每渡一劫得道心與永久加成，並解鎖一段後日談。</p>`;
+  const head = `<p class="hint">⚡ 九重天劫　已渡 ${n}/${TRIALS.length}${ready ? `　<b class="gold">${ready} 劫待渡</b>` : ''}<span class="dim">　化神時達成條件即可渡劫；每劫給道心與永久加成。</span></p>`;
   const groups = HEAVENS.map(h => `<h3 class="sub">${esc(h.name)}</h3><p class="hint">${esc(h.blurb)}</p>${TRIALS.filter(t => t.heaven === h.id).map(t => row(s, ui, t)).join('')}`).join('');
   const fruit = complete(s) ? '<p class="hint gold">🍑 九劫圓滿——「道心」頁已開放<b>道果</b>：沒有上限的永久加成，是化神之後最長的一條路。</p>'
     : '<p class="hint">🍑 九劫全渡後，「道心」頁會開放沒有上限的<b>道果</b>。</p>';
