@@ -71,6 +71,10 @@ export const CONFIG = {
     stoneBase: 4,              // 突破到第 i 境界的靈石成本 = stoneBase × stoneGrowth ^ (i-1)
     stoneGrowth: 2.5,          // 煉氣期（序號 ≤9）每階的成長
     stoneGrowthLate: 3.3,      // 築基以後（序號 ≥10）每階的成長，單獨抽出方便調後期
+    subShare: [0.34, 0.22, 0.22, 0.22],   // 築基以上：原本進入大境界的靈石總額，分攤到 初期／中期／後期／圓滿 四階（總和＝1，整個大境界的耗時與舊版相近）
+    oldPathFreeMats: false,    // true＝走過的階免秘境材料（模擬顯示會讓後續輪次縮到 10~25 分鐘，所以預設不免）
+    oldPath: 0.6,              // 舊路重走：突破「歷史最高境界以內」的階，靈石 ×0.6，且不再需要秘境材料
+    breakDiscFloor: 0.25,      // 舊路重走與道心「破境心得」相乘後的折扣下限
     breakMs: 2400,             // 突破演出長度
   },
 
@@ -127,10 +131,12 @@ export const CONFIG = {
     stepMs: 60 * 1000,         // 結算步長
     gapMs: 5 * 60 * 1000,      // 分頁被凍結／電腦休眠超過 5 分鐘 → 視為離線，與關閉分頁行為一致
   },
-  // 轉生：化神後可轉生，依本輪表現換取道心。
+  // 轉生：元嬰初期（序號 18）起可轉生，依本輪表現與轉生時的境界比例換取道心。
   // 道心 = base（隨轉生次數小幅成長）+ 引爆(上限) + 連鎖×2 + 擊敗宿敵×5 + 完成大事×2
   // 自動加成：前 softCap 次每次 +10% 靈氣／靈石，之後每次只 +tail（避免轉生循環無限縮短）
-  reincarnation: { minRealm: 13, daoBase: 10, daoBasePerCount: 1, daoBaseMax: 30, burstCap: 40, perBurst: 1, perChain: 2, perNemesis: 5, perGoal: 2,
+  reincarnation: { minRealm: 18,            // 新序號：18＝元嬰初期（舊版是化神）
+                   realmFrom: 10, realmSpan: 12, realmPow: 1.5, realmMax: 1.25,    // 道心 × clamp(((境界序號 − 10) ÷ 12)^1.5, 0, 1.25)：化神初期(22)＝1.0、化神圓滿(25)＝1.25
+                   daoBase: 10, daoBasePerCount: 1, daoBaseMax: 30, burstCap: 40, perBurst: 1, perChain: 2, perNemesis: 5, perGoal: 2,
                    autoBonusPerCount: 0.10, autoBonusSoftCap: 10, autoBonusTail: 0.01 },
   nemesis: { chance: 0.5, maxPresent: 3 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵；場上（訪客＋復仇簿）同時最多幾位
   save: { key: 'broken-temple-save', autosaveMs: 10000 },

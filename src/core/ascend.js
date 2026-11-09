@@ -3,10 +3,11 @@
 import { TRIALS, TRIALS_BY_ID, ASCEND_RULES as R, RUN_BASE_KEYS } from '../data/ascend.js';
 import { toast, cue, quote } from './events.js';
 import { note } from './chronicle.js';
+import { bigOf } from '../data/realms.js';
 
 export const isDone = (s, id) => s.ascend.done.includes(id);
 export const isReady = (s, id) => s.ascend.ready.includes(id);
-export const reached = s => s.realmIdx >= R.minRealm;
+export const reached = s => bigOf(s) >= R.minRealm;
 export const readyCount = s => s.ascend.ready.length;
 export const doneCount = s => s.ascend.done.length;
 export const complete = s => TRIALS.every(t => isDone(s, t.id));

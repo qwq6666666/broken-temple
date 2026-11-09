@@ -18,25 +18,27 @@ import { INSIGHTS } from '../data/insights.js';
 import { canLearn, insightActive } from './insight.js';
 import { EQUIP_SLOTS } from '../data/artifacts.js';
 import { slotCount, freeDisciples } from './expeditions.js';
+import { bigOf } from '../data/realms.js';
+import { CONFIG } from '../config.js';
 
 // 各分頁的解鎖條件（建築、境界一開始就有）
 export const TAB_RULES = {
-  gacha:     { name: '招賢',   when: s => s.realmIdx >= 1 || s.gacha.total > 0 || s.disciples.length > 0 },
+  gacha:     { name: '招賢',   when: s => bigOf(s) >= 1 || s.gacha.total > 0 || s.disciples.length > 0 },
   disciples: { name: '弟子',   when: s => s.disciples.length > 0 || s.recruits.length > 0 },
   avenge:    { name: '復仇簿', when: s => s.grudges.length > 0 || !!s.visitor.current || s.stats.bursts > 0 },
-  expedition: { name: '秘境',  when: s => s.realmIdx >= 2 || s.expeditions.length > 0 },
+  expedition: { name: '秘境',  when: s => bigOf(s) >= 2 || s.expeditions.length > 0 },
   factions:  { name: '勢力',   when: s => Object.values(s.factions).some(v => v > 0) || s.returners.length > 0 },
   nemesis:   { name: '宿敵錄', when: s => Object.keys(s.nemeses).length > 0 },
-  goals:     { name: '大事',   when: s => s.realmIdx >= 1 || s.goalsDone.length > 0 },
-  dao:       { name: '道心',   when: s => s.realmIdx >= 13 || s.reincarnation.count > 0 },
-  ascend:    { name: '天劫',   when: s => s.realmIdx >= 13 || s.reincarnation.count > 0 || s.ascend.done.length > 0 },
+  goals:     { name: '大事',   when: s => bigOf(s) >= 1 || s.goalsDone.length > 0 },
+  dao:       { name: '道心',   when: s => s.realmIdx >= CONFIG.reincarnation.minRealm || s.reincarnation.count > 0 },
+  ascend:    { name: '天劫',   when: s => s.realmIdx >= CONFIG.reincarnation.minRealm || s.reincarnation.count > 0 || s.ascend.done.length > 0 },
 };
 export const isUnlocked = (s, tab) => !TAB_RULES[tab] || !!s.unlocked[tab];
 
 // 分頁內的功能區塊：依進度才出現（解鎖後不會再消失）。旗標存在 s.unlocked['f_' + key]
 export const FEATURE_RULES = {
-  insight: { name: '專長心得', when: s => s.res.shard > 0 || s.realmIdx >= 4 || Object.values(s.insight || {}).some(n => n > 0) },
-  achv:    { name: '成就與稱號', when: s => s.realmIdx >= 3 || s.achv.done.length > 0 || s.goalsDone.length >= 2 },
+  insight: { name: '專長心得', when: s => s.res.shard > 0 || bigOf(s) >= 4 || Object.values(s.insight || {}).some(n => n > 0) },
+  achv:    { name: '成就與稱號', when: s => bigOf(s) >= 3 || s.achv.done.length > 0 || s.goalsDone.length >= 2 },
   chron:   { name: '宗門年表', when: s => s.chronicle.length >= 2 },
   sort:    { name: '弟子排序與篩選', when: s => s.disciples.length >= 6 },
 };
@@ -60,7 +62,7 @@ export function tick(s, quiet = false) {
 // 後期建築解鎖提示（舊存檔載入時 quiet，不彈）
 export function tickBuildings(s, quiet = false) {
   for (const d of BUILDINGS) {
-    if (d.unlockRealm == null || s.unlocked['b_' + d.id] || s.realmIdx < d.unlockRealm) continue;
+    if (d.unlockRealm == null || s.unlocked['b_' + d.id] || bigOf(s) < d.unlockRealm) continue;
     s.unlocked['b_' + d.id] = true;
     if (!quiet) { toast(`🏗 新建築可建造：${d.name}`, 'good'); cue('goal'); }
   }

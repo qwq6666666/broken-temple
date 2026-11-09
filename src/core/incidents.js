@@ -10,6 +10,7 @@ import { canAfford, pay } from './resources.js';
 import { fmt } from './format.js';
 import { quote, toast, cue } from './events.js';
 import { lvEff } from './buildingMath.js';
+import { bigOf } from '../data/realms.js';
 
 const scheduleNext = s => { s.incident.nextAt = s.t + randInt(T.minSec, T.maxSec) * 1000; };
 
@@ -35,7 +36,7 @@ export function tick(s) {
   if (inc.current && s.t >= inc.current.expiresAt) { resolve(s, INCIDENTS_BY_ID[inc.current.id].timeoutChoice, true); return; }
   if (inc.current || s.burstActive || s.t < inc.nextAt) return;
   if (s.visitor.current) { inc.nextAt = s.t + 15000; return; }      // 與訪客錯開
-  const pool = INCIDENTS.filter(i => i.minRealm <= s.realmIdx && (i.minReb || 0) <= s.reincarnation.count);
+  const pool = INCIDENTS.filter(i => i.minRealm <= bigOf(s) && (i.minReb || 0) <= s.reincarnation.count);
   const def = weighted(pool, i => i.weight * (i.good ? 1 + rareChance(s) * 2 + traitSum(s, 'rare') : 1));
   inc.current = { id: def.id, expiresAt: s.t + T.expireSec * 1000 };
   cue('incident');

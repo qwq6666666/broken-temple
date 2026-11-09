@@ -17,6 +17,7 @@ import { BUILDINGS_BY_ID } from '../data/buildings.js';
 import { GLORY_LEVELS } from '../data/glory.js';
 import { RIPE } from '../data/enemies.js';
 import { MAT_KEYS } from '../data/materials.js';
+import { fromLegacy, TOP_IDX } from '../data/realms.js';
 import { OFFLINE_EVENTS_BY_ID } from '../data/offlineEvents.js';
 import { EXPLORATION } from '../data/exploration.js';
 import { INSIGHTS, INSIGHT_MAX } from '../data/insights.js';
@@ -27,7 +28,7 @@ import { COMMISSION_BY_KIND } from '../data/commissions.js';
 import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { PERSONALITIES, VISITOR_TYPES } from '../data/visitors.js';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 const isPlain = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(base, saved) {
@@ -46,6 +47,11 @@ function migrate(data) {
   const ver = Number.isFinite(Number(data.version)) ? Number(data.version) : 1;      // 缺少或壞掉的版本視為最舊
   if (ver < 3 && data.state?.buildings && typeof data.state.buildings === 'object') {
     for (const b of Object.values(data.state.buildings)) if (b && Number.isFinite(b.lv)) b.lv = Math.floor(b.lv) * CONFIG.building.levelScale;
+  }
+  // v3 → v4：境界由 14 階細分為 26 階（築基／金丹／元嬰／化神各 4 小階）。舊序號 11→14、12→18、13→22；歷史最高境界（frontier）設為目前境界
+  if (ver < 4 && data.state && typeof data.state === 'object') {
+    const old = Math.max(0, Math.min(13, Math.floor(Number(data.state.realmIdx) || 0)));
+    data.state.realmIdx = fromLegacy(old); data.state.frontier = data.state.realmIdx;
   }
   data.version = SAVE_VERSION;
   return data;
@@ -77,6 +83,8 @@ export function sanitize(s) {
   s.recruits = (Array.isArray(s.recruits) ? s.recruits : []).filter(r => isPlain(r) && DISCIPLES_BY_ID[r.defId]);
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
+  s.realmIdx = Math.max(0, Math.min(TOP_IDX, Math.floor(num(s.realmIdx))));
+  s.frontier = Math.max(s.realmIdx, Math.min(TOP_IDX, Math.floor(num(s.frontier))));
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   if (!OFFLINE_EVENTS_BY_ID[s.offlineLast]) s.offlineLast = null;
   s.fame = { n: Math.max(0, Math.min(CONFIG.endure.fame.max, Math.floor(num(isPlain(s.fame) ? s.fame.n : 0)))), until: Math.max(0, num(isPlain(s.fame) ? s.fame.until : 0)) };

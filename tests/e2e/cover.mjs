@@ -14,7 +14,7 @@ export async function run(b, URL, devices, PLAT) {
   await hide();
   await S(async () => {
     const s = __game.state; const G = await import('/src/core/gacha.js'); const D = await import('/src/core/disciples.js');
-    s.realmIdx = 12; s.res.qi = 1e12; s.res.stone = 1e10; s.res.token = 80; s.res.shard = 500; s.res.merit = 40; s.res.daoHeart = 100;
+    s.realmIdx = 18; s.res.qi = 1e12; s.res.stone = 1e10; s.res.token = 80; s.res.shard = 500; s.res.merit = 40; s.res.daoHeart = 100;
     for (const k of Object.keys(s.res)) if (k.startsWith('mat_')) s.res[k] = 10;
     for (const k of ['gacha', 'disciples', 'goals', 'avenge', 'expedition', 'factions', 'nemesis', 'dao', 'buildings', 'realm']) s.unlocked[k] = true;
     s.stats.bursts = 3; s.stats.endures = 40; G.pull(s, 40);
@@ -143,7 +143,7 @@ export async function run(b, URL, devices, PLAT) {
   const loss0 = await S(() => __game.state.settings.loss); await S(() => document.querySelector('input[data-change=toggleLoss]')?.click()); rec('toggleLoss 承受損失', (await S(() => __game.state.settings.loss)) !== loss0);
   await tap('#menu [data-act=hideHints]').catch?.(() => {}); await tap('[data-act=hideHints]'); rec('hideHints 隱藏提示', true, '已點擊');
   // 道心商店與轉生
-  await go('realm'); await S(() => { __game.state.realmIdx = 13; }); await p.waitForTimeout(400);
+  await go('realm'); await S(() => { __game.state.realmIdx = 22; }); await p.waitForTimeout(400);
   await tap('[data-act=rebirth]:not([disabled])'); const rb = await S(() => /轉生/.test(document.getElementById('overlay').innerText)); rec('rebirth 開啟轉生確認', rb);
   if (rb) { const mut = await p.$('#mutsel'); if (mut) await mut.selectOption({ index: 1 }).catch(() => {}); const dao0 = await S(() => __game.state.res.daoHeart); await tap('[data-act=confirmRebirth]'); await p.waitForTimeout(1500); await hide(); rec('confirmRebirth 轉生完成', (await S(() => __game.state.reincarnation.count)) === 1, `道心 ${Math.round(dao0)} → ${Math.round(await S(() => __game.state.res.daoHeart))}`); }
   await go('realm'); await S(() => { __game.state.res.daoHeart = 200; __game.ui.tab = 'dao'; }); await p.waitForTimeout(400);

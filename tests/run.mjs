@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { CONFIG } from '../src/config.js';
 import { lvEff } from '../src/core/buildingMath.js';
-import { REALMS } from '../src/data/realms.js';
+import { REALMS, fromLegacy, legacyIdx, lvlLabel, tierOfLvl } from '../src/data/realms.js';
+import { REALM_MATS } from '../src/data/materials.js';
 import { portraitHtml } from '../src/ui/portrait.js';
 import { PORTRAITS } from '../src/data/portraits.js';
 import { createState } from '../src/core/state.js';
@@ -102,11 +103,11 @@ t('建築成本 = 基礎 ÷ 10 × 1.0141^等級 × 解鎖所需境界倍率，�
   s.buildings.field.lv = 10;                                 // 升到 11 級需煉氣一層（倍率 1.35）
   assert.equal(B.upgradeCost(s, 'field').qi, Math.floor(6 * CONFIG.building.costGrowth ** 10 * 1.35));
   assert.equal(B.upgradeCost(createState(), 'library').stone, 1);   // 有成本的資源至少 1（5 ÷ 10 不會變成 0）
-  s.buildings.field.lv = 100; s.realmIdx = 13; s.res.qi = 1e12;
+  s.buildings.field.lv = 100; s.realmIdx = 22; s.res.qi = 1e12;
   assert.equal(B.upgrade(s, 'field'), false);
   // 總成本：升滿 100 級的累計成本與舊制（10 級、1.15 成長）相近，不超過 ±15%
-  const tot = id => { const x = createState(); x.realmIdx = 13; let t = 0; for (let l = 0; l < 100; l++) { x.buildings[id].lv = l; t += B.upgradeCost(x, id).qi; } return t; };
-  const oldTot = 60 * Array.from({ length: 10 }, (_, l) => 1.15 ** l * REALMS[[0, 2, 3, 5, 6, 8, 9, 10, 12, 13][l]].mult).reduce((a, b) => a + b, 0);
+  const tot = id => { const x = createState(); x.realmIdx = 22; let t = 0; for (let l = 0; l < 100; l++) { x.buildings[id].lv = l; t += B.upgradeCost(x, id).qi; } return t; };
+  const oldTot = 60 * Array.from({ length: 10 }, (_, l) => 1.15 ** l * REALMS[[0, 2, 3, 5, 6, 8, 9, 10, 12, 13][l] <= 10 ? [0, 2, 3, 5, 6, 8, 9, 10, 12, 13][l] : 10 + ([0, 2, 3, 5, 6, 8, 9, 10, 12, 13][l] - 10) * 4].mult).reduce((a, b) => a + b, 0);
   assert.ok(Math.abs(tot('field') / oldTot - 1) < 0.15, `靈田累計成本 ${tot('field').toExponential(2)} vs 舊制 ${oldTot.toExponential(2)}`);
 });
 
@@ -116,7 +117,7 @@ t('建築等級刻度：里程碑倍率、產出與舊制中性、功能型效�
   assert.deepEqual(B.nextMilestone(10), [25, 1.25]); assert.deepEqual(B.nextMilestone(100), [200, 2.5]); assert.equal(B.nextMilestone(1000), null); assert.equal(B.milestoneMult(1000), 14.9);
   // 產出：舊制 k 級（k×每級）≈ 新制 10k 級（含里程碑與歸一化）；不應偏離超過 ±45%（前期偏低、化神滿級偏高，見設計表）
   for (const L of [10, 20, 30, 50, 70, 100]) {
-    const s = createState(); s.realmIdx = 13; s.buildings.temple.lv = 0; s.buildings.field.lv = L; const q = eco.qiPerSec(s) - CONFIG.innateQiPerSec * eco.realmOf(s).mult;
+    const s = createState(); s.realmIdx = 22; s.buildings.temple.lv = 0; s.buildings.field.lv = L; const q = eco.qiPerSec(s) - CONFIG.innateQiPerSec * eco.realmOf(s).mult;
     const old = (L / 10) * 3 * eco.realmOf(s).mult;
     assert.ok(q / old > 0.7 && q / old < 1.45, `Lv${L} 產出比 ${(q / old).toFixed(2)}`);
   }
@@ -136,7 +137,7 @@ t('建築等級刻度：里程碑倍率、產出與舊制中性、功能型效�
   assert.equal(k, can); assert.equal(a.buildings.field.lv, b.buildings.field.lv); assert.ok(Math.abs(a.res.qi - b.res.qi) < 1e-6);
   assert.ok(a.buildings.field.lv <= B.levelCap(a));
   assert.equal(B.upgradeN(a, 'field', 10), 0);                // 買不起或到上限就是 0
-  const c = createState(); c.realmIdx = 13; c.res.qi = 1e30; c.res.stone = 1e20; assert.equal(B.upgradeN(c, 'alchemy', 5), 5); assert.equal(c.buildings.alchemy.lv, 5);
+  const c = createState(); c.realmIdx = 22; c.res.qi = 1e30; c.res.stone = 1e20; assert.equal(B.upgradeN(c, 'alchemy', 5), 5); assert.equal(c.buildings.alchemy.lv, 5);
   // 舊存檔（v2，滿級 10）等級 ×10；v3 存檔不再換算；超出上限被夾回
   const old = S.parse(JSON.stringify({ version: 2, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 7, pausedUntil: 0 }, field: { lv: 10, pausedUntil: 0 } } } })).state;
   assert.equal(old.buildings.temple.lv, 70); assert.equal(old.buildings.field.lv, 100);
@@ -148,13 +149,13 @@ t('擴建（道心商店）：等級上限隨境界逐步加成、成本跟著�
   const s = createState(); s.reincarnation.shop.expand = 30;                       // +300 級
   assert.equal(B.extraLevels(s), 300);
   s.realmIdx = 0; assert.equal(B.levelCap(s), 10);                                   // 凡人：沒有加成，不會繞過境界
-  s.realmIdx = 13; assert.equal(B.levelCap(s), 400); assert.equal(B.maxLevelOf(s), 400);
+  s.realmIdx = 22; assert.equal(B.levelCap(s), 400); assert.equal(B.maxLevelOf(s), 400);
   s.realmIdx = 7; assert.equal(B.levelCap(s), B.capAtRealm(7) + Math.floor(300 * 7 / 13));
-  for (let i = 1; i <= 13; i++) assert.ok(B.capAtRealm(i, 300) >= B.capAtRealm(i - 1, 300), '上限單調不減');
-  assert.equal(B.capAtRealm(13, 0), 100);
+  for (let i = 1; i <= 25; i++) assert.ok(B.capAtRealm(i, 300) >= B.capAtRealm(i - 1, 300), '上限單調不減');
+  assert.equal(B.capAtRealm(22, 0), 100);
   // 成本：超過 100 級仍照成長公式，且 realmNeededFor 會把擴建算進去（不會一律當化神）
-  assert.equal(B.realmNeededFor(101, 0), 99); assert.ok(B.realmNeededFor(101, 300) < 13);
-  const c = createState(); c.reincarnation.shop.expand = 30; c.realmIdx = 13; c.buildings.field.lv = 300;
+  assert.equal(B.realmNeededFor(101, 0), REALMS.length - 1); assert.ok(B.realmNeededFor(101, 300) < 22);
+  const c = createState(); c.reincarnation.shop.expand = 30; c.realmIdx = 22; c.buildings.field.lv = 300;
   assert.equal(B.upgradeCost(c, 'field').qi, Math.floor(6 * CONFIG.building.costGrowth ** 300 * REALMS[B.realmNeededFor(301, 300)].mult));
   c.res.qi = 1e300; assert.equal(B.upgradeN(c, 'field', 1000), 100);                // 升到 400 級（=上限）為止
   assert.equal(c.buildings.field.lv, 400); assert.equal(B.isMax(c, 'field'), true); assert.equal(B.isCapped(c, 'field'), true);   // 擴建 +300 → 最高 400，到了就是滿級
@@ -164,13 +165,13 @@ t('擴建（道心商店）：等級上限隨境界逐步加成、成本跟著�
   assert.equal(lvEff(100), 10); assert.ok(Math.abs(lvEff(200) - 13) < 1e-9); assert.ok(Math.abs(lvEff(1000) - (10 + 3 * Math.log2(10))) < 1e-9);
   assert.ok(lvEff(1000) / lvEff(100) < 2.05 && lvEff(1000) > lvEff(999));
   // 產出：0.01 秒內不會因擴建而改變低境界的上限；等級 1000 的產出倍率 = 14.9 × 線性
-  const p = createState(); p.realmIdx = 13; p.buildings.temple.lv = 0; p.buildings.field.lv = 100; const q100 = eco.qiPerSec(p);
+  const p = createState(); p.realmIdx = 22; p.buildings.temple.lv = 0; p.buildings.field.lv = 100; const q100 = eco.qiPerSec(p);
   p.buildings.field.lv = 1000; assert.ok(eco.qiPerSec(p) / q100 > 70 && eco.qiPerSec(p) / q100 < 80, '1000 級約為 100 級的 74 倍（10 倍等級 × 里程碑 14.9/2）');
   // 商店：maxLv 90 → 最多 +900 級；存檔清理夾在 1000 內
   assert.equal(DAO_SHOP.find(i => i.id === 'expand').maxLv * DAO_SHOP.find(i => i.id === 'expand').perLevel, CONFIG.building.hardMax - CONFIG.building.maxLevel);
   assert.equal(S.parse(JSON.stringify({ version: 3, savedAt: 1, state: { res: { qi: 1 }, buildings: { temple: { lv: 5000, pausedUntil: 0 } } } })).state.buildings.temple.lv, 1000);
   const d = createState(); d.res.daoHeart = 1e6; assert.equal(Dao.buy(d, 'expand'), true); assert.equal(B.extraLevels(d), 10);
-  const k = createState(); k.reincarnation.shop.expand = 5; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.reincarnation.shop.expand, 5);   // 轉生保留
+  const k = createState(); k.reincarnation.shop.expand = 5; k.realmIdx = 22; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.reincarnation.shop.expand, 5);   // 轉生保留
 });
 
 t('建築等級受境界限制', () => {
@@ -180,10 +181,10 @@ t('建築等級受境界限制', () => {
   s.realmIdx = 1; assert.equal(B.levelCap(s), 16);
   for (let i = 0; i < 6; i++) assert.equal(B.upgrade(s, 'temple'), true);
   assert.equal(B.upgrade(s, 'temple'), false);               // 再升需更高境界
-  s.realmIdx = 13; assert.equal(B.levelCap(s), 100);
-  assert.equal(B.realmNeededFor(100), 13); assert.equal(B.realmNeededFor(10), 0); assert.equal(B.realmNeededFor(11), 1);
+  s.realmIdx = 22; assert.equal(B.levelCap(s), 100);
+  assert.equal(B.realmNeededFor(100), 22); assert.equal(B.realmNeededFor(10), 0); assert.equal(B.realmNeededFor(11), 1);
   // 上限曲線：每個境界都不低於舊制（舊上限 × 10）的 90%，且單調不減
-  for (let i = 0; i <= 13; i++) { const old = Math.min(10, 1 + Math.floor(i * 0.7)) * 10; assert.ok(B.capAtRealm(i) >= old * 0.9, `境界 ${i}`); if (i) assert.ok(B.capAtRealm(i) >= B.capAtRealm(i - 1)); }
+  for (let i = 0; i <= 25; i++) { const old = Math.min(10, 1 + Math.floor(REALMS[i].big * 0.7)) * 10; assert.ok(B.capAtRealm(i) >= old * 0.9, `境界 ${i}`); if (i) assert.ok(B.capAtRealm(i) >= B.capAtRealm(i - 1)); }
 });
 
 t('打坐有冷卻；冷卻後可再打坐', () => {
@@ -530,7 +531,7 @@ t('弟子專屬碎片：混合支付、只能給自己升星、存檔清理、�
   const bad = createState(); bad.dshards = { afu: 3.7, nobody: 5, baihe: -2, shenyao: 'x' }; sanitize(bad); assert.deepEqual(bad.dshards, { afu: 3 });
   assert.deepEqual(S.parse(JSON.stringify({ version: 3, savedAt: 1, state: { res: { qi: 1 }, buildings: {} } })).state.dshards, {});    // 舊存檔沒有欄位 → 空
   // 轉生保留（弟子收藏也保留）
-  const k = createState(); D.addDisciple(k, 'afu'); k.dshards.afu = 9; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.dshards.afu, 9);
+  const k = createState(); D.addDisciple(k, 'afu'); k.dshards.afu = 9; k.realmIdx = 22; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.dshards.afu, 9);
 });
 
 t('宗門大事：達成一次、只發一次獎勵、永久加成生效', () => {
@@ -643,7 +644,7 @@ t('宿敵：條件（境界、前一位）決定誰能登場，且不重複在�
   const s = createState();
   assert.equal(Nem.pickNemesis(s), null);                        // 凡人：還沒到
   s.realmIdx = 1; assert.equal(Nem.pickNemesis(s).id, 'qian');
-  s.realmIdx = 13; assert.equal(Nem.pickNemesis(s).id, 'qian'); // 沒擊敗前一位，後面的不會出現
+  s.realmIdx = 22; assert.equal(Nem.pickNemesis(s).id, 'qian'); // 沒擊敗前一位，後面的不會出現
   s.visitor.current = nemVisitor('qian', 2); assert.equal(Nem.pickNemesis(s), null);   // 已在場
   s.visitor.current = null; s.nemeses.qian = { met: 1, defeated: true };
   assert.equal(Nem.pickNemesis(s).id, 'xiao');
@@ -705,7 +706,7 @@ t('宿敵存檔往返、完成全部後觸發大事', () => {
 });
 
 // ── R9 轉生與道心 ──
-const maxedRun = () => { const s = createState(); s.realmIdx = 13; s.run = { bursts: 12, maxChain: 5, nemeses: 2, goals: 4 }; return s; };
+const maxedRun = () => { const s = createState(); s.realmIdx = 22; s.run = { bursts: 12, maxChain: 5, nemeses: 2, goals: 4 }; return s; };
 
 t('轉生：只有化神能轉；道心依本輪表現計算', () => {
   const s = createState(); assert.equal(Dao.canRebirth(s), false); assert.equal(Dao.rebirth(s), null);
@@ -827,13 +828,13 @@ t('分頁漸進解鎖：條件達成才解鎖，旗標保留（含轉生後）',
   assert.ok(s.unlocked.gacha && s.unlocked.goals && !s.unlocked.disciples);
   D.addDisciple(s, 'afu'); s.visitor.current = visitor('former', 1); Prog.tick(s, true);
   assert.ok(s.unlocked.disciples && s.unlocked.avenge);
-  s.realmIdx = 13; Prog.tick(s, true); assert.ok(s.unlocked.dao);
+  s.realmIdx = 22; Prog.tick(s, true); assert.ok(s.unlocked.dao);
   s.run = { bursts: 1, maxChain: 1, nemeses: 0, goals: 0 }; Dao.rebirth(s);
   assert.ok(s.unlocked.dao && s.unlocked.gacha);               // 轉生後仍保留
 });
 
 t('舊存檔載入後，已達成的條件一次解鎖（不彈提示）', () => {
-  const s = createState(); s.realmIdx = 11; s.stats.bursts = 5; D.addDisciple(s, 'afu'); s.nemeses.qian = { met: 1, defeated: false };
+  const s = createState(); s.realmIdx = 14; s.stats.bursts = 5; D.addDisciple(s, 'afu'); s.nemeses.qian = { met: 1, defeated: false };
   const toasts = []; bus.on('toast', x => toasts.push(x));
   Prog.tick(s, true);
   assert.ok(s.unlocked.gacha && s.unlocked.disciples && s.unlocked.avenge && s.unlocked.nemesis && s.unlocked.goals);
@@ -852,7 +853,7 @@ t('下一步提示：依進度給出對應建議', () => {
   s.visitor.current = visitor('former', 1); assert.match(Prog.nextStep(s).text, /來訪/);   // 訪客優先
   s.visitor.current = null; s.disguise.value = 20; s.grudges = [visitor('former', 1)];
   assert.match(Prog.nextStep(s).text, /不裝了/);
-  s.realmIdx = 13; s.disguise.value = 0; s.grudges = []; assert.equal(Prog.nextStep(s).tab, 'realm');   // 化神 → 轉生
+  s.realmIdx = 22; s.disguise.value = 0; s.grudges = []; assert.equal(Prog.nextStep(s).tab, 'realm');   // 化神 → 轉生
 });
 
 // ── 動畫（純邏輯部分）──
@@ -985,7 +986,7 @@ t('專精資料完整、存檔清理未知專精', () => {
 t('新建築解鎖提示只彈一次，舊存檔 quiet', () => {
   const s = createState(); s.realmIdx = 7; const toasts = []; bus.on('toast', x => toasts.push(x.text));
   Prog.tick(s); Prog.tick(s); assert.equal(toasts.filter(x => x.includes('鎮魔塔')).length, 1);
-  const o = createState(); o.realmIdx = 13; const n0 = toasts.length; Prog.tick(o, true); assert.equal(toasts.length, n0);
+  const o = createState(); o.realmIdx = 22; const n0 = toasts.length; Prog.tick(o, true); assert.equal(toasts.length, n0);
 });
 
 // ── R12 勢力與回頭客 ──
@@ -1060,8 +1061,8 @@ t('秘境：解鎖、組隊上限、隊員自動撤下建築、探索位數量',
   assert.equal(s.disciples[0].at, null); assert.equal(Ex.away(s, a), true);
   assert.equal(D.assign(s, a, 'arena'), false);                        // 探索中不可派駐
   const [b] = teamOf(s, ['afu']); assert.equal(Ex.start(s, 'cave', [b]), false);   // 探索位已滿
-  assert.equal(Ex.slotCount(s), 1); s.realmIdx = 5; assert.equal(Ex.slotCount(s), 2); s.realmIdx = 9; assert.equal(Ex.slotCount(s), 3); s.realmIdx = 12; assert.equal(Ex.slotCount(s), 4);
-  const many = teamOf(s, ['liuzi', 'liu2', 'chenlan', 'tieniu']); s.realmIdx = 12;
+  assert.equal(Ex.slotCount(s), 1); s.realmIdx = 5; assert.equal(Ex.slotCount(s), 2); s.realmIdx = 9; assert.equal(Ex.slotCount(s), 3); s.realmIdx = 18; assert.equal(Ex.slotCount(s), 4);
+  const many = teamOf(s, ['liuzi', 'liu2', 'chenlan', 'tieniu']); s.realmIdx = 18;
   assert.equal(Ex.start(s, 'cave', many), false);                      // 超過 3 人
 });
 
@@ -1130,7 +1131,7 @@ t('離線事件權重：轉生越多越常抽到高門檻事件、同一則不�
   assert.ok(cnt.low / 4000 < u / OFFLINE_EVENTS.length - 0.05, '入門事件占比應低於均勻抽選');
   assert.equal(Off.rollOfflineEvent(s, 1000), null);                                 // 離開太短不抽
   const z = createState(); z.offlineLast = 'no-such-event'; assert.equal(sanitize(z).offlineLast, null);
-  const k = createState(); k.offlineLast = 'dog'; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.offlineLast, 'dog');   // 轉生保留
+  const k = createState(); k.offlineLast = 'dog'; k.realmIdx = 22; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.offlineLast, 'dog');   // 轉生保留
 });
 
 t('輪迴詞條：效果、訪客頻率、本輪道心倍率、轉生選擇與存檔', () => {
@@ -1148,7 +1149,7 @@ t('輪迴詞條：效果、訪客頻率、本輪道心倍率、轉生選擇與�
 });
 
 t('高階秘境：材料沿用雲台星砂／龍脈精華，探索度第 1 則也發同一種材料；需符合隊伍限制', () => {
-  const s = createState(); s.realmIdx = 13; s.unlocked.expedition = true;
+  const s = createState(); s.realmIdx = 22; s.unlocked.expedition = true;
   const mk = (id, lv) => { const d = D.addDisciple(s, id).disciple; d.lv = lv; return d.uid; };
   const dan = mk('shenyao', 30), a = mk('qinwu', 30), b = mk('moqi', 30);       // 丹火、劍金、陣水
   assert.equal(Ex.reqCheck(s, EXPEDITIONS_BY_ID.rift, [dan, a]).ok, false);      // 至少 3 人
@@ -1234,7 +1235,7 @@ t('宗門委託：放棄、每 5 張額外獎勵、轉生保留、題型依解�
   const idx = s.commissions.list.findIndex(c => Cm.isReady(s, c));
   const r = Cm.claim(s, idx);
   assert.ok(r.bonus && s.res.token >= tok + 3);
-  s.realmIdx = 13; s.res.qi = 1e12; s.res.stone = 1e12; s.disguise.value = 0; s.grudges = [];
+  s.realmIdx = 22; s.res.qi = 1e12; s.res.stone = 1e12; s.disguise.value = 0; s.grudges = [];
   const keep = s.commissions.list.length;
   Dao.rebirth(s); assert.equal(s.commissions.list.length, keep); assert.equal(s.commissions.done, 5);
 });
@@ -1275,7 +1276,7 @@ t('補滿空位：只填空位、不動已派駐、專長與緣分優先、不�
 t('宗門年表：突破大境界與轉生會記錄、上限 120 筆、跨轉生保留', () => {
   const s = createState(); s.res.stone = 1e12; s.res.shard = 1e6;
   for (const k of Object.keys(s.res)) if (k.startsWith('mat_')) s.res[k] = 1e6;
-  while (s.realmIdx < 13) R.breakthrough(s);
+  while (s.realmIdx < 22) R.breakthrough(s);
   assert.ok(s.chronicle.some(e => e.text.includes('突破至築基')) && s.chronicle.some(e => e.text.includes('突破至化神')));
   Dao.rebirth(s); assert.ok(s.chronicle.some(e => e.text.includes('第1世結束')));
   for (let i = 0; i < 200; i++) Chr.note(s, '📜', 'x' + i);
@@ -1290,7 +1291,7 @@ t('成就：達成即解鎖並記年表、稱號可裝備與取消、轉生保�
   assert.equal(Ach.equip(s, 'beat30'), false);                       // 未解鎖不能裝備
   assert.ok(Ach.equip(s, 'endure100')); assert.equal(Ach.titleOf(s), '忍者神龜');
   Ach.equip(s, null); assert.equal(Ach.titleOf(s), '');
-  Ach.equip(s, 'endure100'); s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s);
+  Ach.equip(s, 'endure100'); s.realmIdx = 22; s.res.stone = 1e12; Dao.rebirth(s);
   assert.equal(s.achv.title, 'endure100');
   const raw = JSON.parse(JSON.stringify(s)); raw.achv = { done: ['endure100', 'zzz'], title: 'zzz' };
   const back = sanitize(raw); assert.deepEqual(back.achv, { done: ['endure100'], title: null });
@@ -1312,7 +1313,7 @@ t('法寶裝備欄：裝備者效果 +50%、未裝備照常、上限 3 件、轉
   assert.equal(Eq.toggleEquip(s, 'danhuo'), false);                // 滿了
   assert.equal(Eq.toggleEquip(s, 'nope'), false);                  // 沒擁有
   assert.ok(Eq.toggleEquip(s, 'yinqi')); assert.equal(s.equipped.length, 2);
-  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.deepEqual(s.equipped, ['tuna', 'juling']);
+  s.realmIdx = 22; s.res.stone = 1e12; Dao.rebirth(s); assert.deepEqual(s.equipped, ['tuna', 'juling']);
   const raw = JSON.parse(JSON.stringify(s)); raw.equipped = ['tuna', 'zzz', 'danhuo', 'yinqi', 'tuna'];
   assert.deepEqual(sanitize(raw).equipped, ['tuna', 'danhuo', 'yinqi']);   // 只留擁有的、去重、不超過上限
 });
@@ -1327,12 +1328,12 @@ t('弟子進階：Lv10 才能選、只能選一次、專精／悍勇各有效果
   assert.ok(Math.abs(eco.combatPower(s) - p0) < 1e-9);                               // 專精不影響戰力
   const s2 = createState(); s2.realmIdx = 6; const e = D.addDisciple(s2, 'shenyao').disciple; e.lv = 10;
   const q0 = eco.combatPower(s2); s2.res.mat_spring = 2; D.setBranch(s2, e.uid, 'might'); assert.ok(eco.combatPower(s2) > q0);
-  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.disciples[0].branch, null);
+  s.realmIdx = 22; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.disciples[0].branch, null);
   const raw = JSON.parse(JSON.stringify(s)); raw.disciples[0].branch = 'zzz'; assert.equal(sanitize(raw).disciples[0].branch, null);
 });
 
 t('宿敵覺醒：未達轉生次數與境界不會出現、達成後出現且更強、引爆碾壓給道心並升階', () => {
-  const s = createState(); s.realmIdx = 13;
+  const s = createState(); s.realmIdx = 22;
   const qian = NEMESES.find(n => n.id === 'qian');
   s.nemeses.qian = { met: 3, defeated: true };
   s.nemeses = { ...s.nemeses }; for (const n of NEMESES) s.nemeses[n.id] = { met: 3, defeated: true };    // 全部擊敗過
@@ -1356,20 +1357,20 @@ t('每週挑戰：週一對齊、詞條輪替、符合才加道心且每週一�
   assert.equal(Wk.weekIndex(MON), Wk.weekIndex(MON + 6.9 * 86400000));          // 同一週
   assert.equal(Wk.weekIndex(MON + 7 * 86400000), Wk.weekIndex(MON) + 1);        // 下週一換週
   assert.notEqual(Wk.weeklyMutator(MON).id, Wk.weeklyMutator(MON + 7 * 86400000).id);
-  const mk = mut => { const s = createState(); s.realmIdx = 13; s.res.stone = 1e12; s.mutator = mut; return s; };
+  const mk = mut => { const s = createState(); s.realmIdx = 22; s.res.stone = 1e12; s.mutator = mut; return s; };
   const wid = Wk.weeklyMutator(MON).id;
   const a = mk(null); const g0 = Dao.daoGain(a); assert.equal(Dao.rebirth(a, null, MON), g0);              // 沒用本週詞條：無加成
   const b = mk(wid); const gb = Dao.daoGain(b), bonus = Wk.weeklyBonusFor(gb);
   assert.equal(Dao.rebirth(b, wid, MON), gb + bonus); assert.equal(b.res.daoHeart, gb + bonus);
   assert.ok(b.chronicle.some(e => e.text.includes('每週挑戰')));
-  b.realmIdx = 13; b.res.stone = 1e12; const gb2 = Dao.daoGain(b);                                       // 同一週再轉生：已領過
+  b.realmIdx = 22; b.res.stone = 1e12; const gb2 = Dao.daoGain(b);                                       // 同一週再轉生：已領過
   assert.equal(Wk.weeklyEligible(b, MON + 86400000), false); assert.equal(Dao.rebirth(b, wid, MON + 86400000), gb2);
-  b.realmIdx = 13; b.res.stone = 1e12; assert.equal(Wk.weeklyEligible(b, MON + 7 * 86400000), false);   // 下週詞條不同，本輪用的不是它
+  b.realmIdx = 22; b.res.stone = 1e12; assert.equal(Wk.weeklyEligible(b, MON + 7 * 86400000), false);   // 下週詞條不同，本輪用的不是它
   assert.equal(sanitize(JSON.parse(JSON.stringify(createState()))).weekly.claimed, -1);
 });
 
 t('秘境隊伍限制與推薦：限制逐條檢查、不符不能出發、推薦隊伍合法且不比任何合法隊伍差', () => {
-  const s = createState(); s.realmIdx = 13; s.res.stone = 1e9;
+  const s = createState(); s.realmIdx = 22; s.res.stone = 1e9;
   const ids = ['afu', 'shenyao', 'qinwu', 'tieniu', 'zhaoling', 'xiaocui', 'moqi'];     // 農丹劍體陣農…
   const ds = ids.map(id => { const d = D.addDisciple(s, id).disciple; d.lv = 8; return d; });
   const E = id => EXPEDITIONS_BY_ID[id];
@@ -1380,7 +1381,7 @@ t('秘境隊伍限制與推薦：限制逐條檢查、不符不能出發、推�
   const ab = E('abyss'); assert.equal(Ex.reqCheck(s, ab, [ds[0].uid, ds[1].uid, ds[2].uid]).ok, false);   // 缺體修
   assert.equal(Ex.reqCheck(s, ab, [ds[3].uid, ds[0].uid, ds[2].uid]).ok, true);
   // 推薦：合法，且戰力不低於所有合法 2~3 人組合
-  const s2 = createState(); s2.realmIdx = 13;
+  const s2 = createState(); s2.realmIdx = 22;
   const pool = ['afu', 'shenyao', 'qinwu', 'tieniu', 'zhaoling', 'xiaocui', 'moqi', 'fangcun'].map(id => { const d = D.addDisciple(s2, id).disciple; d.lv = 3 + Math.floor(Math.random() * 1); return d; });
   for (const id of ['cave', 'field', 'valley', 'maze', 'abyss']) {
     const bt = Ex.bestTeam(s2, id); const e = EXPEDITIONS_BY_ID[id];
@@ -1391,7 +1392,7 @@ t('秘境隊伍限制與推薦：限制逐條檢查、不符不能出發、推�
     assert.ok(bt.power >= top - 1e-6, id + ' 推薦應為最佳');
   }
   // 沒有合法隊伍 → null
-  const s3 = createState(); s3.realmIdx = 13; D.addDisciple(s3, 'afu'); assert.equal(Ex.bestTeam(s3, 'abyss'), null);
+  const s3 = createState(); s3.realmIdx = 22; D.addDisciple(s3, 'afu'); assert.equal(Ex.bestTeam(s3, 'abyss'), null);
 });
 
 t('五行：相生環與相剋環各自閉合、關係判定正確', () => {
@@ -1477,7 +1478,7 @@ t('專長心得：花碎片領悟、需該專長弟子派駐才生效、各效�
   alch.at = 'alchemy'; const st0 = eco.stonePerSec(s); Ins.learn(s, '丹修'); assert.ok(eco.stonePerSec(s) > st0);
   assert.equal(Ins.insightPerm(s, 'endureLoss', 'perm'), 0); assert.equal(Ins.insightPerm(s, 'stoneMult', 'trait'), 0);
   const tank = D.addDisciple(s, 'tieniu').disciple; Ins.learn(s, '體修'); const e0 = eco.traitSum(s, 'endureLoss'); tank.at = 'temple'; assert.ok(eco.traitSum(s, 'endureLoss') > e0);
-  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.insight['劍修'], 3);
+  s.realmIdx = 22; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(s.insight['劍修'], 3);
   const raw = JSON.parse(JSON.stringify(s)); raw.insight = { 劍修: 99, 丹修: -3, zzz: 1 }; const back = sanitize(raw).insight;
   assert.equal(back['劍修'], 3); assert.equal(back['丹修'], 0); assert.equal(back['zzz'], undefined);
 });
@@ -1532,7 +1533,7 @@ t('擴充內容：每則事件的每個選項都能結算；宿敵鏈串到後�
   const s = createState(); s.stats.nemesisDefeated = 5; Goals.tick(s); assert.ok(s.goalsDone.includes('nemAll'));
   assert.ok(!(s.achv.done.includes('nemall')));
   // 新秘境都能用推薦隊伍組出合法隊伍（有足夠弟子時）
-  const m = createState(); m.realmIdx = 13;
+  const m = createState(); m.realmIdx = 22;
   ['qinwu', 'lingshuang', 'yanhui', 'afu', 'liu2', 'xiaocui', 'tieniu', 'shigan'].forEach(id => { D.addDisciple(m, id).disciple.lv = 6; });
   for (const id of ['spring', 'swamp', 'sky']) { const bt = Ex.bestTeam(m, id); assert.ok(bt, id); assert.ok(Ex.reqCheck(m, EXPEDITIONS_BY_ID[id], bt.uids).ok, id); }
 });
@@ -1553,7 +1554,7 @@ t('宗門榮耀：榮耀值由進度換算、等級只升不降並彈提示寫�
   const m = createState(); m.reincarnation.count = 200; Gl.tick(m); assert.equal(m.glory.lv, GLORY_LEVELS.length); assert.equal(Gl.gloryNext(m), null);
   assert.ok(Math.abs(Gl.gloryPerm(m, 'powerMult') - 0.10) < 1e-9);
   // 轉生保留；存檔清理
-  s.realmIdx = 13; s.res.stone = 1e12; s.reincarnation.count = 5; Dao.rebirth(s); assert.equal(s.glory.lv, 1);
+  s.realmIdx = 22; s.res.stone = 1e12; s.reincarnation.count = 5; Dao.rebirth(s); assert.equal(s.glory.lv, 1);
   const raw = JSON.parse(JSON.stringify(s)); raw.glory = { lv: 99 }; assert.equal(sanitize(raw).glory.lv, GLORY_LEVELS.length);
   raw.glory = 'zzz'; assert.equal(sanitize(raw).glory.lv, 0);
   // 後期大事存在且可完成
@@ -1585,7 +1586,7 @@ t('出戰陣容：沒選人不變、五行與專長加成、最多 3 人、推�
   const raw = JSON.parse(JSON.stringify(s)); raw.squad = [qin.uid, 9999, qin.uid, lei.uid, a.uid, b.uid]; assert.deepEqual(sanitize(raw).squad, [qin.uid, lei.uid, a.uid]);
   raw.squad = 'x'; assert.deepEqual(sanitize(raw).squad, []);
   // 轉生保留
-  s.realmIdx = 13; s.res.stone = 1e12; s.squad = [qin.uid]; Dao.rebirth(s); assert.deepEqual(s.squad, [qin.uid]);
+  s.realmIdx = 22; s.res.stone = 1e12; s.squad = [qin.uid]; Dao.rebirth(s); assert.deepEqual(s.squad, [qin.uid]);
 });
 
 t('探索度：成功才累積、門檻解鎖發現、第 2 則二選一、永久加成與獎勵倍率、轉生與存檔保留', () => {
@@ -1612,21 +1613,23 @@ t('探索度：成功才累積、門檻解鎖發現、第 2 則二選一、永�
   // 存檔清理與轉生保留
   const raw = JSON.parse(JSON.stringify(s)); raw.explore = { cave: -5, nope: 3 }; raw.exMile = { cave: { 1: 1, 2: 'q', 3: 0 } };
   const c = sanitize(raw); assert.equal(c.explore.cave, 0); assert.ok(!('nope' in c.explore)); assert.deepEqual(c.exMile.cave, { 1: 'x' });
-  s.realmIdx = 13; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(Ep.exLevel(s, 'cave'), 3); assert.equal(s.exMile.cave[2], 'b');
+  s.realmIdx = 22; s.res.stone = 1e12; Dao.rebirth(s); assert.equal(Ep.exLevel(s, 'cave'), 3); assert.equal(s.exMile.cave[2], 'b');
 });
 
 t('秘境材料：跨大境界突破需要對應材料、探索產出材料與功勳、舊存檔補欄位與轉生保留', () => {
   const s = createState(); s.res.stone = 1e12; s.realmIdx = 9;
-  assert.equal(R.breakCost(s).mat_field, 2); assert.equal(R.canBreak(s), false);                   // 築基：戰場殘鋒＋藥王花
-  s.res.mat_field = 2; assert.equal(R.canBreak(s), false); s.res.mat_valley = 2; assert.equal(R.canBreak(s), true);
-  assert.ok(R.breakthrough(s)); assert.equal(s.res.mat_field, 0); assert.equal(R.breakCost(s).mat_swamp, 3);   // 金丹：瘴靈草＋陣紋玉
-  s.realmIdx = 11; assert.deepEqual(Object.keys(R.breakCost(s)).sort(), ['mat_sky', 'stone']);          // 元嬰
-  s.realmIdx = 12; assert.ok(R.breakCost(s).mat_abyss > 0 && !('shard' in R.breakCost(s)));             // 化神
+  assert.equal(R.breakCost(s).mat_field, 1); assert.equal(R.canBreak(s), false);                   // 築基初期：戰場殘鋒＋藥王花各 1（總量 2 分攤到四階）
+  s.res.mat_field = 1; assert.equal(R.canBreak(s), false); s.res.mat_valley = 1; assert.equal(R.canBreak(s), true);
+  assert.ok(R.breakthrough(s)); assert.equal(s.res.mat_field, 0); assert.deepEqual(Object.keys(R.breakCost(s)), ['stone']);   // 築基中期只花靈石
+  s.realmIdx = 13; assert.equal(R.breakCost(s).mat_swamp, 1);                                          // 金丹初期：瘴靈草＋陣紋玉（總量 3 分攤為 1/1/1/0）
+  s.realmIdx = 16; assert.equal(R.breakCost(s).mat_swamp, undefined);                                   // 金丹圓滿→元嬰前一階：不需材料
+  s.realmIdx = 17; assert.deepEqual(Object.keys(R.breakCost(s)).sort(), ['mat_sky', 'stone']);          // 元嬰初期
+  s.realmIdx = 21; assert.ok(R.breakCost(s).mat_abyss > 0 && !('shard' in R.breakCost(s)));             // 化神初期
   s.realmIdx = 5; assert.deepEqual(Object.keys(R.breakCost(s)), ['stone']);                              // 小境界只要靈石
   // 秘境不再產招賢令與碎片
   for (const e of EXPEDITIONS) assert.ok(!e.reward.token && !e.reward.shard, e.id);
   // 轉生保留材料與功勳
-  const k = createState(); k.res.mat_abyss = 7; k.res.merit = 9; k.realmIdx = 13; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.res.mat_abyss, 7); assert.equal(k.res.merit, 9);
+  const k = createState(); k.res.mat_abyss = 7; k.res.merit = 9; k.realmIdx = 22; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.res.mat_abyss, 7); assert.equal(k.res.merit, 9);
   // 舊存檔補欄位
   const raw = JSON.parse(JSON.stringify(createState())); delete raw.res.merit; delete raw.res.mat_cave; delete raw.tokBuy;
   const c = sanitize(raw); assert.equal(c.res.merit, 0); assert.equal(c.res.mat_cave, 0); assert.equal(c.tokBuy.n, 0);
@@ -1660,15 +1663,15 @@ t('仇敵：放過熟成、仇人記憶與老對頭、個性偏好、宿敵弱�
   // 全部放過 → 無法引爆
   const t2 = createState(); t2.realmIdx = 9; const c = mk(t2, {}); t2.grudges = [c]; full(t2); X.toggleSpare(t2, c.id); assert.equal(X.burst(t2), null);
   // 記憶：擊敗後記錄次數，第 3 次成為老對頭並給功勳；回頭客帶著次數並變強
-  const m = createState(); m.realmIdx = 12; setRng(() => 0);
+  const m = createState(); m.realmIdx = 18; setRng(() => 0);
   for (let i = 1; i <= 3; i++) { m.grudges = [mk(m, { name: '丙', lvl: 1 })]; full(m); X.burst(m); X.endBurst(m); assert.equal(m.foes['丙'].beaten, i); }
   setRng(Math.random); assert.ok(m.res.merit >= 2 && m.chronicle.some(e => /老對頭/.test(e.text)));
   assert.ok(m.returners.every(rt => rt.foe >= 1));
   // 個性偏好：勢利 → 靈石較多（同條件期望值較高）
-  const rewardOf = pers => { setRng(() => 0.5); const q = createState(); q.realmIdx = 12; q.grudges = [mk(q, { personality: pers, type: 'trader', lvl: 3 })]; full(q); const st = q.res.stone; X.burst(q); setRng(Math.random); return q.res.stone - st; };
+  const rewardOf = pers => { setRng(() => 0.5); const q = createState(); q.realmIdx = 18; q.grudges = [mk(q, { personality: pers, type: 'trader', lvl: 3 })]; full(q); const st = q.res.stone; X.burst(q); setRng(Math.random); return q.res.stone - st; };
   assert.ok(rewardOf('勢利') > rewardOf('虛偽') * 1.3);
   // 宿敵弱點：弱點專長 = 個性對應的專長；陣容命中才用一般碾壓門檻
-  const w = createState(); w.realmIdx = 13; const xiao = mk(w, { name: '蕭承曜', nemesisId: 'xiao', personality: '傲慢', lvl: 5 });
+  const w = createState(); w.realmIdx = 22; const xiao = mk(w, { name: '蕭承曜', nemesisId: 'xiao', personality: '傲慢', lvl: 5 });
   assert.equal(X.weakOf(xiao), '劍修'); assert.equal(X.weakOf(mk(w, {})), null);
   const sword = D.addDisciple(w, 'qinwu').disciple, farm = D.addDisciple(w, 'afu').disciple;
   assert.equal(X.weakHit(xiao, [farm]), false); assert.equal(X.weakHit(xiao, [sword]), true);
@@ -1676,18 +1679,18 @@ t('仇敵：放過熟成、仇人記憶與老對頭、個性偏好、宿敵弱�
   const raw = JSON.parse(JSON.stringify(m)); raw.grudges = [{ id: 1, name: 'x', type: 'rival', personality: '傲慢', lvl: 1, ripe: 99, foe: -3, spare: 1 }]; raw.foes = { 甲: { beaten: 500 }, 乙: 'bad' };
   const cl = sanitize(raw); assert.equal(cl.grudges[0].ripe, 4); assert.equal(cl.grudges[0].foe, 0); assert.equal(cl.grudges[0].spare, true); assert.equal(cl.foes['甲'].beaten, 99); assert.ok(!('乙' in cl.foes));
   // 轉生保留記憶
-  m.realmIdx = 13; m.res.stone = 1e12; Dao.rebirth(m); assert.equal(m.foes['丙'].beaten, 3);
+  m.realmIdx = 22; m.res.stone = 1e12; Dao.rebirth(m); assert.equal(m.foes['丙'].beaten, 3);
 });
 
 t('勢力接觸點：引爆預覽彙整威望與升階、一網打盡加成、訪客個性傾向、進貢與婉拒', () => {
   const mk = (s, o) => ({ id: s.nextGid++, name: 'x' + s.nextGid, type: 'former', sect: '青雲宗', personality: '傲慢', lvl: 1, alert: false, element: '木', ...o });
-  const s = createState(); s.realmIdx = 12; s.disguise.value = CONFIG.conceal.max; s.factions.qingyun = 8;
+  const s = createState(); s.realmIdx = 18; s.disguise.value = CONFIG.conceal.max; s.factions.qingyun = 8;
   s.grudges = [mk(s, {}), mk(s, {}), mk(s, {}), mk(s, { sect: '赤焰谷', type: 'rival' })];
   const pv = X.previewBurst(s), q = pv.factions.find(f => f.id === 'qingyun');
   assert.equal(q.n, 3); assert.equal(q.rep, 6); assert.equal(q.tierBefore, 0); assert.equal(q.tierAfter, 1); assert.ok(Math.abs(q.sweep - 1.1) < 1e-9);
   assert.equal(pv.factions.find(f => f.id === 'chiyan').sweep, 1);
   // 一網打盡：同樣的結果下，3 人的單人獎勵高於 2 人
-  const per = n => { setRng(() => 0.5); const t = createState(); t.realmIdx = 12; t.disguise.value = CONFIG.conceal.max; t.grudges = Array.from({ length: n }, () => mk(t, { type: 'trader', sect: '南海商隊', lvl: 3 })); const st = t.res.stone; X.burst(t); setRng(Math.random); return (t.res.stone - st) / n; };
+  const per = n => { setRng(() => 0.5); const t = createState(); t.realmIdx = 18; t.disguise.value = CONFIG.conceal.max; t.grudges = Array.from({ length: n }, () => mk(t, { type: 'trader', sect: '南海商隊', lvl: 3 })); const st = t.res.stone; X.burst(t); setRng(Math.random); return (t.res.stone - st) / n; };
   assert.ok(per(3) > per(2) * 1.05 * 0.99);
   // 個性傾向：赤焰谷的訪客暴躁／狂妄偏多
   let hot = 0, N = 400; const vs = createState(); vs.realmIdx = 5;
@@ -1715,7 +1718,7 @@ t('轉生清單：每個狀態欄位都被歸類為保留或重置，確認視�
 t('天劫：未到化神不判定；達成條件進入待渡，渡劫發獎勵、寫年表、只能渡一次', () => {
   const s = createState(); s.run.bursts = 8; s.res.daoHeart = 0;
   Asc.tick(s); assert.equal(Asc.readyCount(s), 0, '未到化神不應判定');
-  s.realmIdx = 13; Asc.tick(s);
+  s.realmIdx = 22; Asc.tick(s);
   assert.ok(Asc.isReady(s, 'th1')); assert.ok(!Asc.isReady(s, 'th2'));
   const r = Asc.claim(s, 'th1');
   assert.ok(r && r.dao === 8 && r.story.length === 2);
@@ -1729,23 +1732,23 @@ t('天劫：未到化神不判定；達成條件進入待渡，渡劫發獎勵�
 });
 
 t('天劫：本輪統計以轉生時的基準計算；速證限時一旦錯過本輪就失敗', () => {
-  const s = createState(); s.realmIdx = 13; s.stats.incidents = 20; s.stats.endures = 100;
+  const s = createState(); s.realmIdx = 22; s.stats.incidents = 20; s.stats.endures = 100;
   assert.equal(Asc.status(s, TRIALS_BY_ID.th3).cur, 10, '舊存檔沒有基準：從累計算（上限為門檻）');
   Dao.rebirth(s);
   assert.equal(s.run.startT, s.t); assert.equal(s.run.base.incidents, 20);
-  s.realmIdx = 13;
+  s.realmIdx = 22;
   assert.equal(Asc.status(s, TRIALS_BY_ID.th3).cur, 0, '轉生後本輪統計歸零');
   s.stats.incidents += 10; s.stats.endures += 130; Asc.tick(s);
   assert.ok(Asc.isReady(s, 'th3') && Asc.isReady(s, 'hr1'));
   // 速證：本輪超過限時才到化神 → failed；限時內到化神 → 待渡
-  const late = createState(); late.t = 2.5 * 3600 * 1000; late.realmIdx = 13; Asc.tick(late);
+  const late = createState(); late.t = 2.5 * 3600 * 1000; late.realmIdx = 22; Asc.tick(late);
   assert.equal(Asc.status(late, TRIALS_BY_ID.hr2).state, 'failed'); assert.ok(!Asc.isReady(late, 'hr2'));
-  const fast = createState(); fast.t = 1.5 * 3600 * 1000; fast.realmIdx = 13; Asc.tick(fast);
+  const fast = createState(); fast.t = 1.5 * 3600 * 1000; fast.realmIdx = 22; Asc.tick(fast);
   assert.ok(Asc.isReady(fast, 'hr2'));
 });
 
 t('天劫：因果輪迴看轉生次數；破廟飛升要先渡完其餘八劫；九劫圓滿開放道果', () => {
-  const s = createState(); s.realmIdx = 13; s.reincarnation.count = 8;
+  const s = createState(); s.realmIdx = 22; s.reincarnation.count = 8;
   Asc.tick(s); assert.ok(Asc.isReady(s, 'kr2')); assert.ok(!Asc.isReady(s, 'kr3'));
   const others = TRIALS.filter(x => x.id !== 'kr3');
   s.ascend.done = others.slice(0, 7).map(x => x.id); s.ascend.ready = [others[7].id];
@@ -1792,7 +1795,7 @@ t('轉生後的事件：minReb 限制出現；化神事件限制化神；離線�
   const s = createState(); s.realmIdx = 5;
   const seen = new Set(); for (let i = 0; i < 400; i++) { s.incident.current = null; s.incident.nextAt = 0; s.visitor.current = null; Inc.tick(s); seen.add(s.incident.current?.id); }
   for (const id of ['cloud', 'echo', 'qyhead', 'seal', 'letter', 'pastself', 'well', 'oldfriend']) assert.ok(!seen.has(id), `${id} 不該在此時出現`);
-  s.realmIdx = 13; s.reincarnation.count = 3; const seen2 = new Set();
+  s.realmIdx = 22; s.reincarnation.count = 3; const seen2 = new Set();
   for (let i = 0; i < 800; i++) { s.incident.current = null; s.incident.nextAt = 0; s.visitor.current = null; Inc.tick(s); seen2.add(s.incident.current?.id); }
   for (const id of ['cloud', 'echo', 'pastself', 'well', 'oldfriend']) assert.ok(seen2.has(id), `${id} 應該會出現`);
   const fresh = createState();
@@ -1804,7 +1807,7 @@ t('轉生後的事件：minReb 限制出現；化神事件限制化神；離線�
 
 t('天劫相關大事與成就：進度來自天劫與道果；新分頁在化神或轉生後解鎖', () => {
   const s = createState(); assert.ok(!Prog.TAB_RULES.ascend.when(s));
-  s.realmIdx = 13; assert.ok(Prog.TAB_RULES.ascend.when(s));
+  s.realmIdx = 22; assert.ok(Prog.TAB_RULES.ascend.when(s));
   const s2 = createState(); s2.reincarnation.count = 1; assert.ok(Prog.TAB_RULES.ascend.when(s2));
   s.ascend.done = TRIALS.map(x => x.id); s.reincarnation.shop = { fruitQi: 20 };
   Goals.tick(s); for (const id of ['asc3', 'asc6', 'asc9', 'fruit20']) assert.ok(Goals.isDone(s, id), id);
@@ -1830,7 +1833,7 @@ t('老祖台詞池：進度越高閒聊越多；每類台詞都非空、沒有�
   const s = createState(); const base = idlePool(s).length;
   assert.equal(base, LINES.idle.length);
   s.realmIdx = 10; const mid = idlePool(s).length; assert.ok(mid > base);
-  s.realmIdx = 13; s.reincarnation.count = 1; const late = idlePool(s).length; assert.ok(late > mid);
+  s.realmIdx = 22; s.reincarnation.count = 1; const late = idlePool(s).length; assert.ok(late > mid);
   s.ascend.done = ['th1']; const asc = idlePool(s).length; assert.ok(asc > late);
   s.ascend.done = TRIALS.map(x => x.id); assert.ok(idlePool(s).length > asc);
   const flat = a => Array.isArray(a) ? a : Object.values(a).flat();
@@ -1859,7 +1862,7 @@ t('勢力宿敵：威望與境界都達標才解鎖；各自獨立；不影響�
   for (const n of sides) { assert.ok(FACTIONS.some(f => f.id === fid(n) && f.sects.includes(n.sect)), `${n.id} 的宗門要屬於其勢力`); assert.equal(n.awakenTaunts.length, 3, n.id); assert.equal(new Set(n.awakenTaunts).size, 3); }
   assert.equal(new Set(sides.map(fid)).size, 6, '六個勢力各一位');
   const jiao = NEMESES_BY_ID.jiao, s = createState();
-  s.realmIdx = 13; assert.ok(!Nem.unlocked(s, jiao), '威望不夠不解鎖');
+  s.realmIdx = 22; assert.ok(!Nem.unlocked(s, jiao), '威望不夠不解鎖');
   s.factions.chiyan = 10; assert.ok(!Nem.unlocked(s, jiao), '第 1 階還不夠，要第 2 階');
   s.factions.chiyan = 30; assert.ok(Nem.unlocked(s, jiao));
   s.realmIdx = 5; assert.ok(!Nem.unlocked(s, jiao), '境界不夠不解鎖');
@@ -1878,14 +1881,14 @@ t('勢力宿敵：威望與境界都達標才解鎖；各自獨立；不影響�
 });
 
 t('宿敵場上上限：同時最多 3 位；擊敗後才會再來；存檔與轉生保留新宿敵進度', () => {
-  const s = createState(); s.realmIdx = 13;
+  const s = createState(); s.realmIdx = 22;
   for (const id of ['qian', 'xiao', 'liu', 'yun', 'xuan']) s.nemeses[id] = { met: 3, defeated: true };
   s.factions = { chiyan: 30, wanjian: 30, luoxia: 30, xuanbing: 30, bailian: 30, trade: 30 };
   const seen = [];
   for (let i = 0; i < 12; i++) { const n = Nem.pickNemesis(s); if (!n) break; seen.push(n.id); s.grudges.push({ id: i, nemesisId: n.id, lvl: 1 }); }
   assert.equal(Nem.presentCount(s), 3); assert.equal(seen.length, 3, '場上最多 3 位');
   s.grudges.pop(); assert.ok(Nem.pickNemesis(s), '少一位就能再來一位');
-  const m = createState(); m.realmIdx = 13; m.nemeses.jiao = { met: 2, defeated: true, awakeLv: 1 }; m.factions.chiyan = 40; m.artifacts.push('jiao_furnace');
+  const m = createState(); m.realmIdx = 22; m.nemeses.jiao = { met: 2, defeated: true, awakeLv: 1 }; m.factions.chiyan = 40; m.artifacts.push('jiao_furnace');
   Dao.rebirth(m); assert.deepEqual(m.nemeses.jiao, { met: 2, defeated: true, awakeLv: 1 }); assert.equal(m.factions.chiyan, 40); assert.ok(m.artifacts.includes('jiao_furnace'));
   const back = S.parse(S.serialize(m)).state; assert.ok(back.nemeses.jiao.defeated);
   const bad = createState(); bad.nemeses = { jiao: { met: 1, defeated: true }, nobody: { met: 1 } }; sanitize(bad); assert.ok(bad.nemeses.jiao && !bad.nemeses.nobody);
@@ -1998,6 +2001,51 @@ t('仇人成長：個性倍率不同、在簿上越久越快（怨毒）、存�
   assert.ok(s.grudges[0].lvl - l0[0] > s.grudges[1].lvl - l0[1]);
   assert.ok(s.grudges[0].age >= 10 * 60000);
   assert.ok(sanitize(Object.assign(createState(), { grudges: [{ ...a, age: 'x' }] })).grudges[0].age === 0);
+});
+
+
+t('境界 26 階：舊序號對照、各階單調遞增、大境界靈石與材料總量與舊版相同', () => {
+  assert.equal(REALMS.length, 26);
+  assert.deepEqual([0, 9, 10, 11, 12, 13].map(i => fromLegacy(i)), [0, 9, 10, 14, 18, 22]);
+  for (let j = 0; j < REALMS.length; j++) { assert.equal(REALMS[j].idx, j); if (j) { assert.ok(REALMS[j].mult > REALMS[j - 1].mult && REALMS[j].power > REALMS[j - 1].power); } }
+  assert.deepEqual(REALMS.slice(10, 14).map(r => r.name), ['築基初期', '築基中期', '築基後期', '築基圓滿']);
+  assert.equal(legacyIdx(25), 13); assert.equal(legacyIdx(10), 10); assert.equal(legacyIdx(14), 11);
+  for (let b = 10; b <= 13; b++) {
+    const stages = REALMS.filter(r => r.big === b), c0 = Math.round(CONFIG.realm.stoneBase * Array.from({ length: b - 1 }, (_, k) => (k + 2 <= 9 ? CONFIG.realm.stoneGrowth : CONFIG.realm.stoneGrowthLate)).reduce((a, v) => a * v, 1));
+    assert.ok(Math.abs(stages.reduce((a, r) => a + r.stoneCost, 0) / c0 - 1) < 0.01, `大境界 ${b} 靈石總量`);
+    for (const [k, v] of Object.entries(REALM_MATS[b])) assert.equal(stages.reduce((a, r) => a + (r.matCost?.[k] || 0), 0), v, `大境界 ${b} 材料 ${k}`);
+  }
+  assert.ok(Math.abs(REALMS[22].mult - CONFIG.realm.multBase ** 13) < 1e-9 && Math.abs(REALMS[22].power - CONFIG.realm.powerBase ** 13) < 1e-9);   // 化神初期＝舊化神
+  assert.equal(lvlLabel(11.1), '金丹初期'); assert.equal(lvlLabel(11.3), '金丹中期'); assert.equal(lvlLabel(12.9), '元嬰圓滿'); assert.equal(tierOfLvl(12.4), 4);
+});
+
+t('舊路重走：frontier 隨突破增加、跨轉生保留；走過的階靈石 ×0.6（材料仍需）；破境心得疊加有下限', () => {
+  const s = createState(); s.res.stone = 1e15; for (const k of Object.keys(s.res)) if (k.startsWith('mat_')) s.res[k] = 99;
+  while (s.realmIdx < 14) R.breakthrough(s);
+  assert.equal(s.frontier, 14);
+  const m = createState(); m.frontier = 14; m.realmIdx = 13;
+  const full = REALMS[14].stoneCost; assert.equal(R.breakCost(m).stone, Math.round(full * CONFIG.realm.oldPath));
+  assert.ok(R.breakCost(m).mat_swamp > 0);                                          // 材料仍需
+  m.reincarnation.shop.breakcut = 10; assert.equal(R.breakCost(m).stone, Math.round(full * Math.max(CONFIG.realm.breakDiscFloor, CONFIG.realm.oldPath * 0.7)));
+  const n = createState(); n.realmIdx = 14; n.frontier = 14; assert.equal(R.breakCost(n).stone, REALMS[15].stoneCost);            // 新階不打折
+  const k = createState(); k.realmIdx = 22; k.frontier = 22; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.frontier, 22); assert.equal(k.realmIdx, 0);
+});
+
+t('轉生條件與道心：元嬰初期起可轉生；道心依境界比例（化神初期＝1、圓滿封頂 1.25）', () => {
+  const s = createState();
+  s.realmIdx = 17; assert.equal(Dao.canRebirth(s), false); s.realmIdx = 18; assert.equal(Dao.canRebirth(s), true);
+  assert.equal(Dao.realmDaoFactor({ realmIdx: 22 }), 1); assert.equal(Dao.realmDaoFactor({ realmIdx: 25 }), CONFIG.reincarnation.realmMax);
+  assert.ok(Math.abs(Dao.realmDaoFactor({ realmIdx: 18 }) - (8 / 12) ** 1.5) < 1e-9);
+  const a = maxedRun(), b = maxedRun(); a.realmIdx = 18; b.realmIdx = 22; assert.ok(Dao.daoGain(a) < Dao.daoGain(b));
+  const c = maxedRun(); c.realmIdx = 25; assert.ok(Dao.daoGain(c) > Dao.daoGain(b));
+});
+
+t('存檔 v3 → v4：舊境界序號換算成 26 階，frontier 補上；壞值被截斷', () => {
+  const old = { version: 3, savedAt: Date.now(), state: { res: {}, realmIdx: 13, buildings: { temple: { lv: 30, pausedUntil: 0 } } } };
+  const { state } = S.parse(JSON.stringify(old)); assert.equal(state.realmIdx, 22); assert.equal(state.frontier, 22);
+  const o2 = S.parse(JSON.stringify({ version: 3, state: { res: {}, realmIdx: 11, buildings: {} } })).state; assert.equal(o2.realmIdx, 14);
+  const o3 = S.parse(JSON.stringify({ version: 4, state: { res: {}, realmIdx: 18, frontier: 20, buildings: {} } })).state; assert.equal(o3.realmIdx, 18); assert.equal(o3.frontier, 20);
+  const bad = createState(); bad.realmIdx = 999; bad.frontier = -3; const c = sanitize(bad); assert.equal(c.realmIdx, 25); assert.equal(c.frontier, 25);
 });
 
 console.log(`\n${n} 項測試通過`);

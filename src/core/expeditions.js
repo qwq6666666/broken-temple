@@ -9,9 +9,10 @@ import { rollSurrender } from './endure.js';
 import { toast, cue } from './events.js';
 import { exRewardMult, addProgress } from './exploration.js';
 import { MAT_YIELD, matKey, MERIT } from '../data/materials.js';
+import { bigOf } from '../data/realms.js';
 
-export const slotCount = s => R.slots.reduce((n, [realm, c]) => (s.realmIdx >= realm ? c : n), 1);
-export const isUnlocked = (s, e) => s.realmIdx >= e.unlockRealm;
+export const slotCount = s => R.slots.reduce((n, [realm, c]) => (bigOf(s) >= realm ? c : n), 1);
+export const isUnlocked = (s, e) => bigOf(s) >= e.unlockRealm;
 export const away = (s, uid) => s.expeditions.some(x => x.uids.includes(uid));
 export const freeDisciples = s => s.disciples.filter(d => !away(s, d.uid));
 

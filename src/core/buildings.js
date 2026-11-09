@@ -1,7 +1,7 @@
 // 建築：升級成本（基礎 × 1.15^等級）、外觀里程碑、駐守位。
 import { CONFIG } from '../config.js';
 import { BUILDINGS_BY_ID } from '../data/buildings.js';
-import { REALMS } from '../data/realms.js';
+import { REALMS, bigOf, legacyF } from '../data/realms.js';
 import { DAO_SHOP_BY_ID } from '../data/daoShop.js';
 import { LINES, pickLine } from '../data/lines.js';
 import { canAfford, pay } from './resources.js';
@@ -12,9 +12,9 @@ export const def = id => BUILDINGS_BY_ID[id];
 // 建築等級上限：受境界限制（避免一下滿級），最高 CONFIG.building.maxLevel（100）
 // 道心商店「擴建」增加的等級（每級 +10，最多 +900）
 export const extraLevels = s => (s.reincarnation?.shop?.expand || 0) * (DAO_SHOP_BY_ID.expand?.perLevel || 0);
-const TOP = REALMS.length - 1;
+const TOP = REALMS.length - 1;                                    // 新序號最高階（25）
 // 境界 i 的等級上限；extra＝擴建加成，依境界逐步生效（凡人 0、化神全額），所以每一輪都感覺得到，又不會繞過境界
-export const capAtRealm = (i, extra = 0) => Math.min(CONFIG.building.maxLevel, CONFIG.building.levelCapBase + Math.floor(i * CONFIG.building.levelCapRealmFactor)) + Math.floor(extra * Math.min(i, TOP) / TOP + 1e-9);
+export const capAtRealm = (i, extra = 0) => { const f = legacyF(i); return Math.min(CONFIG.building.maxLevel, CONFIG.building.levelCapBase + Math.floor(f * CONFIG.building.levelCapRealmFactor + 1e-9)) + Math.floor(extra * Math.min(f, 13) / 13 + 1e-9); };
 export const levelCap = s => capAtRealm(s.realmIdx, extraLevels(s));
 export const maxLevelOf = s => CONFIG.building.maxLevel + extraLevels(s);        // 目前所有加成加滿的最高等級（介面顯示用）
 export const isMax = (s, id) => s.buildings[id].lv >= maxLevelOf(s);
@@ -25,7 +25,7 @@ export function realmNeededFor(lv, extra = 0) {
   const key = lv * 1e4 + extra, hit = needMemo.get(key);
   if (hit !== undefined) return hit;
   let i = 0;
-  while (capAtRealm(i, extra) < lv && i < 99) i++;
+  while (capAtRealm(i, extra) < lv && i < TOP) i++;
   if (needMemo.size > 5000) needMemo.clear();
   needMemo.set(key, i);
   return i;
@@ -50,7 +50,7 @@ function costAtLevel(s, id, lv) {
   return out;
 }
 // 後期建築需先達到 unlockRealm（已建造過的不受影響）
-export const isBuildingUnlocked = (s, id) => def(id).unlockRealm == null || s.realmIdx >= def(id).unlockRealm || s.buildings[id].lv > 0;
+export const isBuildingUnlocked = (s, id) => def(id).unlockRealm == null || bigOf(s) >= def(id).unlockRealm || s.buildings[id].lv > 0;
 export const canUpgrade = (s, id) => isBuildingUnlocked(s, id) && !isCapped(s, id) && canAfford(s, upgradeCost(s, id));
 
 export function upgrade(s, id, quiet = false) {

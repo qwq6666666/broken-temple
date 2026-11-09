@@ -5,6 +5,7 @@ import { pick, weighted } from './rng.js';
 import { qiPerSec, stonePerSec } from './economy.js';
 import { toast, cue } from './events.js';
 import { note } from './chronicle.js';
+import { bigOf } from '../data/realms.js';
 
 export const progressOf = (s, c) => {
   const d = COMMISSION_BY_KIND[c.kind];
@@ -19,7 +20,7 @@ export const rewardText = r => [r.token && `🎫${r.token}`, r.stone && `💎${r
 
 function makeReward(s) {
   const W = R.weights;
-  const t = s.realmIdx;
+  const t = bigOf(s);
   let pool = [
     ['token', W.token, () => ({ token: 1 + Math.floor(t / 10) })],
     ['stone', W.stone, () => ({ stone: Math.max(R.stoneMin, Math.floor(stonePerSec(s) * R.stoneSec)) })],
@@ -35,7 +36,7 @@ function generate(s) {
   const pool = COMMISSIONS.filter(d => !used.has(d.kind) && d.ok(s));
   if (!pool.length) return null;
   const d = pick(pool);
-  return { kind: d.kind, target: d.target(s.realmIdx), base: d.cur(s), reward: makeReward(s) };
+  return { kind: d.kind, target: d.target(bigOf(s)), base: d.cur(s), reward: makeReward(s) };
 }
 
 export function tick(s) {

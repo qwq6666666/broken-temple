@@ -1,4 +1,4 @@
-// 轉生與道心：化神後重置本輪進度，換取道心；道心在商店購買永久加成。
+// 轉生與道心：元嬰初期起可重置本輪進度，換取道心；道心在商店購買永久加成。
 import { CONFIG } from '../config.js';
 import { REBIRTH_KEEP, KEEP_KEYS } from '../data/rebirth.js';
 import { DAO_SHOP, DAO_SHOP_BY_ID } from '../data/daoShop.js';
@@ -33,11 +33,13 @@ export function perm(s, key) {
 export const canRebirth = s => s.realmIdx >= CONFIG.reincarnation.minRealm && !s.burstActive;
 
 // 本輪道心收益
+// 轉生時的境界比例：化神初期（序號 22）＝1，圓滿（25）＝1.25（上限），金丹初期以下不給
+export const realmDaoFactor = s => { const R = CONFIG.reincarnation; return Math.max(0, Math.min(R.realmMax, ((s.realmIdx - R.realmFrom) / R.realmSpan) ** R.realmPow)); };
 export function daoGain(s) {
   const R = CONFIG.reincarnation, r = s.run;
   const base = Math.min(R.daoBaseMax, R.daoBase + R.daoBasePerCount * s.reincarnation.count);   // 轉生越多次，基礎道心略增
   const raw = base + Math.min(R.burstCap, r.bursts) * R.perBurst + r.maxChain * R.perChain + r.nemeses * R.perNemesis + r.goals * R.perGoal;
-  return Math.floor(raw * (1 + mutSum(s, 'dao')));                       // 輪迴詞條：本輪道心倍率
+  return Math.floor(raw * (1 + mutSum(s, 'dao')) * realmDaoFactor(s));   // 輪迴詞條：本輪道心倍率；越早轉生越少（超線性，避免刷短輪）
 }
 
 // 轉生：重置本輪，保留收藏類進度。回傳獲得的道心；不符條件回傳 null

@@ -15,6 +15,7 @@ import { quote, toast, cue } from './events.js';
 import { pickNemesis, makeNemesisVisitor } from './nemesis.js';
 import { addRep, tierOfSect, tierOf } from './factions.js';
 import { mutSum } from './mutators.js';
+import { legacyF } from '../data/realms.js';
 
 const scheduleNext = s => {
   s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000 / Math.max(0.2, 1 + mutSum(s, 'visitFreq'));   // 輪迴詞條影響頻率
@@ -37,7 +38,7 @@ function makeVisitor(s) {
   let name, tries = 0;
   do { name = pick(SURNAMES) + pick(GIVEN); } while (s.grudges.some(g => g.name === name) && ++tries < 20);
   const [lo, hi] = type.offset;
-  const lvl = Math.max(0, Math.min(CONFIG.enemy.maxLevel, s.realmIdx + randInt(lo, hi))) + randFloat(0, 0.95);
+  const lvl = Math.max(0, Math.min(CONFIG.enemy.maxLevel, legacyF(s.realmIdx) + randInt(lo, hi))) + randFloat(0, 0.95);
   const sect = pick(type.sects), fac = FACTIONS_BY_ID[FACTION_OF_SECT[sect]];
   const personality = weighted(PERSONALITY_KEYS, k => (fac?.lean?.includes(k) ? FR.leanWeight : 1));   // 勢力有各自的個性傾向
   return {
@@ -71,7 +72,7 @@ function pickTribute(s) {
   const [f, tier] = pick(opts);
   if (!chance(FR.tribute.perTier * (tier - 1))) return null;
   const v = makeVisitor(s), sect = pick(f.sects), type = Object.values(VISITOR_TYPES).find(t => t.sects.includes(sect));
-  return { ...v, type: type.id, sect, role: pick(type.roles), returning: 'plead', tribute: true, alert: false, lvl: Math.max(0, s.realmIdx - 1),
+  return { ...v, type: type.id, sect, role: pick(type.roles), returning: 'plead', tribute: true, alert: false, lvl: Math.max(0, legacyF(s.realmIdx) - 1),
            taunt: `${f.name}久仰宗主大名。這點薄禮，不成敬意——只盼往後相安無事。` };
 }
 
