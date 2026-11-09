@@ -170,40 +170,32 @@ function showSettlement(r) {
   const crush = r.entries.filter(e => e.verdict === 'crush').length;
   const narrow = r.entries.filter(e => e.verdict === 'narrow').length;
   const fail = r.entries.length - crush - narrow;
-  const sur = r.surrendered.length
-    ? r.surrendered.map(x => `<span class="art ${RARE.has(x.def.rarity) ? 'rare' : ''}" style="color:${RARITIES[x.def.rarity].color}">${x.def.emoji} ${esc(x.def.name)} <small>${x.def.rarity}・原屬 ${esc(x.from)}</small></span>`).join('')
-    : '<span class="dim">無</span>';
-  const arts = r.artifacts.length
-    ? r.artifacts.map(a => `<span class="art rare">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`).join('') : '<span class="dim">無</span>';
+  const tierTxt = r.chain >= 10 ? '🌋 天崩地裂' : r.chain >= 5 ? '🔥 五連爆' : r.chain >= 3 ? '⚡ 三連擊' : '';
+  const rec = r.record || {}, best = r.best || null;
+  const tile = (icon, name, key, val) => `<div class="stile ${rec[key] ? 'rec' : ''}"><span>${icon} ${name}</span><b data-count="${val}">0</b>
+    <small>${best ? `上次最佳 ${key === 'chain' ? best.chain : fmt(best[key])}` : '首次引爆'}${rec[key] ? ' <i class="newrec">🏆 新紀錄</i>' : ''}</small></div>`;
+  // 稀有收穫放最前面、放最大：宿敵、法寶、降服弟子
+  const nem = r.nemesesDefeated.map(d => d.awaken ? `<div class="hl nem"><b>🌟 覺醒${'ⅠⅡⅢ'[d.awaken - 1]}的宿敵再度倒下：${esc(d.n.name)}</b><p class="gold">☯️ 道心 +${d.dao}</p></div>`
+    : `<div class="hl nem"><b>⚔️ 宿敵倒下：${esc(d.n.name)}（${esc(d.n.title)}）</b><p>${esc(d.n.story.defeat)}</p>
+      ${d.art ? `<span class="art big rare">${d.art.emoji} ${esc(d.art.name)}<small>${esc(d.art.desc)}</small></span>` : ''}
+      ${d.finale ? '<p class="gold"><b>🏯 破廟的真相已經揭開——這座廟，是青雲宗的祖庭。</b></p>' : ''}</div>`).join('');
+  const arts = r.artifacts.map(a => `<span class="art big rare">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`).join('');
+  const sur = r.surrendered.map(x => `<span class="art big ${RARE.has(x.def.rarity) ? 'rare' : ''}" style="color:${RARITIES[x.def.rarity].color}">${x.def.emoji} ${esc(x.def.name)} <small>${x.def.rarity}・原屬 ${esc(x.from)}・到「復仇簿」招募</small></span>`).join('');
+  const highlights = nem + (arts ? `<div class="hl"><h3>🎁 功法／法寶</h3><div class="arts">${arts}</div></div>` : '') + (sur ? `<div class="hl"><h3>🙇 降服弟子</h3><div class="arts">${sur}</div></div>` : '');
   o.innerHTML = `<div class="ov settle"><div class="panel">
     <h2>💥 破廟一怒・結算</h2>
-    <div class="sgrid">
-      <div><span>連鎖數</span><b>${r.chain}</b></div>
-      <div><span>連鎖加成</span><b>×${r.chainMult}</b></div>
-      <div><span>蓄力倍率</span><b>×${fmt(r.chargeMult)}</b></div>
-      <div><span>碾壓／險勝／打不過</span><b>${crush}／${narrow}／${fail}</b></div>
-    </div>
-    <h3>總獎勵</h3>
-    <div class="sgrid">
-      <div><span>✨ 靈氣</span><b data-count="${r.total.qi}">0</b></div>
-      <div><span>💎 靈石</span><b data-count="${r.total.stone}">0</b></div>
-      <div><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b></div>
-    </div>
-    ${r.nemesesDefeated.map(d => d.awaken ? `<div class="nemstory"><b>🌟 覺醒${'ⅠⅡⅢ'[d.awaken - 1]}的宿敵再度倒下：${esc(d.n.name)}</b>
-      <p class="gold">☯️ 道心 +${d.dao}</p></div>` : `<div class="nemstory"><b>⚔️ 宿敵倒下：${esc(d.n.name)}（${esc(d.n.title)}）</b>
-      <p>${esc(d.n.story.defeat)}</p>
-      ${d.art ? `<span class="art rare">${d.art.emoji} ${esc(d.art.name)}<small>${esc(d.art.desc)}</small></span>` : ''}
-      ${d.finale ? '<p class="gold"><b>🏯 破廟的真相已經揭開——這座廟，是青雲宗的祖庭。</b></p>' : ''}</div>`).join('')}
+    <div class="chainhero ${r.chain >= 10 ? 't3' : r.chain >= 5 ? 't2' : r.chain >= 3 ? 't1' : ''}"><b data-count="${r.chain}">0</b><span>連鎖${tierTxt ? `　${tierTxt}` : ''}${rec.chain ? ' <i class="newrec">🏆 新紀錄</i>' : ''}</span>
+      <small>連鎖加成 ×${r.chainMult}・蓄力 ×${fmt(r.chargeMult)}・碾壓 ${crush}／險勝 ${narrow}／不敵 ${fail}</small></div>
+    ${highlights}
+    <div class="stiles">${tile('✨', '靈氣', 'qi', r.total.qi)}${tile('💎', '靈石', 'stone', r.total.stone)}<div class="stile"><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b><small>${r.total.shard ? `🧩 碎片 +${r.total.shard}` : '&nbsp;'}</small></div></div>
     ${Object.keys(r.reps || {}).length ? `<p class="hint">🏴 威望：${Object.entries(r.reps).map(([id, n]) => `${FACTIONS_BY_ID[id].emoji}${esc(FACTIONS_BY_ID[id].name)} +${n}`).join('、')}</p>` : ''}
     ${(r.comebacks || []).length ? `<p class="hint">🔙 ${esc(r.comebacks.slice(0, 4).join('、'))}${r.comebacks.length > 4 ? '…' : ''} 日後可能回頭。</p>` : ''}
-    <h3>降服弟子（到「復仇簿」招募）</h3><div class="arts">${sur}</div>
-    <h3>功法／法寶</h3><div class="arts">${arts}</div>
     ${r.backfire ? `<p class="warnline">⚠ 反噬！${esc(r.backfire.names.join('、'))} 實力遠勝於你，反擊造成損失 💎${fmt(r.backfire.lost)}${r.backfire.paused ? '，並有一處建築暫停產出' : ''}。</p>` : ''}
     <p class="lineq">老祖：「${esc(r.outro)}」</p>
-    <button class="btn primary big" data-act="closeSettle">收工</button>
+    <div class="sfoot"><button class="btn primary big" data-act="closeSettle">收工</button><button class="btn" data-act="settleToBook">📖 看復仇簿</button></div>
   </div></div>`;
   sfx(r.backfire ? 'backfire' : 'fanfare');
-  o.querySelectorAll('[data-count]').forEach(el => countUp(el, +el.dataset.count, v => '+' + fmt(v)));
+  o.querySelectorAll('[data-count]').forEach(el => countUp(el, +el.dataset.count, v => (el.closest('.chainhero') ? String(Math.round(v)) : '+' + fmt(v))));
   return new Promise(res => { o._done = res; });
 }
 

@@ -178,6 +178,8 @@ export function burst(s) {
   for (const g of s.grudges) if (g.spare && !isNemesis(g)) { g.ripe = Math.min(RIPE.max, (g.ripe || 0) + 1); g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + RIPE.lvl); }
   for (const g of s.grudges) g.spare = false;           // 放過只對這一次引爆有效
   s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0;
+  const prevBest = s.stats.bestBurst ? { ...s.stats.bestBurst } : null;               // 上一次最佳（供結算卡比較）
+  s.stats.bestBurst = { chain: Math.max(prevBest?.chain || 0, chain), qi: Math.max(prevBest?.qi || 0, total.qi), stone: Math.max(prevBest?.stone || 0, total.stone) };
   const prevMax = s.stats.maxChain || 0;
   if (s.stats.bursts === 0) note(s, '💥', `首次引爆，連鎖 ${chain} 人`);
   else if (chain >= 3 && chain > prevMax) note(s, '💥', `單次引爆連鎖 ${chain} 人（新紀錄）`);
@@ -188,6 +190,7 @@ export function burst(s) {
   return {
     backfire, chargeMult: cm, chain, chainMult: cMult, entries, total, surrendered, artifacts, nemesesDefeated, reps, comebacks,
     intro: pickLine(LINES.burstIntro), outro,
+    best: prevBest, record: prevBest ? { chain: chain > prevBest.chain, qi: total.qi > prevBest.qi, stone: total.stone > prevBest.stone } : null,
   };
 }
 

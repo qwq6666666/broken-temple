@@ -861,3 +861,17 @@ body.dm-open { overflow: hidden; }
 /* 一組多位同時對白：精簡卡片 */
 .enemy.mini { padding: 6px 10px; } .enemy.mini .ehead { gap: 8px; } .enemy.mini .eemoji { font-size: 22px; } .enemy.mini .ehead small { display: none; } .enemy.mini .eline { margin: 2px 0; font-size: .92em; } .enemy.mini .etaunt { margin: 2px 0; font-size: .85em; }
 .burst-scene .stage { gap: 6px; }
+/* 結算卡重排：連鎖大字 → 稀有收穫 → 資源（對照上次最佳）→ 其他 → 按鈕 */
+.chainhero { margin: 6px 0 10px; text-align: center; } .chainhero b { display: block; font-size: 52px; line-height: 1; color: var(--gold); text-shadow: 0 0 18px rgba(217,182,74,.55); }
+.chainhero.t2 b { color: #ffcf6a; text-shadow: 0 0 24px rgba(255,160,60,.8); } .chainhero.t3 b { color: #ff9a6a; text-shadow: 0 0 30px rgba(255,90,60,.9); }
+.chainhero span { font-size: 1.05em; } .chainhero small { display: block; color: var(--dim); margin-top: 4px; }
+.newrec { font-style: normal; font-size: .8em; color: #1b1500; background: var(--gold); border-radius: 8px; padding: 1px 6px; }
+.hl { margin: 8px 0; padding: 8px 10px; border: 1px solid rgba(217,182,74,.45); border-radius: 12px; background: rgba(217,182,74,.07); text-align: left; }
+.hl.nem { border-color: var(--red); background: rgba(209,88,76,.08); } .hl h3 { margin: 0 0 6px; font-size: 1em; }
+.art.big { font-size: 1.15em; padding: 8px 12px; } .art.big small { font-size: .75em; }
+.stiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+.stile { background: var(--panel2, #161e1a); border: 1px solid var(--line); border-radius: 10px; padding: 8px 4px; display: flex; flex-direction: column; gap: 2px; }
+.stile.rec { border-color: var(--gold); box-shadow: 0 0 12px rgba(217,182,74,.4); }
+.stile span { font-size: .8em; color: var(--dim); } .stile b { font-size: 1.25em; color: var(--paper); } .stile small { font-size: .68em; color: var(--dim); min-height: 1.2em; }
+.sfoot { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+@media (max-width: 860px) { .chainhero b { font-size: 44px; } .stile b { font-size: 1.1em; } }
