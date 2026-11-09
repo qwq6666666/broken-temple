@@ -18,14 +18,17 @@ export function breakCost(s) {
   if (n.matCost && !(CONFIG.realm.oldPathFreeMats && oldPath(s, n.idx))) Object.assign(c, n.matCost);          // 預設走過的階仍需材料（材料才是真正的瓶頸）
   return c;
 }
-export const canBreak = s => !!nextRealm(s) && canAfford(s, breakCost(s));
+// 穩固：大境界內的小階（中期、後期、圓滿）要隔一段時間才能再突破，讓突破的節奏不被一次買完
+export const settleMsOf = (s, n) => (n && n.sub >= 1 ? CONFIG.realm.settleMs * (oldPath(s, n.idx) ? CONFIG.realm.settleOldMult : 1) : 0);
+export const settleLeft = s => { const n = nextRealm(s); return n ? Math.max(0, (s.breakAt || 0) + settleMsOf(s, n) - s.t) : 0; };
+export const canBreak = s => !!nextRealm(s) && settleLeft(s) <= 0 && canAfford(s, breakCost(s));
 
 // 回傳 {from, to, line}；失敗回傳 null
 export function breakthrough(s) {
   if (!canBreak(s)) return null;
   const from = REALMS[s.realmIdx];
   pay(s, breakCost(s));
-  s.realmIdx++; s.frontier = Math.max(s.frontier || 0, s.realmIdx);
+  s.breakAt = s.t; s.realmIdx++; s.frontier = Math.max(s.frontier || 0, s.realmIdx);
   const to = REALMS[s.realmIdx];
   const line = to.tier > from.tier ? pickLine(LINES.breakTier[to.tier]) : pickLine(LINES.breakLayer);
   quote(line);

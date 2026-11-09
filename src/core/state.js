@@ -10,6 +10,7 @@ export function createState() {
     t: 0,                                   // 遊戲時鐘 (ms，已含 timeScale)
     res: { qi: CONFIG.start.qi, stone: CONFIG.start.stone, token: CONFIG.start.token, shard: 0, daoHeart: 0, merit: 0, ...Object.fromEntries(MAT_KEYS.map(k => [k, 0])) }, // daoHeart 預留給轉生
     realmIdx: 0,                            // 境界序號 0..25（見 data/realms.js）
+    breakAt: 0,                             // 上次突破的遊戲時間（小階穩固計時用，轉生重置）
     frontier: 0,                            // 歷史最高境界序號（跨轉生保留；舊路重走折扣用）
     buildings,
     disciples: [],                          // {uid, defId, lv, at}

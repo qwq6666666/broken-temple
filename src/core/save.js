@@ -84,6 +84,7 @@ export function sanitize(s) {
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);
   s.realmIdx = Math.max(0, Math.min(TOP_IDX, Math.floor(num(s.realmIdx))));
+  s.breakAt = Math.max(0, num(s.breakAt));
   s.frontier = Math.max(s.realmIdx, Math.min(TOP_IDX, Math.floor(num(s.frontier))));
   s.equipped = [...new Set((Array.isArray(s.equipped) ? s.equipped : []).filter(id => s.artifacts.includes(id)))].slice(0, EQUIP_SLOTS);
   if (!OFFLINE_EVENTS_BY_ID[s.offlineLast]) s.offlineLast = null;

@@ -1,7 +1,7 @@
 // 境界面板：目前境界與倍率、下一境界成本、突破按鈕。
 import { REALMS, TIER_NAMES } from '../data/realms.js';
 import { CONFIG } from '../config.js';
-import { nextRealm, breakCost, canBreak, oldPath, breakDiscount } from '../core/realm.js';
+import { nextRealm, breakCost, canBreak, oldPath, breakDiscount, settleLeft } from '../core/realm.js';
 import { capAtRealm, extraLevels } from '../core/buildings.js';
 import { fmt } from '../core/format.js';
 import { canRebirth, daoGain, realmDaoFactor } from '../core/dao.js';
@@ -36,7 +36,8 @@ export function realmPanel(s) {
       ${s.frontier > 0 ? `<small class="dim">歷史最高境界：${esc(REALMS[s.frontier].name)}（之後突破到此階以內，靈石打折）</small>` : ''}
     </div>
     ${nx ? `<div class="act breakact"><div class="costs lg">${costChips(s, cost)}</div>
-      <button class="btn bigbtn ${ok ? 'primary' : ''}" data-act="breakthrough" ${ok ? '' : 'disabled'}>突破</button></div>` : ''}
+      ${settleLeft(s) > 0 ? `<small class="dim" title="同一大境界內的小階要隔一段時間才能再突破">🧘 境界穩固中，約 ${Math.ceil(settleLeft(s) / 60000)} 分鐘後可突破</small>` : ''}
+      <button class="btn bigbtn ${ok ? 'primary' : ''}" data-act="breakthrough" ${ok ? '' : 'disabled'}>${settleLeft(s) > 0 ? '穩固中' : '突破'}</button></div>` : ''}
   </div>
   ${nx && nx.matCost ? `<p class="hint">🧭 跨大境界需要「秘境材料」：${Object.keys(nx.matCost).map(k => `${RES[k].icon}${RES[k].name} ${s.res[k] >= nx.matCost[k] ? '✔' : `${fmt(s.res[k])}/${nx.matCost[k]}`}（${esc(EXPEDITIONS_BY_ID[k.slice(4)].name)}）${s.res[k] >= nx.matCost[k] ? '' : `<button class="btn mini" data-act="expFocus" data-id="${k.slice(4)}">前往取得</button>`}`).join('　')}　派弟子去探索秘境取得。</p>` : ''}
   <div class="stages">${stages(s)}</div>

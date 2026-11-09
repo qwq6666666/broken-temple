@@ -122,7 +122,7 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   if (!FLAG('noexp') && s.realmIdx >= 2 && step % 5 === 0) {
     for (let i = s.expeditions.length - 1; i >= 0; i--) if (s.expeditions[i].status === 'done') { const x = s.expeditions[i]; const cr = Ex.claim(s, i); s.simOK = s.simOK || {}; const o = s.simOK[x.id] ||= [0, 0]; o[cr?.success ? 0 : 1]++; if (cr?.artifact) s.simArt = (s.simArt || 0) + 1; if (cr?.recruit) s.simRec = (s.simRec || 0) + 1; (s.simExpLog ||= []).push(`  ↳ ${(s.t/3600000).toFixed(2)}h ${x.id} ${x.success ? '成功' : '失敗'} +${x.result.mat}`); }
     const want = {}, soon = {};                       // want：之後所有大境界的材料；soon：下一次突破就要用的
-    for (const [idx, c] of Object.entries(REALM_MATS)) if (fromLegacy(Number(idx)) > s.realmIdx) for (const [k, v] of Object.entries(c)) { want[k] = (want[k] || 0) + v; if (Number(idx) === s.realmIdx + 1 || Number(idx) === Math.max(10, s.realmIdx + 1)) soon[k] = (soon[k] || 0) + v; }
+    for (const r of REALMS) if (r.idx > s.realmIdx && r.matCost) for (const [k, v] of Object.entries(r.matCost)) { want[k] = (want[k] || 0) + v; if (r.idx === s.realmIdx + 1) soon[k] = (soon[k] || 0) + v; }   // 材料分攤到每個小階：之後所有階都要；soon＝下一階
     if (FLAG('branch')) { want.mat_cave = (want.mat_cave || 0) + 2; want.mat_spring = (want.mat_spring || 0) + 2; }
     const HI = ['ruins', 'seal', 'rift'], pool = EXPEDITIONS.filter(e => !(FLAG('nohi') && HI.includes(e.id)));
     const mk = e => 'mat_' + matIdOf(e);
