@@ -55,27 +55,29 @@ export async function playBurst(result) {
     <button class="skipbtn">⏭ 跳過</button>
     <div class="chainbig" data-r="chain"></div>
     <div class="narr" data-r="narr"></div>
+    <div class="arena" data-r="arena">${result.entries.map((e, i) => `<div class="fig ${e.nemesis ? 'nemesis' : ''}" data-i="${i}"><span class="fe">${e.nemesis ? e.nemesis.emoji : VISITOR_TYPES[e.g.type].emoji}</span><small class="fn">${esc(e.g.name)}</small></div>`).join('')}</div>
     <div class="stage" data-r="stage"></div></div>`;
   o.classList.add('on');
   const scene = o.firstElementChild;
   if (getPrefs().fastBurst) skip.v = true;                                    // 之前按過「跳過」：直接快速播放
   o.querySelector('.skipbtn').onclick = () => { skip.v = true; if (!getPrefs().fastBurst) { setPref('fastBurst', true); toast('已記住：之後引爆演出會快速播放（說明視窗可關閉）', 'info'); } };
-  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]');
+  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]'), arena = o.querySelector('[data-r=arena]');
+  const figs = [...arena.querySelectorAll('.fig')];
 
   sfx('burstIntro');
   await typeInto(narr, `老祖：「${result.intro}」`, skip);
   await wait(600, skip);
 
   let n = 0;
-  for (const e of result.entries) {
-    const t = VISITOR_TYPES[e.g.type];
+  for (const [ei, e] of result.entries.entries()) {
+    const t = VISITOR_TYPES[e.g.type], fig = figs[ei];
+    figs.forEach(f => f.classList.remove('active')); fig.classList.add('active');
     const card = document.createElement('div');
     card.className = `enemy ${e.verdict} ${e.nemesis ? 'nemesis' : ''}`;
     card.innerHTML = `<div class="ehead"><span class="eemoji">${e.nemesis ? e.nemesis.emoji : t.emoji}</span>
       <div><b>${esc(e.g.name)}</b> ${e.nemesis ? `<span class="tag gold">宿敵・${esc(e.nemesis.title)}</span>` : ''}<span class="tag">${esc(t.label)}</span><br><small>${esc(e.g.sect)}・${esc(e.g.label)}</small></div></div>
       <p class="etaunt"></p><p class="eline"></p><div class="everdict"></div>`;
-    stage.appendChild(card);
-    stage.scrollTop = stage.scrollHeight;
+    stage.replaceChildren(card);                                                // 舞台上一次只留目前這位的對白，倒下的人留在上方的人物列
     // 兩段式：先重播他當初的嘲諷，停頓，再接逆轉台詞
     await typeInto(card.querySelector('.etaunt'), `「${e.taunt}」`, skip, 16);
     await wait(450, skip);
@@ -96,12 +98,25 @@ export async function playBurst(result) {
       }
     }
     card.classList.add('shown');
+    knockDown(arena, fig, e, skip);
     await typeInto(narr, `老祖：「${e.narr}」`, skip, 18);
     await wait(CONFIG.burst.stepMs * 0.35, skip);
   }
   await typeInto(narr, `老祖：「${result.outro}」`, skip);
   await wait(900, skip);
   return showSettlement(result);
+}
+
+const STAMP = { crush: '碾壓', narrow: '險勝', fail: '不敵' };
+// 仇人被擊倒的畫面：碾壓＝被轟飛倒地、險勝＝踉蹌跪下、打不過＝紋風不動（老祖被彈開）。最終姿勢由 CSS class 決定（減少動態時也看得到），動畫只是過程
+function knockDown(arena, fig, e, skip) {
+  const v = e.verdict;
+  fig.classList.remove('active'); fig.classList.add('done', 'v-' + v);
+  const stamp = document.createElement('span'); stamp.className = 'stamp s-' + v; stamp.textContent = e.escaped ? '脫身' : STAMP[v]; fig.appendChild(stamp);
+  if (skip.v) return;
+  const ring = document.createElement('i'); ring.className = 'impact i-' + v;
+  ring.style.left = (fig.offsetLeft + fig.offsetWidth / 2) + 'px'; ring.style.top = (fig.offsetTop + fig.offsetHeight / 2 - 8) + 'px';
+  arena.appendChild(ring); setTimeout(() => ring.remove(), 800);
 }
 
 const RARE = new Set(['SSR', 'UR']);
