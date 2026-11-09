@@ -858,3 +858,6 @@ body.dm-open { overflow: hidden; }
 .rw.rare { font-size: 1em; color: #fff3c4; padding: 2px 8px; border: 1px solid var(--gold); border-radius: 8px; background: rgba(40,30,8,.85); box-shadow: 0 0 14px rgba(217,182,74,.7); animation-name: rwStay; animation-duration: 1.9s; }
 @keyframes rwFly { 0% { transform: translate(calc(-50% + var(--ox, 0px)), 6px) scale(.5); opacity: 0; } 22% { transform: translate(calc(-50% + var(--ox, 0px)), -34px) scale(1.1); opacity: 1; } 55% { transform: translate(calc(-50% + var(--ox, 0px)), -40px) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx, 0px)), var(--dy, -120px)) scale(.4); opacity: 0; } }
 @keyframes rwStay { 0% { transform: translate(calc(-50% + var(--ox, 0px)), 6px) scale(.4); opacity: 0; } 20% { transform: translate(calc(-50% + var(--ox, 0px)), -46px) scale(1.15); opacity: 1; } 80% { transform: translate(calc(-50% + var(--ox, 0px)), -52px) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--ox, 0px)), -64px) scale(1); opacity: 0; } }
+/* 一組多位同時對白：精簡卡片 */
+.enemy.mini { padding: 6px 10px; } .enemy.mini .ehead { gap: 8px; } .enemy.mini .eemoji { font-size: 22px; } .enemy.mini .ehead small { display: none; } .enemy.mini .eline { margin: 2px 0; font-size: .92em; } .enemy.mini .etaunt { margin: 2px 0; font-size: .85em; }
+.burst-scene .stage { gap: 6px; }

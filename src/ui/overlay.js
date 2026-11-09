@@ -71,21 +71,26 @@ export async function playBurst(result) {
   await wait(600, skip);
 
   let n = 0;
-  for (const [ei, e] of result.entries.entries()) {
-    const t = VISITOR_TYPES[e.g.type], fig = figs[ei];
-    figs.forEach(f => f.classList.remove('active')); fig.classList.add('active');
+  // 依人數分檔加速：≤3 人逐位詳演；4~8 人三位一組、打字加快；≥9 人三位一組、對白直接顯示。宿敵永遠單獨、完整演出。
+  const total = result.entries.length, tier = total <= 3 ? 0 : total <= 8 ? 1 : 2;
+  const TIERS = [{ ty: [16, 22], pre: 450, mid: 0.35, narr: 18 }, { ty: [9, 12], pre: 220, mid: 0.2, narr: 10 }, { ty: [0, 0], pre: 120, mid: 0.12, narr: 0 }];
+  const batches = [];
+  for (let i = 0; i < total;) {
+    const e = result.entries[i];
+    const size = (tier === 0 || e.nemesis) ? 1 : Math.min(3, (() => { let k = 1; while (k < 3 && i + k < total && !result.entries[i + k].nemesis) k++; return k; })());
+    batches.push(Array.from({ length: size }, (_, k) => i + k)); i += size;
+  }
+  const mkCard = (e, mini) => {
+    const t = VISITOR_TYPES[e.g.type];
     const card = document.createElement('div');
-    card.className = `enemy ${e.verdict} ${e.nemesis ? 'nemesis' : ''}`;
+    card.className = `enemy ${e.verdict} ${e.nemesis ? 'nemesis' : ''} ${mini ? 'mini' : ''}`;
     card.innerHTML = `<div class="ehead"><span class="eemoji">${e.nemesis ? e.nemesis.emoji : t.emoji}</span>
       <div><b>${esc(e.g.name)}</b> ${e.nemesis ? `<span class="tag gold">宿敵・${esc(e.nemesis.title)}</span>` : ''}<span class="tag">${esc(t.label)}</span><br><small>${esc(e.g.sect)}・${esc(e.g.label)}</small></div></div>
       <p class="etaunt"></p><p class="eline"></p><div class="everdict"></div>`;
-    stage.replaceChildren(card);                                                // 舞台上一次只留目前這位的對白，倒下的人留在上方的人物列
-    // 兩段式：先重播他當初的嘲諷，停頓，再接逆轉台詞
-    await typeInto(card.querySelector('.etaunt'), `「${e.taunt}」`, skip, 16);
-    await wait(450, skip);
-    card.querySelector('.etaunt').classList.add('old');
-    await typeInto(card.querySelector('.eline'), `「${e.line}」`, skip, 22);
-    const vd = card.querySelector('.everdict');
+    return card;
+  };
+  const resolve = e => {                                                         // 判定：印章、連鎖、特效與獎勵
+    const vd = e.card.querySelector('.everdict'), fig = e.fig;
     if (e.verdict === 'fail') { vd.innerHTML = e.escaped ? '😤 險勝……但宿敵脫身逃走了，仍在名單上' : '😏 打不過……暫且留在名單'; if (!skip.v) sfx('fail'); }
     else {
       n++;
@@ -99,7 +104,7 @@ export async function playBurst(result) {
         if (e.nemesis) { banner(scene, `宿敵伏法：${e.g.name}`, 'chainbanner'); sfx('fanfare'); }
       }
     }
-    card.classList.add('shown');
+    e.card.classList.add('shown');
     knockDown(arena, fig, e, skip);
     if (e.reward) {                                                            // 獎勵從倒下的人物身上冒出、飛向資源列；累計列同步增加
       const nr = e.reward.nemesisReward || {};
@@ -107,8 +112,23 @@ export async function playBurst(result) {
       runEl.textContent = `累計　✨ ${fmt(run.qi)}　💎 ${fmt(run.stone)}　🎫 ${fmt(run.token)}`;
       if (!skip.v) rewardsFrom(arena, fig, e.reward);
     }
-    await typeInto(narr, `老祖：「${e.narr}」`, skip, 18);
-    await wait(CONFIG.burst.stepMs * 0.35, skip);
+  };
+  for (const idxs of batches) {
+    const es = idxs.map(i => Object.assign(result.entries[i], { fig: figs[i] }));
+    const P = TIERS[es.some(e => e.nemesis) ? 0 : tier], group = es.length > 1;
+    figs.forEach(f => f.classList.remove('active')); es.forEach(e => e.fig.classList.add('active'));
+    es.forEach(e => { e.card = mkCard(e, group); });
+    stage.replaceChildren(...es.map(e => e.card));                              // 舞台上只留這一組的對白，倒下的人留在上方的人物列
+    const inst = { v: true };
+    // 兩段式：先重播他們當初的嘲諷，停頓，再接逆轉台詞（同一組同時打字）
+    await Promise.all(es.map(e => typeInto(e.card.querySelector('.etaunt'), `「${e.taunt}」`, P.ty[0] ? skip : inst, P.ty[0] || 0)));
+    await wait(P.pre, skip);
+    es.forEach(e => e.card.querySelector('.etaunt').classList.add('old'));
+    await Promise.all(es.map(e => typeInto(e.card.querySelector('.eline'), `「${e.line}」`, P.ty[1] ? skip : inst, P.ty[1] || 0)));
+    for (const e of es) { resolve(e); if (group) await wait(160, skip); }       // 同組依序倒下（間隔 0.16 秒）
+    const last = es[es.length - 1];
+    if (P.narr) await typeInto(narr, `老祖：「${last.narr}」`, skip, P.narr); else narr.textContent = `老祖：「${last.narr}」`;
+    await wait(CONFIG.burst.stepMs * P.mid, skip);
   }
   await typeInto(narr, `老祖：「${result.outro}」`, skip);
   await wait(900, skip);
