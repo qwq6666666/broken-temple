@@ -115,7 +115,10 @@ export async function playBurst(result) {
   };
   for (const idxs of batches) {
     const es = idxs.map(i => Object.assign(result.entries[i], { fig: figs[i] }));
-    const P = TIERS[es.some(e => e.nemesis) ? 0 : tier], group = es.length > 1;
+    const hasNem = es.some(e => e.nemesis);
+    const P0 = TIERS[hasNem ? 0 : tier], group = es.length > 1;
+    const P = hasNem ? { ...P0, ty: P0.ty.map(x => x * 1.6), pre: P0.pre * 1.8 } : P0;      // 宿敵：打字與停頓放慢，畫面聚焦
+    scene.classList.toggle('focus', hasNem && !skip.v);
     figs.forEach(f => f.classList.remove('active')); es.forEach(e => e.fig.classList.add('active'));
     es.forEach(e => { e.card = mkCard(e, group); });
     stage.replaceChildren(...es.map(e => e.card));                              // 舞台上只留這一組的對白，倒下的人留在上方的人物列
@@ -125,7 +128,12 @@ export async function playBurst(result) {
     await wait(P.pre, skip);
     es.forEach(e => e.card.querySelector('.etaunt').classList.add('old'));
     await Promise.all(es.map(e => typeInto(e.card.querySelector('.eline'), `「${e.line}」`, P.ty[1] ? skip : inst, P.ty[1] || 0)));
-    for (const e of es) { resolve(e); if (group) await wait(160, skip); }       // 同組依序倒下（間隔 0.16 秒）
+    for (const e of es) {
+      resolve(e);
+      if (e.nemesis && !skip.v) { flash(scene, '#fff'); await wait(e.verdict === 'crush' ? 1500 : 1100, skip); }    // 宿敵：定格一拍，讓慢動作倒下看得清楚
+      else if (group) await wait(160, skip);                                                                     // 同組依序倒下（間隔 0.16 秒）
+    }
+    scene.classList.remove('focus');
     const last = es[es.length - 1];
     if (P.narr) await typeInto(narr, `老祖：「${last.narr}」`, skip, P.narr); else narr.textContent = `老祖：「${last.narr}」`;
     await wait(CONFIG.burst.stepMs * P.mid, skip);
@@ -140,8 +148,12 @@ const STAMP = { crush: '碾壓', narrow: '險勝', fail: '不敵' };
 function knockDown(arena, fig, e, skip) {
   const v = e.verdict;
   fig.classList.remove('active'); fig.classList.add('done', 'v-' + v);
+  if (e.nemesis) fig.classList.add('slow');                                    // 宿敵：動畫放慢
   const stamp = document.createElement('span'); stamp.className = 'stamp s-' + v; stamp.textContent = e.escaped ? '脫身' : STAMP[v]; fig.appendChild(stamp);
   if (skip.v) return;
+  if (e.escaped) for (let k = 1; k <= 3; k++) {                                // 脫身：留下往右散去的殘影
+    const g = document.createElement('span'); g.className = 'fe ghost'; g.textContent = fig.querySelector('.fe').textContent; g.style.animationDelay = (k * 0.18) + 's'; fig.appendChild(g); setTimeout(() => g.remove(), 2200);
+  }
   const ring = document.createElement('i'); ring.className = 'impact i-' + v;
   ring.style.left = (fig.offsetLeft + fig.offsetWidth / 2) + 'px'; ring.style.top = (fig.offsetTop + fig.offsetHeight / 2 - 8) + 'px';
   arena.appendChild(ring); setTimeout(() => ring.remove(), 800);
