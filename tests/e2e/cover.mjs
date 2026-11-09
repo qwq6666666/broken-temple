@@ -58,6 +58,8 @@ export async function run(b, URL, devices, PLAT) {
   await S(() => { __game.state.visitor.current = null; });
   // 弟子頁：排序、五行篩選、派駐/取消、升星、心得
   await go('people');
+  await tap('[data-key=slots]'); await p.waitForTimeout(250);                       // 駐守區預設收起，先展開
+  rec('駐守區預設收起、點標題展開', await S(() => !!document.querySelector('[data-act=slotPick]')));
   await tap('[data-act=slotPick]'); const sp = await S(() => !!document.querySelector('[data-act=slotAssign]')); rec('slotPick 開啟候選', sp);
   if (sp) { const before = await S(() => __game.state.disciples.filter(d => d.at).length); await tap('[data-act=slotAssign]'); rec('slotAssign 手動派駐', (await S(() => __game.state.disciples.filter(d => d.at).length)) > before); }
   const ds0 = await S(() => __game.state.disciples.filter(d => d.at).length);

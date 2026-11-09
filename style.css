@@ -805,3 +805,25 @@ body.dm-open { overflow: hidden; }
 .dghead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-height: 40px; }
 .dgroup.open .dghead { border-color: var(--gold); margin-bottom: 6px; }
 .dgsum { display: flex; align-items: center; gap: 6px; }
+
+/* ── 手機：頂部緊湊化（內容往上移約 120px）：下一步單行、老祖氣泡單行、打坐與偽裝條縮小、說明卡變細 ── */
+@media (max-width: 860px) {
+  #hint { margin-top: 6px; padding: 3px 8px; gap: 6px; }
+  #hint:not(.urgent) .htext { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  #hint .hbulb { font-size: 0; } #hint .hbulb::before { content: '💡'; font-size: 15px; }
+  #hint .btn.mini { padding: 2px 10px; min-height: 34px; } #hint .hx { min-width: 36px; min-height: 36px; padding: 2px 6px; }
+  .scene { padding: 6px 8px; }
+  .ancestor { margin-bottom: 4px; padding-right: 92px; align-items: center; }            /* 右邊留給「展開全景」 */
+  .avatar { width: 34px; height: 34px; font-size: 22px; }
+  .bubble { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px 10px; min-width: 0; }
+  .scenetoggle { top: 6px; right: 8px; min-height: 34px; padding: 2px 10px; }
+  .meditate-slot { margin-top: 4px; }
+  button.meditate { padding: 8px 14px; font-size: 1em; }
+  .conceal { margin-top: 6px; padding: 6px 10px; }
+  .cbar { height: 10px; margin: 4px 0; }
+  .conceal:not(.full) [data-r=note] { display: none; }                                      /* 蓄力中的說明句平時隱藏，滿格或有提示時才顯示 */
+  .cfoot { flex-wrap: nowrap; gap: 8px; } .cfoot .loss { font-size: .8em; white-space: nowrap; }
+  .cfoot .burst { padding: 6px 12px; min-height: 38px; font-size: .92em; }
+  .tip { padding: 2px 8px; margin-bottom: 6px; gap: 4px; }
+  .tip .tiphead { padding: 2px; } .tip .btn.mini { min-height: 34px; padding: 2px 10px; }
+}

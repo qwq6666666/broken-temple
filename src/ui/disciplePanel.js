@@ -97,7 +97,11 @@ function slotsView(s, ui, away) {
     }
     return `<div class="srow"><span class="sname">${esc(b.name)} <small class="dim">${list.length}/${n}</small></span><div class="slotline">${cells}</div>${picker}</div>`;
   }).join('');
-  return `<div class="slotsbox"><b>📍 駐守</b>${rows || '<small class="dim">還沒有建築有駐守位（建築 Lv1 起）</small>'}</div>`;
+  const total = BUILDINGS.reduce((a, b) => a + slots(s, b.id), 0), used = BUILDINGS.reduce((a, b) => a + Math.min(slots(s, b.id), assignedTo(s, b.id).length), 0);
+  const saved = ui.rowOpen && ui.rowOpen.slots, open = saved === undefined ? !!ui.pickB : !!saved;       // 預設收起；正在選人派駐時自動展開
+  return `<div class="dgroup ${open ? 'open' : ''}"><div class="dghead" data-act="toggleRow" data-key="slots" data-open="${open}" role="button" tabindex="0" aria-expanded="${open}">
+    <b>📍 駐守</b><span class="dgsum"><small class="dim">${used}/${total}${total > used ? `　空位 ${total - used}` : ''}</small> <span class="cx">${open ? '▴' : '▾'}</span></span></div>
+    ${open ? `<div class="slotsbox">${rows || '<small class="dim">還沒有建築有駐守位（建築 Lv1 起）</small>'}</div>` : ''}</div>`;
 }
 
 // 升星花費：該弟子的專屬碎片 have/need；不夠的部分用通用碎片抵（每 1 片專屬 = shardSwap 片通用）

@@ -90,11 +90,11 @@ export function expeditionPanel(s, ui) {
       <small class="dim">最多 ${R.maxTeam} 位；出發後隊員會從建築撤下。右上＝五行　左下＝專長（劍／丹／陣／農／體）　✦＝相合（貢獻更高）</small>
       ${chips}</div>`;
   }
-  return `${pendingBox(ui, s)}<p class="hint">🧭 探索位 ${used}/${slots}。派遣中的弟子無法派駐。</p>${claimAll}${doneRows}${runRows}${teamBox}<h3 class="sub">秘境</h3>${realms}`;
+  return `${pendingBox(ui, s)}<p class="hint">🧭 探索位 ${used}/${slots}。派遣中的弟子無法派駐。</p>${claimAll}${doneRows}${runRows}${teamBox}${realms}`;
 }
 
 // ── 探索度 ──
-const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每升一級解鎖一則發現事件，且該秘境獎勵 +10%">探索 Lv${lv}${nx ? ` ${exXp(s, id)}/${nx}` : '・圓滿'}</span>`; };
+const exBadge = (s, id) => { const lv = exLevel(s, id), nx = exNext(s, id); return ` <span class="tag ${lv ? 'gold' : ''}" title="探索成功累積 ${exXp(s, id)} 次；每升一級解鎖一則發現事件，且該秘境獎勵 +10%">探索 Lv${lv}${nx ? (exXp(s, id) ? ` ${exXp(s, id)}/${nx}` : '') : '・圓滿'}</span>`; };
 function pendingBox(ui, s) {
   const list = pendingEvents(s); if (!list.length) return '';
   return `<div class="exfind"><b class="gold">📜 新的發現（${list.length}）</b>` + list.map(({ id, lv }) => {

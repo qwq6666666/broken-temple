@@ -1,7 +1,7 @@
 // 宿敵：條件判斷、登場、擊敗。
 import { CONFIG } from '../config.js';
 import { NEMESES, NEMESES_BY_ID, AWAKEN, ROMAN } from '../data/nemeses.js';
-import { REALMS, bigOf, legacyF } from '../data/realms.js';
+import { REALMS, bigOf, legacyF, fromLegacy } from '../data/realms.js';
 import { randInt, randFloat, pick } from './rng.js';
 import { FACTIONS_BY_ID, FACTION_TIERS } from '../data/factions.js';
 import { tierOf } from './factions.js';
@@ -28,7 +28,7 @@ export function canAwaken(s, n) {
 }
 export const awakenNeedText = (s, n) => {
   const lv = awakeLv(s, n.id);
-  return lv >= AWAKEN.maxLv ? '覺醒已圓滿' : `第 ${lv + 1} 階覺醒：轉生 ${AWAKEN.needRebirth[lv]} 次、境界達${REALMS[awakenRealm(n)].name}`;
+  return lv >= AWAKEN.maxLv ? '覺醒已圓滿' : `第 ${lv + 1} 階覺醒：轉生 ${AWAKEN.needRebirth[lv]} 次、境界達${REALMS[fromLegacy(awakenRealm(n))].name}`;
 };
 // 場上（訪客＋復仇簿）同時最多幾位宿敵：避免多位同時解鎖時佔滿復仇簿、干擾連鎖
 export const presentCount = s => s.grudges.filter(g => g.nemesisId).length + (s.visitor.current?.nemesisId ? 1 : 0);
@@ -40,7 +40,7 @@ export function condText(s, n) {
   const parts = [];
   if (n.cond.prev) parts.push(`擊敗${NEMESES_BY_ID[n.cond.prev].name}`);
   if (n.cond.faction) parts.push(`${FACTIONS_BY_ID[n.cond.faction].name}威望達「${FACTION_TIERS[n.cond.tier || 1]}」`);
-  if (n.cond.minRealm) parts.push(`境界達${REALMS[n.cond.minRealm].name}`);
+  if (n.cond.minRealm) parts.push(`境界達${REALMS[fromLegacy(n.cond.minRealm)].name}`);
   return parts.join('，且');
 }
 

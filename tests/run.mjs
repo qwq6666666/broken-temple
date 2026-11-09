@@ -1276,7 +1276,7 @@ t('補滿空位：只填空位、不動已派駐、專長與緣分優先、不�
 t('宗門年表：突破大境界與轉生會記錄、上限 120 筆、跨轉生保留', () => {
   const s = createState(); s.res.stone = 1e12; s.res.shard = 1e6;
   for (const k of Object.keys(s.res)) if (k.startsWith('mat_')) s.res[k] = 1e6;
-  while (s.realmIdx < 22) R.breakthrough(s);
+  while (s.realmIdx < 22) { s.t += 1e9; R.breakthrough(s); }
   assert.ok(s.chronicle.some(e => e.text.includes('突破至築基')) && s.chronicle.some(e => e.text.includes('突破至化神')));
   Dao.rebirth(s); assert.ok(s.chronicle.some(e => e.text.includes('第1世結束')));
   for (let i = 0; i < 200; i++) Chr.note(s, '📜', 'x' + i);
@@ -2021,7 +2021,7 @@ t('境界 26 階：舊序號對照、各階單調遞增、大境界靈石與材�
 
 t('舊路重走：frontier 隨突破增加、跨轉生保留；走過的階靈石 ×0.6（材料仍需）；破境心得疊加有下限', () => {
   const s = createState(); s.res.stone = 1e15; for (const k of Object.keys(s.res)) if (k.startsWith('mat_')) s.res[k] = 99;
-  while (s.realmIdx < 14) R.breakthrough(s);
+  while (s.realmIdx < 14) { s.t += 1e9; R.breakthrough(s); }
   assert.equal(s.frontier, 14);
   const m = createState(); m.frontier = 14; m.realmIdx = 13;
   const full = REALMS[14].stoneCost; assert.equal(R.breakCost(m).stone, Math.round(full * CONFIG.realm.oldPath));
@@ -2046,6 +2046,30 @@ t('存檔 v3 → v4：舊境界序號換算成 26 階，frontier 補上；壞值
   const o2 = S.parse(JSON.stringify({ version: 3, state: { res: {}, realmIdx: 11, buildings: {} } })).state; assert.equal(o2.realmIdx, 14);
   const o3 = S.parse(JSON.stringify({ version: 4, state: { res: {}, realmIdx: 18, frontier: 20, buildings: {} } })).state; assert.equal(o3.realmIdx, 18); assert.equal(o3.frontier, 20);
   const bad = createState(); bad.realmIdx = 999; bad.frontier = -3; const c = sanitize(bad); assert.equal(c.realmIdx, 25); assert.equal(c.frontier, 25);
+});
+
+
+t('穩固：大境界內的小階突破要隔一段時間（走過的階較短）；大境界初期與轉生不受限；UI 計時只取分鐘', () => {
+  const s = createState(); s.res.stone = 1e15; for (const k of Object.keys(s.res)) if (k.startsWith('mat_')) s.res[k] = 99;
+  s.realmIdx = 9; s.t = 1000; assert.ok(R.canBreak(s) && R.settleLeft(s) === 0);                // 煉氣九層 → 築基初期：不受限
+  R.breakthrough(s); assert.equal(s.realmIdx, 10); assert.equal(s.breakAt, 1000);
+  assert.equal(R.canBreak(s), false); assert.equal(R.settleLeft(s), CONFIG.realm.settleMs);     // 築基中期：要穩固
+  assert.equal(R.breakthrough(s), null);
+  s.t += CONFIG.realm.settleMs - 1; assert.equal(R.canBreak(s), false); s.t += 1; assert.equal(R.canBreak(s), true);
+  const o = createState(); o.res.stone = 1e15; for (const k of Object.keys(o.res)) if (k.startsWith('mat_')) o.res[k] = 99;
+  o.realmIdx = 10; o.frontier = 14; o.breakAt = 5000; o.t = 5000;
+  assert.equal(R.settleLeft(o), CONFIG.realm.settleMs * CONFIG.realm.settleOldMult);          // 走過的階 ×0.4
+  o.realmIdx = 13; o.frontier = 13; o.breakAt = 5000; o.t = 5000; assert.equal(R.settleLeft(o), 0 + 0 * 1);  // 13→14（金丹初期）是大境界初期：不受限
+  const k = createState(); k.realmIdx = 22; k.breakAt = 9e6; k.res.stone = 1e12; Dao.rebirth(k); assert.equal(k.breakAt, 0);
+  assert.equal(sanitize(Object.assign(createState(), { breakAt: -5 })).breakAt, 0);
+});
+
+
+t('以舊序號書寫的境界名稱要換算成新階名（大事描述、宿敵解鎖條件）', () => {
+  const g = id => GOALS_BY_ID[id].desc;
+  assert.equal(g('zhuji'), '突破至築基初期'); assert.equal(g('jindan'), '突破至金丹初期'); assert.equal(g('huashen'), '突破至化神初期'); assert.equal(g('qi9'), '突破至煉氣九層');
+  const s = createState(); const bad = NEMESES.filter(n => n.cond.minRealm >= 11).map(n => Nem.condText(s, n)).filter(x => /築基(中期|後期|圓滿)/.test(x));
+  assert.equal(bad.length, 0, bad.join('｜'));
 });
 
 console.log(`\n${n} 項測試通過`);

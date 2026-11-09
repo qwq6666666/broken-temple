@@ -1,7 +1,7 @@
 // 核心壓力測試（不需瀏覽器）：用機器人連續跑多輪轉生，定期檢查不變量與存檔往返。
 // 用法：node tests/invariants.mjs <種子=1> <遊戲小時=12>；有問題時以非 0 結束碼退出。
 // 檢查：數值有限、資源非負、uid／id 唯一、派駐與探索不衝突、名額與上限、存檔序列化→清理的冪等與往返一致。
-import { fromLegacy } from '../src/data/realms.js';
+import { REALMS } from '../src/data/realms.js';
 import { createState } from '../src/core/state.js';
 import { setRng } from '../src/core/rng.js';
 import * as eco from '../src/core/economy.js';
@@ -89,7 +89,7 @@ for (step = 0; step < HOURS * 3600; step++) {
     for (const i of INSIGHTS) Ins.learn(s, i.spec);
     for (const d of s.disciples) { if (D.canStar(s, d)) D.starUp(s, d.uid); }
     for (const d of s.disciples) { const ch = St.nextChapter(s, d); if (ch) St.read(s, d.uid); }
-    const want = {}; for (const [idx, c] of Object.entries(REALM_MATS)) if (fromLegacy(Number(idx)) > s.realmIdx) for (const [k, v] of Object.entries(c)) want[k] = (want[k] || 0) + v;
+    const want = {}; for (const r of REALMS) if (r.idx > s.realmIdx && r.matCost) for (const [k, v] of Object.entries(r.matCost)) want[k] = (want[k] || 0) + v;
     const order = [...EXPEDITIONS].sort((a, b) => ((want['mat_' + b.id] || 0) - s.res['mat_' + b.id] > 0) - ((want['mat_' + a.id] || 0) - s.res['mat_' + a.id] > 0));
     for (const e of order) { if (Ex.isUnlocked(s, e) && s.expeditions.length < Ex.slotCount(s) && s.expeditions.filter(x => x.id === e.id).length < 2) { const bt = Ex.bestTeam(s, e.id); if (bt) Ex.start(s, e.id, bt.uids); } }
   }
