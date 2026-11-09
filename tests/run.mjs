@@ -2064,5 +2064,13 @@ t('穩固：大境界內的小階突破要隔一段時間（走過的階較短�
   assert.equal(sanitize(Object.assign(createState(), { breakAt: -5 })).breakAt, 0);
 });
 
+
+t('以舊序號書寫的境界名稱要換算成新階名（大事描述、宿敵解鎖條件）', () => {
+  const g = id => GOALS_BY_ID[id].desc;
+  assert.equal(g('zhuji'), '突破至築基初期'); assert.equal(g('jindan'), '突破至金丹初期'); assert.equal(g('huashen'), '突破至化神初期'); assert.equal(g('qi9'), '突破至煉氣九層');
+  const s = createState(); const bad = NEMESES.filter(n => n.cond.minRealm >= 11).map(n => Nem.condText(s, n)).filter(x => /築基(中期|後期|圓滿)/.test(x));
+  assert.equal(bad.length, 0, bad.join('｜'));
+});
+
 console.log(`\n${n} 項測試通過`);
 if (failed.length) { console.log(`\n${failed.length} 項失敗：\n - ` + failed.join('\n - ')); process.exit(1); }
