@@ -54,6 +54,7 @@ export async function playBurst(result) {
   o.innerHTML = `<div class="ov burst-scene">
     <button class="skipbtn">⏭ 跳過</button>
     <div class="chainbig" data-r="chain"></div>
+    <div class="runtotal" data-r="run"></div>
     <div class="narr" data-r="narr"></div>
     <div class="arena" data-r="arena">${result.entries.map((e, i) => `<div class="fig ${e.nemesis ? 'nemesis' : ''}" data-i="${i}"><span class="fe">${e.nemesis ? e.nemesis.emoji : VISITOR_TYPES[e.g.type].emoji}</span><small class="fn">${esc(e.g.name)}</small></div>`).join('')}</div>
     <div class="stage" data-r="stage"></div></div>`;
@@ -61,7 +62,8 @@ export async function playBurst(result) {
   const scene = o.firstElementChild;
   if (getPrefs().fastBurst) skip.v = true;                                    // 之前按過「跳過」：直接快速播放
   o.querySelector('.skipbtn').onclick = () => { skip.v = true; if (!getPrefs().fastBurst) { setPref('fastBurst', true); toast('已記住：之後引爆演出會快速播放（說明視窗可關閉）', 'info'); } };
-  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]'), arena = o.querySelector('[data-r=arena]');
+  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]'), arena = o.querySelector('[data-r=arena]'), runEl = o.querySelector('[data-r=run]');
+  const run = { qi: 0, stone: 0, token: 0 };
   const figs = [...arena.querySelectorAll('.fig')];
 
   sfx('burstIntro');
@@ -99,6 +101,12 @@ export async function playBurst(result) {
     }
     card.classList.add('shown');
     knockDown(arena, fig, e, skip);
+    if (e.reward) {                                                            // 獎勵從倒下的人物身上冒出、飛向資源列；累計列同步增加
+      const nr = e.reward.nemesisReward || {};
+      run.qi += e.reward.qi || 0; run.stone += (e.reward.stone || 0) + (nr.stone || 0); run.token += (e.reward.token || 0) + (nr.token || 0);
+      runEl.textContent = `累計　✨ ${fmt(run.qi)}　💎 ${fmt(run.stone)}　🎫 ${fmt(run.token)}`;
+      if (!skip.v) rewardsFrom(arena, fig, e.reward);
+    }
     await typeInto(narr, `老祖：「${e.narr}」`, skip, 18);
     await wait(CONFIG.burst.stepMs * 0.35, skip);
   }
@@ -117,6 +125,22 @@ function knockDown(arena, fig, e, skip) {
   const ring = document.createElement('i'); ring.className = 'impact i-' + v;
   ring.style.left = (fig.offsetLeft + fig.offsetWidth / 2) + 'px'; ring.style.top = (fig.offsetTop + fig.offsetHeight / 2 - 8) + 'px';
   arena.appendChild(ring); setTimeout(() => ring.remove(), 800);
+}
+
+// 獎勵從人物身上冒出：資源小字先往上浮，再飛向資源列；法寶與降服弟子留在原地發光（稀有）
+function rewardsFrom(arena, fig, r) {
+  const nr = r.nemesisReward || {};
+  const items = [['✨', r.qi], ['💎', (r.stone || 0) + (nr.stone || 0)], ['🎫', (r.token || 0) + (nr.token || 0)], ['🧩', r.shard]].filter(([, v]) => v > 0).map(([ic, v]) => ({ t: `${ic}+${fmt(v)}` }));
+  if (r.artifactDef) items.push({ t: `${r.artifactDef.emoji} ${r.artifactDef.name}`, rare: true });
+  if (r.surrenderDef) items.push({ t: `${r.surrenderDef.emoji} ${r.surrenderDef.name} 願降`, rare: true });
+  const bar = document.getElementById('resbar'), br = bar ? bar.getBoundingClientRect() : null, ar = arena.getBoundingClientRect();
+  const cx = fig.offsetLeft + fig.offsetWidth / 2, cy = fig.offsetTop + 8;
+  items.forEach((it, i) => {
+    const el = document.createElement('span'); el.className = 'rw' + (it.rare ? ' rare' : ''); el.textContent = it.t;
+    el.style.left = cx + 'px'; el.style.top = cy + 'px'; el.style.setProperty('--ox', ((i - (items.length - 1) / 2) * 52) + 'px'); el.style.animationDelay = (i * 0.12) + 's';
+    if (br && !it.rare) { el.style.setProperty('--dx', (br.left + br.width / 2 - ar.left - cx) + 'px'); el.style.setProperty('--dy', (br.top + br.height / 2 - ar.top - cy) + 'px'); }
+    arena.appendChild(el); setTimeout(() => el.remove(), 1900 + i * 120);
+  });
 }
 
 const RARE = new Set(['SSR', 'UR']);

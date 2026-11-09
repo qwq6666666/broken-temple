@@ -852,3 +852,9 @@ body.dm-open { overflow: hidden; }
 .burst-scene .chainbig { position: static; min-height: 34px; line-height: 34px; margin: 2px 0 0; }
 .burst-scene .stage { flex: none; max-height: 46vh; }
 @media (max-width: 860px) { .burst-scene .chainbig { top: auto; left: auto; min-height: 28px; line-height: 28px; } }
+/* 獎勵從倒下的人物冒出 */
+.runtotal { min-height: 1.4em; font-size: .85em; color: var(--dim); text-align: center; margin-top: 2px; }
+.rw { position: absolute; z-index: 6; pointer-events: none; white-space: nowrap; font-weight: bold; font-size: .85em; color: var(--gold); text-shadow: 0 0 8px rgba(0,0,0,.9), 0 0 10px rgba(217,182,74,.5); transform: translate(-50%, 0); animation: rwFly 1.7s ease-in-out both; }
+.rw.rare { font-size: 1em; color: #fff3c4; padding: 2px 8px; border: 1px solid var(--gold); border-radius: 8px; background: rgba(40,30,8,.85); box-shadow: 0 0 14px rgba(217,182,74,.7); animation-name: rwStay; animation-duration: 1.9s; }
+@keyframes rwFly { 0% { transform: translate(calc(-50% + var(--ox, 0px)), 6px) scale(.5); opacity: 0; } 22% { transform: translate(calc(-50% + var(--ox, 0px)), -34px) scale(1.1); opacity: 1; } 55% { transform: translate(calc(-50% + var(--ox, 0px)), -40px) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx, 0px)), var(--dy, -120px)) scale(.4); opacity: 0; } }
+@keyframes rwStay { 0% { transform: translate(calc(-50% + var(--ox, 0px)), 6px) scale(.4); opacity: 0; } 20% { transform: translate(calc(-50% + var(--ox, 0px)), -46px) scale(1.15); opacity: 1; } 80% { transform: translate(calc(-50% + var(--ox, 0px)), -52px) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--ox, 0px)), -64px) scale(1); opacity: 0; } }
