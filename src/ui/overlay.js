@@ -54,34 +54,43 @@ export async function playBurst(result) {
   o.innerHTML = `<div class="ov burst-scene">
     <button class="skipbtn">⏭ 跳過</button>
     <div class="chainbig" data-r="chain"></div>
+    <div class="runtotal" data-r="run"></div>
     <div class="narr" data-r="narr"></div>
+    <div class="arena" data-r="arena">${result.entries.map((e, i) => `<div class="fig ${e.nemesis ? 'nemesis' : ''}" data-i="${i}"><span class="fe">${e.nemesis ? e.nemesis.emoji : VISITOR_TYPES[e.g.type].emoji}</span><small class="fn">${esc(e.g.name)}</small></div>`).join('')}</div>
     <div class="stage" data-r="stage"></div></div>`;
   o.classList.add('on');
   const scene = o.firstElementChild;
   if (getPrefs().fastBurst) skip.v = true;                                    // 之前按過「跳過」：直接快速播放
   o.querySelector('.skipbtn').onclick = () => { skip.v = true; if (!getPrefs().fastBurst) { setPref('fastBurst', true); toast('已記住：之後引爆演出會快速播放（說明視窗可關閉）', 'info'); } };
-  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]');
+  const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]'), arena = o.querySelector('[data-r=arena]'), runEl = o.querySelector('[data-r=run]');
+  const run = { qi: 0, stone: 0, token: 0 };
+  const figs = [...arena.querySelectorAll('.fig')];
 
   sfx('burstIntro');
   await typeInto(narr, `老祖：「${result.intro}」`, skip);
   await wait(600, skip);
 
   let n = 0;
-  for (const e of result.entries) {
+  // 依人數分檔加速：≤3 人逐位詳演；4~8 人三位一組、打字加快；≥9 人三位一組、對白直接顯示。宿敵永遠單獨、完整演出。
+  const total = result.entries.length, tier = total <= 3 ? 0 : total <= 8 ? 1 : 2;
+  const TIERS = [{ ty: [16, 22], pre: 450, mid: 0.35, narr: 18 }, { ty: [9, 12], pre: 220, mid: 0.2, narr: 10 }, { ty: [0, 0], pre: 120, mid: 0.12, narr: 0 }];
+  const batches = [];
+  for (let i = 0; i < total;) {
+    const e = result.entries[i];
+    const size = (tier === 0 || e.nemesis) ? 1 : Math.min(3, (() => { let k = 1; while (k < 3 && i + k < total && !result.entries[i + k].nemesis) k++; return k; })());
+    batches.push(Array.from({ length: size }, (_, k) => i + k)); i += size;
+  }
+  const mkCard = (e, mini) => {
     const t = VISITOR_TYPES[e.g.type];
     const card = document.createElement('div');
-    card.className = `enemy ${e.verdict} ${e.nemesis ? 'nemesis' : ''}`;
+    card.className = `enemy ${e.verdict} ${e.nemesis ? 'nemesis' : ''} ${mini ? 'mini' : ''}`;
     card.innerHTML = `<div class="ehead"><span class="eemoji">${e.nemesis ? e.nemesis.emoji : t.emoji}</span>
       <div><b>${esc(e.g.name)}</b> ${e.nemesis ? `<span class="tag gold">宿敵・${esc(e.nemesis.title)}</span>` : ''}<span class="tag">${esc(t.label)}</span><br><small>${esc(e.g.sect)}・${esc(e.g.label)}</small></div></div>
       <p class="etaunt"></p><p class="eline"></p><div class="everdict"></div>`;
-    stage.appendChild(card);
-    stage.scrollTop = stage.scrollHeight;
-    // 兩段式：先重播他當初的嘲諷，停頓，再接逆轉台詞
-    await typeInto(card.querySelector('.etaunt'), `「${e.taunt}」`, skip, 16);
-    await wait(450, skip);
-    card.querySelector('.etaunt').classList.add('old');
-    await typeInto(card.querySelector('.eline'), `「${e.line}」`, skip, 22);
-    const vd = card.querySelector('.everdict');
+    return card;
+  };
+  const resolve = e => {                                                         // 判定：印章、連鎖、特效與獎勵
+    const vd = e.card.querySelector('.everdict'), fig = e.fig;
     if (e.verdict === 'fail') { vd.innerHTML = e.escaped ? '😤 險勝……但宿敵脫身逃走了，仍在名單上' : '😏 打不過……暫且留在名單'; if (!skip.v) sfx('fail'); }
     else {
       n++;
@@ -95,13 +104,75 @@ export async function playBurst(result) {
         if (e.nemesis) { banner(scene, `宿敵伏法：${e.g.name}`, 'chainbanner'); sfx('fanfare'); }
       }
     }
-    card.classList.add('shown');
-    await typeInto(narr, `老祖：「${e.narr}」`, skip, 18);
-    await wait(CONFIG.burst.stepMs * 0.35, skip);
+    e.card.classList.add('shown');
+    knockDown(arena, fig, e, skip);
+    if (e.reward) {                                                            // 獎勵從倒下的人物身上冒出、飛向資源列；累計列同步增加
+      const nr = e.reward.nemesisReward || {};
+      run.qi += e.reward.qi || 0; run.stone += (e.reward.stone || 0) + (nr.stone || 0); run.token += (e.reward.token || 0) + (nr.token || 0);
+      runEl.textContent = `累計　✨ ${fmt(run.qi)}　💎 ${fmt(run.stone)}　🎫 ${fmt(run.token)}`;
+      if (!skip.v) rewardsFrom(arena, fig, e.reward);
+    }
+  };
+  for (const idxs of batches) {
+    const es = idxs.map(i => Object.assign(result.entries[i], { fig: figs[i] }));
+    const hasNem = es.some(e => e.nemesis);
+    const P0 = TIERS[hasNem ? 0 : tier], group = es.length > 1;
+    const P = hasNem ? { ...P0, ty: P0.ty.map(x => x * 1.6), pre: P0.pre * 1.8 } : P0;      // 宿敵：打字與停頓放慢，畫面聚焦
+    scene.classList.toggle('focus', hasNem && !skip.v);
+    figs.forEach(f => f.classList.remove('active')); es.forEach(e => e.fig.classList.add('active'));
+    es.forEach(e => { e.card = mkCard(e, group); });
+    stage.replaceChildren(...es.map(e => e.card));                              // 舞台上只留這一組的對白，倒下的人留在上方的人物列
+    const inst = { v: true };
+    // 兩段式：先重播他們當初的嘲諷，停頓，再接逆轉台詞（同一組同時打字）
+    await Promise.all(es.map(e => typeInto(e.card.querySelector('.etaunt'), `「${e.taunt}」`, P.ty[0] ? skip : inst, P.ty[0] || 0)));
+    await wait(P.pre, skip);
+    es.forEach(e => e.card.querySelector('.etaunt').classList.add('old'));
+    await Promise.all(es.map(e => typeInto(e.card.querySelector('.eline'), `「${e.line}」`, P.ty[1] ? skip : inst, P.ty[1] || 0)));
+    for (const e of es) {
+      resolve(e);
+      if (e.nemesis && !skip.v) { flash(scene, '#fff'); await wait(e.verdict === 'crush' ? 1500 : 1100, skip); }    // 宿敵：定格一拍，讓慢動作倒下看得清楚
+      else if (group) await wait(160, skip);                                                                     // 同組依序倒下（間隔 0.16 秒）
+    }
+    scene.classList.remove('focus');
+    const last = es[es.length - 1];
+    if (P.narr) await typeInto(narr, `老祖：「${last.narr}」`, skip, P.narr); else narr.textContent = `老祖：「${last.narr}」`;
+    await wait(CONFIG.burst.stepMs * P.mid, skip);
   }
   await typeInto(narr, `老祖：「${result.outro}」`, skip);
   await wait(900, skip);
   return showSettlement(result);
+}
+
+const STAMP = { crush: '碾壓', narrow: '險勝', fail: '不敵' };
+// 仇人被擊倒的畫面：碾壓＝被轟飛倒地、險勝＝踉蹌跪下、打不過＝紋風不動（老祖被彈開）。最終姿勢由 CSS class 決定（減少動態時也看得到），動畫只是過程
+function knockDown(arena, fig, e, skip) {
+  const v = e.verdict;
+  fig.classList.remove('active'); fig.classList.add('done', 'v-' + v);
+  if (e.nemesis) fig.classList.add('slow');                                    // 宿敵：動畫放慢
+  const stamp = document.createElement('span'); stamp.className = 'stamp s-' + v; stamp.textContent = e.escaped ? '脫身' : STAMP[v]; fig.appendChild(stamp);
+  if (skip.v) return;
+  if (e.escaped) for (let k = 1; k <= 3; k++) {                                // 脫身：留下往右散去的殘影
+    const g = document.createElement('span'); g.className = 'fe ghost'; g.textContent = fig.querySelector('.fe').textContent; g.style.animationDelay = (k * 0.18) + 's'; fig.appendChild(g); setTimeout(() => g.remove(), 2200);
+  }
+  const ring = document.createElement('i'); ring.className = 'impact i-' + v;
+  ring.style.left = (fig.offsetLeft + fig.offsetWidth / 2) + 'px'; ring.style.top = (fig.offsetTop + fig.offsetHeight / 2 - 8) + 'px';
+  arena.appendChild(ring); setTimeout(() => ring.remove(), 800);
+}
+
+// 獎勵從人物身上冒出：資源小字先往上浮，再飛向資源列；法寶與降服弟子留在原地發光（稀有）
+function rewardsFrom(arena, fig, r) {
+  const nr = r.nemesisReward || {};
+  const items = [['✨', r.qi], ['💎', (r.stone || 0) + (nr.stone || 0)], ['🎫', (r.token || 0) + (nr.token || 0)], ['🧩', r.shard]].filter(([, v]) => v > 0).map(([ic, v]) => ({ t: `${ic}+${fmt(v)}` }));
+  if (r.artifactDef) items.push({ t: `${r.artifactDef.emoji} ${r.artifactDef.name}`, rare: true });
+  if (r.surrenderDef) items.push({ t: `${r.surrenderDef.emoji} ${r.surrenderDef.name} 願降`, rare: true });
+  const bar = document.getElementById('resbar'), br = bar ? bar.getBoundingClientRect() : null, ar = arena.getBoundingClientRect();
+  const cx = fig.offsetLeft + fig.offsetWidth / 2, cy = fig.offsetTop + 8;
+  items.forEach((it, i) => {
+    const el = document.createElement('span'); el.className = 'rw' + (it.rare ? ' rare' : ''); el.textContent = it.t;
+    el.style.left = cx + 'px'; el.style.top = cy + 'px'; el.style.setProperty('--ox', ((i - (items.length - 1) / 2) * 52) + 'px'); el.style.animationDelay = (i * 0.12) + 's';
+    if (br && !it.rare) { el.style.setProperty('--dx', (br.left + br.width / 2 - ar.left - cx) + 'px'); el.style.setProperty('--dy', (br.top + br.height / 2 - ar.top - cy) + 'px'); }
+    arena.appendChild(el); setTimeout(() => el.remove(), 1900 + i * 120);
+  });
 }
 
 const RARE = new Set(['SSR', 'UR']);
@@ -111,40 +182,32 @@ function showSettlement(r) {
   const crush = r.entries.filter(e => e.verdict === 'crush').length;
   const narrow = r.entries.filter(e => e.verdict === 'narrow').length;
   const fail = r.entries.length - crush - narrow;
-  const sur = r.surrendered.length
-    ? r.surrendered.map(x => `<span class="art ${RARE.has(x.def.rarity) ? 'rare' : ''}" style="color:${RARITIES[x.def.rarity].color}">${x.def.emoji} ${esc(x.def.name)} <small>${x.def.rarity}・原屬 ${esc(x.from)}</small></span>`).join('')
-    : '<span class="dim">無</span>';
-  const arts = r.artifacts.length
-    ? r.artifacts.map(a => `<span class="art rare">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`).join('') : '<span class="dim">無</span>';
+  const tierTxt = r.chain >= 10 ? '🌋 天崩地裂' : r.chain >= 5 ? '🔥 五連爆' : r.chain >= 3 ? '⚡ 三連擊' : '';
+  const rec = r.record || {}, best = r.best || null;
+  const tile = (icon, name, key, val) => `<div class="stile ${rec[key] ? 'rec' : ''}"><span>${icon} ${name}</span><b data-count="${val}">0</b>
+    <small>${best ? `上次最佳 ${key === 'chain' ? best.chain : fmt(best[key])}` : '首次引爆'}${rec[key] ? ' <i class="newrec">🏆 新紀錄</i>' : ''}</small></div>`;
+  // 稀有收穫放最前面、放最大：宿敵、法寶、降服弟子
+  const nem = r.nemesesDefeated.map(d => d.awaken ? `<div class="hl nem"><b>🌟 覺醒${'ⅠⅡⅢ'[d.awaken - 1]}的宿敵再度倒下：${esc(d.n.name)}</b><p class="gold">☯️ 道心 +${d.dao}</p></div>`
+    : `<div class="hl nem"><b>⚔️ 宿敵倒下：${esc(d.n.name)}（${esc(d.n.title)}）</b><p>${esc(d.n.story.defeat)}</p>
+      ${d.art ? `<span class="art big rare">${d.art.emoji} ${esc(d.art.name)}<small>${esc(d.art.desc)}</small></span>` : ''}
+      ${d.finale ? '<p class="gold"><b>🏯 破廟的真相已經揭開——這座廟，是青雲宗的祖庭。</b></p>' : ''}</div>`).join('');
+  const arts = r.artifacts.map(a => `<span class="art big rare">${a.emoji} ${esc(a.name)}<small>${esc(a.desc)}</small></span>`).join('');
+  const sur = r.surrendered.map(x => `<span class="art big ${RARE.has(x.def.rarity) ? 'rare' : ''}" style="color:${RARITIES[x.def.rarity].color}">${x.def.emoji} ${esc(x.def.name)} <small>${x.def.rarity}・原屬 ${esc(x.from)}・到「復仇簿」招募</small></span>`).join('');
+  const highlights = nem + (arts ? `<div class="hl"><h3>🎁 功法／法寶</h3><div class="arts">${arts}</div></div>` : '') + (sur ? `<div class="hl"><h3>🙇 降服弟子</h3><div class="arts">${sur}</div></div>` : '');
   o.innerHTML = `<div class="ov settle"><div class="panel">
     <h2>💥 破廟一怒・結算</h2>
-    <div class="sgrid">
-      <div><span>連鎖數</span><b>${r.chain}</b></div>
-      <div><span>連鎖加成</span><b>×${r.chainMult}</b></div>
-      <div><span>蓄力倍率</span><b>×${fmt(r.chargeMult)}</b></div>
-      <div><span>碾壓／險勝／打不過</span><b>${crush}／${narrow}／${fail}</b></div>
-    </div>
-    <h3>總獎勵</h3>
-    <div class="sgrid">
-      <div><span>✨ 靈氣</span><b data-count="${r.total.qi}">0</b></div>
-      <div><span>💎 靈石</span><b data-count="${r.total.stone}">0</b></div>
-      <div><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b></div>
-    </div>
-    ${r.nemesesDefeated.map(d => d.awaken ? `<div class="nemstory"><b>🌟 覺醒${'ⅠⅡⅢ'[d.awaken - 1]}的宿敵再度倒下：${esc(d.n.name)}</b>
-      <p class="gold">☯️ 道心 +${d.dao}</p></div>` : `<div class="nemstory"><b>⚔️ 宿敵倒下：${esc(d.n.name)}（${esc(d.n.title)}）</b>
-      <p>${esc(d.n.story.defeat)}</p>
-      ${d.art ? `<span class="art rare">${d.art.emoji} ${esc(d.art.name)}<small>${esc(d.art.desc)}</small></span>` : ''}
-      ${d.finale ? '<p class="gold"><b>🏯 破廟的真相已經揭開——這座廟，是青雲宗的祖庭。</b></p>' : ''}</div>`).join('')}
+    <div class="chainhero ${r.chain >= 10 ? 't3' : r.chain >= 5 ? 't2' : r.chain >= 3 ? 't1' : ''}"><b data-count="${r.chain}">0</b><span>連鎖${tierTxt ? `　${tierTxt}` : ''}${rec.chain ? ' <i class="newrec">🏆 新紀錄</i>' : ''}</span>
+      <small>連鎖加成 ×${r.chainMult}・蓄力 ×${fmt(r.chargeMult)}・碾壓 ${crush}／險勝 ${narrow}／不敵 ${fail}</small></div>
+    ${highlights}
+    <div class="stiles">${tile('✨', '靈氣', 'qi', r.total.qi)}${tile('💎', '靈石', 'stone', r.total.stone)}<div class="stile"><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b><small>${r.total.shard ? `🧩 碎片 +${r.total.shard}` : '&nbsp;'}</small></div></div>
     ${Object.keys(r.reps || {}).length ? `<p class="hint">🏴 威望：${Object.entries(r.reps).map(([id, n]) => `${FACTIONS_BY_ID[id].emoji}${esc(FACTIONS_BY_ID[id].name)} +${n}`).join('、')}</p>` : ''}
     ${(r.comebacks || []).length ? `<p class="hint">🔙 ${esc(r.comebacks.slice(0, 4).join('、'))}${r.comebacks.length > 4 ? '…' : ''} 日後可能回頭。</p>` : ''}
-    <h3>降服弟子（到「復仇簿」招募）</h3><div class="arts">${sur}</div>
-    <h3>功法／法寶</h3><div class="arts">${arts}</div>
     ${r.backfire ? `<p class="warnline">⚠ 反噬！${esc(r.backfire.names.join('、'))} 實力遠勝於你，反擊造成損失 💎${fmt(r.backfire.lost)}${r.backfire.paused ? '，並有一處建築暫停產出' : ''}。</p>` : ''}
     <p class="lineq">老祖：「${esc(r.outro)}」</p>
-    <button class="btn primary big" data-act="closeSettle">收工</button>
+    <div class="sfoot"><button class="btn primary big" data-act="closeSettle">收工</button><button class="btn" data-act="settleToBook">📖 看復仇簿</button></div>
   </div></div>`;
   sfx(r.backfire ? 'backfire' : 'fanfare');
-  o.querySelectorAll('[data-count]').forEach(el => countUp(el, +el.dataset.count, v => '+' + fmt(v)));
+  o.querySelectorAll('[data-count]').forEach(el => countUp(el, +el.dataset.count, v => (el.closest('.chainhero') ? String(Math.round(v)) : '+' + fmt(v))));
   return new Promise(res => { o._done = res; });
 }
 

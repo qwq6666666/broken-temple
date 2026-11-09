@@ -827,3 +827,67 @@ body.dm-open { overflow: hidden; }
   .tip { padding: 2px 8px; margin-bottom: 6px; gap: 4px; }
   .tip .tiphead { padding: 2px; } .tip .btn.mini { min-height: 34px; padding: 2px 10px; }
 }
+
+/* ── 爆發舞台：仇人排成一列，依判定被擊倒（最終姿勢是靜態 class，動畫只是過程；減少動態時也看得到結果） ── */
+.arena { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 14px; padding: 14px 6px 8px; min-height: 120px; flex: none; }
+.fig { position: relative; display: flex; flex-direction: column; align-items: center; width: 64px; opacity: .5; filter: grayscale(.5); transition: opacity .3s, filter .3s, transform .3s; }
+.fig .fe { font-size: 38px; line-height: 1.1; display: block; transform-origin: 50% 80%; }
+.fig .fn { font-size: .68em; color: var(--dim); max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.fig.nemesis { width: 80px; } .fig.nemesis .fe { font-size: 50px; } .fig.nemesis .fn { color: var(--gold); max-width: 80px; }
+.fig.active { opacity: 1; filter: none; transform: scale(1.22); } .fig.active .fn { color: var(--gold); }
+.fig.done { opacity: .85; filter: none; }
+.fig.v-crush { opacity: .6; filter: grayscale(.8); } .fig.v-crush .fe { transform: rotate(90deg) translate(-4px, -2px) scale(.85); animation: figCrush .85s ease-out; }
+.fig.v-narrow .fe { transform: rotate(-16deg) translateY(10px) scale(.92); filter: drop-shadow(0 0 6px var(--gold)); animation: figNarrow .6s ease-out; }
+.fig.v-fail .fe { filter: drop-shadow(0 0 7px var(--red)); animation: figFail .6s ease-out; } .fig.v-fail .fn { color: var(--red); }
+@keyframes figCrush { 0% { transform: none; } 35% { transform: translate(28px, -78px) rotate(230deg) scale(1.15); } 100% { transform: rotate(90deg) translate(-4px, -2px) scale(.85); } }
+@keyframes figNarrow { 0% { transform: none; } 30% { transform: translateX(-20px) rotate(-30deg) scale(1.05); } 100% { transform: rotate(-16deg) translateY(10px) scale(.92); } }
+@keyframes figFail { 0% { transform: none; } 30% { transform: scale(1.22); } 100% { transform: none; } }
+.stamp { position: absolute; top: -6px; right: -10px; font-size: .66em; font-weight: bold; padding: 1px 4px; border: 2px solid currentColor; border-radius: 4px; transform: rotate(-12deg); background: rgba(10,14,12,.85); white-space: nowrap; animation: stampIn .35s ease-out .15s both; }
+.stamp.s-crush { color: var(--jade); } .stamp.s-narrow { color: var(--gold); } .stamp.s-fail { color: var(--red); }
+@keyframes stampIn { from { transform: rotate(-12deg) scale(2.4); opacity: 0; } to { transform: rotate(-12deg) scale(1); opacity: 1; } }
+.impact { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 3px solid var(--jade); pointer-events: none; animation: impactRing .7s ease-out forwards; }
+.impact.i-narrow { border-color: var(--gold); } .impact.i-fail { border-color: var(--red); animation-duration: .45s; }
+@keyframes impactRing { from { transform: scale(.4); opacity: 1; } to { transform: scale(5); opacity: 0; } }
+@media (max-width: 860px) { .arena { gap: 8px 8px; padding: 10px 2px 6px; } .fig { width: 54px; } .fig .fe { font-size: 32px; } .fig .fn { max-width: 54px; } .fig.nemesis { width: 68px; } .fig.nemesis .fe { font-size: 42px; } }
+.burst-scene .chainbig { position: static; min-height: 34px; line-height: 34px; margin: 2px 0 0; }
+.burst-scene .stage { flex: none; max-height: 46vh; }
+@media (max-width: 860px) { .burst-scene .chainbig { top: auto; left: auto; min-height: 28px; line-height: 28px; } }
+/* 獎勵從倒下的人物冒出 */
+.runtotal { min-height: 1.4em; font-size: .85em; color: var(--dim); text-align: center; margin-top: 2px; }
+.rw { position: absolute; z-index: 6; pointer-events: none; white-space: nowrap; font-weight: bold; font-size: .85em; color: var(--gold); text-shadow: 0 0 8px rgba(0,0,0,.9), 0 0 10px rgba(217,182,74,.5); transform: translate(-50%, 0); animation: rwFly 1.7s ease-in-out both; }
+.rw.rare { font-size: 1em; color: #fff3c4; padding: 2px 8px; border: 1px solid var(--gold); border-radius: 8px; background: rgba(40,30,8,.85); box-shadow: 0 0 14px rgba(217,182,74,.7); animation-name: rwStay; animation-duration: 1.9s; }
+@keyframes rwFly { 0% { transform: translate(calc(-50% + var(--ox, 0px)), 6px) scale(.5); opacity: 0; } 22% { transform: translate(calc(-50% + var(--ox, 0px)), -34px) scale(1.1); opacity: 1; } 55% { transform: translate(calc(-50% + var(--ox, 0px)), -40px) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx, 0px)), var(--dy, -120px)) scale(.4); opacity: 0; } }
+@keyframes rwStay { 0% { transform: translate(calc(-50% + var(--ox, 0px)), 6px) scale(.4); opacity: 0; } 20% { transform: translate(calc(-50% + var(--ox, 0px)), -46px) scale(1.15); opacity: 1; } 80% { transform: translate(calc(-50% + var(--ox, 0px)), -52px) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--ox, 0px)), -64px) scale(1); opacity: 0; } }
+/* 一組多位同時對白：精簡卡片 */
+.enemy.mini { padding: 6px 10px; } .enemy.mini .ehead { gap: 8px; } .enemy.mini .eemoji { font-size: 22px; } .enemy.mini .ehead small { display: none; } .enemy.mini .eline { margin: 2px 0; font-size: .92em; } .enemy.mini .etaunt { margin: 2px 0; font-size: .85em; }
+.burst-scene .stage { gap: 6px; }
+/* 結算卡重排：連鎖大字 → 稀有收穫 → 資源（對照上次最佳）→ 其他 → 按鈕 */
+.chainhero { margin: 6px 0 10px; text-align: center; } .chainhero b { display: block; font-size: 52px; line-height: 1; color: var(--gold); text-shadow: 0 0 18px rgba(217,182,74,.55); }
+.chainhero.t2 b { color: #ffcf6a; text-shadow: 0 0 24px rgba(255,160,60,.8); } .chainhero.t3 b { color: #ff9a6a; text-shadow: 0 0 30px rgba(255,90,60,.9); }
+.chainhero span { font-size: 1.05em; } .chainhero small { display: block; color: var(--dim); margin-top: 4px; }
+.newrec { font-style: normal; font-size: .8em; color: #1b1500; background: var(--gold); border-radius: 8px; padding: 1px 6px; }
+.hl { margin: 8px 0; padding: 8px 10px; border: 1px solid rgba(217,182,74,.45); border-radius: 12px; background: rgba(217,182,74,.07); text-align: left; }
+.hl.nem { border-color: var(--red); background: rgba(209,88,76,.08); } .hl h3 { margin: 0 0 6px; font-size: 1em; }
+.art.big { font-size: 1.15em; padding: 8px 12px; } .art.big small { font-size: .75em; }
+.stiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+.stile { background: var(--panel2, #161e1a); border: 1px solid var(--line); border-radius: 10px; padding: 8px 4px; display: flex; flex-direction: column; gap: 2px; }
+.stile.rec { border-color: var(--gold); box-shadow: 0 0 12px rgba(217,182,74,.4); }
+.stile span { font-size: .8em; color: var(--dim); } .stile b { font-size: 1.25em; color: var(--paper); } .stile small { font-size: .68em; color: var(--dim); min-height: 1.2em; }
+.sfoot { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+@media (max-width: 860px) { .chainhero b { font-size: 44px; } .stile b { font-size: 1.1em; } }
+
+/* ── 蓄力暗角：偽裝值 70% 起畫面邊緣漸暗漸紅，越滿脈動越快；滿格時邊緣泛金 ── */
+body::after { content: ''; position: fixed; inset: 0; z-index: 30; pointer-events: none; opacity: 0; --vo: calc((var(--charge, 0) - 0.65) * 2.8);
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(130, 24, 24, .55) 100%); transition: opacity .6s; }
+body.charge-high::after { opacity: max(0, var(--vo)); animation: chargeBeat calc(2.6s - var(--charge, 0) * 1.4s) ease-in-out infinite; }
+body.charge-full::after { background: radial-gradient(ellipse at center, transparent 50%, rgba(150, 90, 16, .5) 78%, rgba(130, 24, 24, .6) 100%); }
+@keyframes chargeBeat { 0%, 100% { opacity: max(0, var(--vo)); } 50% { opacity: calc(max(0, var(--vo)) * .5); } }
+.reduce-motion body::after, body.reduce-motion::after { animation: none !important; }
+
+/* ── 宿敵專屬：聚焦暗角、放慢的倒下動畫、脫身殘影 ── */
+.burst-scene.focus::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 4; background: radial-gradient(circle at 50% 30%, transparent 22%, rgba(50, 0, 0, .72) 100%); animation: fadeIn .5s; }
+.burst-scene.focus .fig:not(.active):not(.done) { opacity: .2; }
+.burst-scene.focus .fig.nemesis.active { transform: scale(1.55); z-index: 5; }
+.fig.slow.v-crush .fe { animation-duration: 2.4s; } .fig.slow.v-narrow .fe { animation-duration: 1.8s; } .fig.slow .stamp { animation-delay: .9s; }
+.fig .ghost { position: absolute; top: 0; left: 50%; margin-left: -19px; opacity: 0; filter: blur(1px) hue-rotate(40deg); pointer-events: none; animation: figGhost 1.5s ease-out both; }
+@keyframes figGhost { 0% { opacity: .65; transform: translateX(0); } 100% { opacity: 0; transform: translateX(110px) scale(1.1); } }

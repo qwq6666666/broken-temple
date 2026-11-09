@@ -26,6 +26,10 @@ export function updateConceal(r, s) {
   setText(r.mult, `×${fmt(chargeMult(s))}・蓄力 ${Math.floor(s.disguise.chargeMs / 60000)} 分`);
   r.fill.style.width = (v / max * 100).toFixed(1) + '%';
   r.root.classList.toggle('full', full);
+  // 蓄力暗角：偽裝值越滿，畫面邊緣越暗、越紅，並隨心跳脈動（只在值變化時更新 CSS 變數）
+  const ch = Math.round(Math.min(1, v / max) * 50) / 50;
+  if (r._ch !== ch) { r._ch = ch; document.body.style.setProperty('--charge', String(ch)); document.body.classList.toggle('charge-high', ch >= 0.7); }
+  document.body.classList.toggle('charge-full', full);
   const ok = canBurst(s);
   r.btn.disabled = !ok;
   const pv = ok ? previewBurst(s) : null;

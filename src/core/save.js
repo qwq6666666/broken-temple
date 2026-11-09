@@ -90,6 +90,11 @@ export function sanitize(s) {
   if (!OFFLINE_EVENTS_BY_ID[s.offlineLast]) s.offlineLast = null;
   s.fame = { n: Math.max(0, Math.min(CONFIG.endure.fame.max, Math.floor(num(isPlain(s.fame) ? s.fame.n : 0)))), until: Math.max(0, num(isPlain(s.fame) ? s.fame.until : 0)) };
   s.dshards = Object.fromEntries(Object.entries(isPlain(s.dshards) ? s.dshards : {}).filter(([id, n]) => DISCIPLES_BY_ID[id] && Number.isFinite(n) && n > 0).map(([id, n]) => [id, Math.floor(n)]));
+  if (isPlain(s.stats)) {                                                             // 引爆最佳紀錄：壞資料就移除
+    const b = s.stats.bestBurst;
+    if (isPlain(b)) s.stats.bestBurst = { chain: Math.max(0, Math.floor(num(b.chain))), qi: Math.max(0, num(b.qi)), stone: Math.max(0, num(b.stone)) };
+    else delete s.stats.bestBurst;
+  }
   s.weekly = { claimed: Math.floor(num(isPlain(s.weekly) ? s.weekly.claimed : -1, -1)) };
   s.glory = { lv: Math.max(0, Math.min(GLORY_LEVELS.length, Math.floor(num(isPlain(s.glory) ? Number(s.glory.lv) : 0)))) };
   s.foes = Object.fromEntries(Object.entries(isPlain(s.foes) ? s.foes : {}).filter(([k, v]) => isPlain(v)).slice(0, 300).map(([k, v]) => [k, { beaten: Math.max(0, Math.min(99, Math.floor(num(Number(v.beaten))))) }]));

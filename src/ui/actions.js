@@ -149,6 +149,7 @@ export function bindActions(s, ui, rerender) {
       finally { X.endBurst(s); ui.tab = 'avenge'; ui.busy = false; }    // 一定要解除封鎖，否則訪客與引爆都會卡死
     },
     closeSettle: () => closeOverlay(),
+    settleToBook: () => { closeOverlay(); ui.tab = 'grudge'; },
     readStory: el => { const r = St.read(s, +el.dataset.uid); if (r) { sfx('goal'); showStory(r); } },
     viewStory: el => { const df = DISCIPLES_BY_ID[el.dataset.def]; showStoryLog(df.name, df.emoji, St.reread(s, df.id)); },
     claimCommission: el => { const r = Cm.claim(s, +el.dataset.i); if (r) { sfx('goal'); toast(`📋 委託完成：${Cm.rewardText(r.reward)}`, 'good'); } },
