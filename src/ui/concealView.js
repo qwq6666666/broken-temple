@@ -5,6 +5,16 @@ import { chargeMult, disguiseFull } from '../core/conceal.js';
 import { canBurst, previewBurst } from '../core/burst.js';
 import { fmt } from '../core/format.js';
 import { setText } from './dom.js';
+import { sfx } from './audio.js';
+
+// 蓄力心跳：偽裝值 70% 起，每隔一段時間咚咚兩聲，越滿越快（與畫面暗角的脈動同步節奏）。不在演出中、分頁隱藏時不播
+let hbOn = false;
+function heartbeat() {
+  const ch = parseFloat(document.body.style.getPropertyValue('--charge')) || 0;
+  if (ch < 0.7) { hbOn = false; return; }
+  if (!document.hidden && !document.getElementById('overlay')?.classList.contains('on')) sfx('heartbeat');
+  setTimeout(heartbeat, (2.6 - ch * 1.4) * 1000);
+}
 
 export function mountConceal(root) {
   root.innerHTML = `
@@ -30,6 +40,7 @@ export function updateConceal(r, s) {
   const ch = Math.round(Math.min(1, v / max) * 50) / 50;
   if (r._ch !== ch) { r._ch = ch; document.body.style.setProperty('--charge', String(ch)); document.body.classList.toggle('charge-high', ch >= 0.7); }
   document.body.classList.toggle('charge-full', full);
+  if (ch >= 0.7 && !hbOn) { hbOn = true; setTimeout(heartbeat, 800); }
   const ok = canBurst(s);
   r.btn.disabled = !ok;
   const pv = ok ? previewBurst(s) : null;

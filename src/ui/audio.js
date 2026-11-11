@@ -57,6 +57,10 @@ const SFX = {
   burstIntro: c => { tone(c, { f: 70, type: 'sine', dur: 0.9, vol: 0.5, slide: 35 }); noise(c, { dur: 0.5, vol: 0.2, f: 150 }); },
   crush:  c => { tone(c, { f: 90, type: 'sine', dur: 0.5, vol: 0.5, slide: 40 }); noise(c, { dur: 0.3, vol: 0.35, f: 900 }); },
   narrow: c => { tone(c, { f: 140, type: 'triangle', dur: 0.3, vol: 0.3, slide: 80 }); noise(c, { dur: 0.15, vol: 0.15, f: 600 }); },
+  heartbeat: c => { tone(c, { f: 58, type: 'sine', dur: 0.14, vol: 0.22, slide: 40 }); tone(c, { f: 52, type: 'sine', dur: 0.16, vol: 0.16, slide: 36, at: 0.2 }); },     // 蓄力心跳：兩下低沉的咚咚
+  nemesisHit: c => { tone(c, { f: 55, type: 'sawtooth', dur: 1.1, vol: 0.3, slide: 30 }); tone(c, { f: 220, type: 'square', dur: 0.5, vol: 0.08, slide: 110, at: 0.1 }); noise(c, { dur: 0.35, vol: 0.2, f: 300 }); },
+  sweep:  c => { [0, 2, 4, 7, 9].forEach((k, i) => tone(c, { f: note(k), type: 'triangle', dur: 0.22, vol: 0.2, at: i * 0.07 })); noise(c, { dur: 0.45, vol: 0.28, f: 900, at: 0.35 }); },
+  element: c => { tone(c, { f: 880, type: 'sine', dur: 0.25, vol: 0.14, slide: 1320 }); tone(c, { f: 1320, type: 'triangle', dur: 0.2, vol: 0.1, at: 0.1 }); },
   fail:   c => { tone(c, { f: 220, type: 'sawtooth', dur: 0.5, vol: 0.12, slide: 110 }); },
   chain:  (c, { n = 1 } = {}) => { tone(c, { f: note(n + 1), type: 'triangle', dur: 0.25, vol: 0.22 }); tone(c, { f: note(n + 3), type: 'sine', dur: 0.3, vol: 0.14, at: 0.06 }); },
   fanfare: c => { [0, 2, 4, 5, 7].forEach((k, i) => tone(c, { f: note(k), type: 'triangle', dur: 0.4, vol: 0.2, at: i * 0.13 })); tone(c, { f: note(9), type: 'sine', dur: 0.9, vol: 0.2, at: 0.7 }); },

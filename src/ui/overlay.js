@@ -10,7 +10,8 @@ import { esc, sleep } from './dom.js';
 import { sfx } from './audio.js';
 import { daoGain } from '../core/dao.js';
 import { HELP, INTRO } from '../data/help.js';
-import { FACTIONS_BY_ID, FACTION_RULES as FR } from '../data/factions.js';
+import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_RULES as FR } from '../data/factions.js';
+import { KE } from '../data/elements.js';
 import { REBIRTH_KEEP, REBIRTH_RESET } from '../data/rebirth.js';
 import { MUTATORS } from '../data/mutators.js';
 import { getPrefs, setPref } from './prefs.js';
@@ -63,7 +64,7 @@ export async function playBurst(result) {
   if (getPrefs().fastBurst) skip.v = true;                                    // 之前按過「跳過」：直接快速播放
   o.querySelector('.skipbtn').onclick = () => { skip.v = true; if (!getPrefs().fastBurst) { setPref('fastBurst', true); toast('已記住：之後引爆演出會快速播放（說明視窗可關閉）', 'info'); } };
   const narr = o.querySelector('[data-r=narr]'), stage = o.querySelector('[data-r=stage]'), chainEl = o.querySelector('[data-r=chain]'), arena = o.querySelector('[data-r=arena]'), runEl = o.querySelector('[data-r=run]');
-  const run = { qi: 0, stone: 0, token: 0 };
+  const run = { qi: 0, stone: 0, token: 0 }, facN = {};
   const figs = [...arena.querySelectorAll('.fig')];
 
   sfx('burstIntro');
@@ -106,6 +107,11 @@ export async function playBurst(result) {
     }
     e.card.classList.add('shown');
     knockDown(arena, fig, e, skip);
+    elementFx(scene, fig, e, skip);
+    if (e.verdict !== 'fail') {                                                // 勢力一網打盡：同一勢力第 3 人倒下時，旗幟被打碎
+      const fid = FACTION_OF_SECT[e.g.sect]; facN[fid] = (facN[fid] || 0) + 1;
+      if (fid && facN[fid] === FR.sweep.at && e.sweep > 1 && !skip.v) flagBreak(scene, FACTIONS_BY_ID[fid], e.sweep);
+    }
     if (e.reward) {                                                            // 獎勵從倒下的人物身上冒出、飛向資源列；累計列同步增加
       const nr = e.reward.nemesisReward || {};
       run.qi += e.reward.qi || 0; run.stone += (e.reward.stone || 0) + (nr.stone || 0); run.token += (e.reward.token || 0) + (nr.token || 0);
@@ -119,6 +125,7 @@ export async function playBurst(result) {
     const P0 = TIERS[hasNem ? 0 : tier], group = es.length > 1;
     const P = hasNem ? { ...P0, ty: P0.ty.map(x => x * 1.6), pre: P0.pre * 1.8 } : P0;      // 宿敵：打字與停頓放慢，畫面聚焦
     scene.classList.toggle('focus', hasNem && !skip.v);
+    if (hasNem && !skip.v) sfx('nemesisHit');
     figs.forEach(f => f.classList.remove('active')); es.forEach(e => e.fig.classList.add('active'));
     es.forEach(e => { e.card = mkCard(e, group); });
     stage.replaceChildren(...es.map(e => e.card));                              // 舞台上只留這一組的對白，倒下的人留在上方的人物列
@@ -141,6 +148,29 @@ export async function playBurst(result) {
   await typeInto(narr, `老祖：「${result.outro}」`, skip);
   await wait(900, skip);
   return showSettlement(result);
+}
+
+const EL = { 金: ['#e8d9a0', '⚔️'], 木: ['#7fcf8a', '🌿'], 水: ['#7fb6e8', '💧'], 火: ['#ef8a6a', '🔥'], 土: ['#c9a36a', '⛰️'] };
+// 五行克制：我方派駐弟子的五行克制該仇人（elAdv.mult > 1）時，倒下的特效改成克制元素的顏色與符號；被剋制（< 1）則標示逆剋
+function elementFx(scene, fig, e, skip) {
+  const a = e.elAdv; if (!a || e.verdict === 'fail' && a.mult >= 1) return;
+  const ctl = Object.keys(KE).find(k => KE[k] === a.element);                  // 剋制這位仇人的五行
+  if (a.mult > 1 && ctl) {
+    const [col, glyph] = EL[ctl];
+    const b = document.createElement('span'); b.className = 'elbadge'; b.style.color = col; b.textContent = `${glyph}${ctl}剋${a.element}`; fig.appendChild(b);
+    fig.style.setProperty('--elc', col); fig.classList.add('el-ke');
+    if (!skip.v) { particles(scene, [glyph, '✨'], 8); sfx('element'); }
+  } else if (a.mult < 1) {
+    const b = document.createElement('span'); b.className = 'elbadge bad'; b.textContent = '⚠逆剋'; fig.appendChild(b);
+  }
+}
+// 勢力一網打盡：旗幟從上方落下、碎裂，顯示加成
+function flagBreak(scene, fac, sweep) {
+  if (!fac) return;
+  sfx('sweep');
+  const el = document.createElement('div'); el.className = 'flagbreak';
+  el.innerHTML = `<span class="fl">${fac.emoji}</span><b>${esc(fac.name)}・一網打盡</b><small>該勢力獎勵 +${Math.round((sweep - 1) * 100)}%</small>`;
+  scene.appendChild(el); setTimeout(() => el.remove(), 2600);
 }
 
 const STAMP = { crush: '碾壓', narrow: '險勝', fail: '不敵' };

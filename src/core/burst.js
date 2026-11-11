@@ -92,7 +92,8 @@ export function burst(s) {
     const p = PERSONALITIES[g.personality], nem = isNemesis(g) ? nemOf(g) : null;
     const line = nem ? lineFor(nem, verdict, escaped) : pick(verdict === 'crush' ? p.kneel : verdict === 'narrow' ? p.narrow : p.fail);
     const narr = nem && verdict === 'crush' ? nem.story.defeat : pickLine(LINES.burstNarr[escaped ? 'narrow' : verdict]);
-    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, escaped, line, taunt: g.taunt || pick(p.taunt), reward: null, narr, nemesis: nem };
+    const ea = elementAdvantage(s, g);
+    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, escaped, line, taunt: g.taunt || pick(p.taunt), reward: null, narr, nemesis: nem, elAdv: { element: ea.element, mult: ea.mult } };
   });
   // 2) 連鎖：被擊敗（碾壓＋險勝）的人數
   const chain = entries.filter(e => e.verdict !== 'fail').length;
