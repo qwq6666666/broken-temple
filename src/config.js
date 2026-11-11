@@ -143,6 +143,9 @@ export const CONFIG = {
   nemesis: { chance: 0.5, maxPresent: 3 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵；場上（訪客＋復仇簿）同時最多幾位
   save: { key: 'broken-temple-save', autosaveMs: 10000 },
 
+  // 弟子隱藏身份（氣運之子／臥底）與修仙界風雲榜
+  secret: { chance: 0.12, fateFreq: 0.15, fateBurst: 0.10, spyGrowth: 0.85, spyBetray: 0.2, betrayStoneSec: 40 },
+  world: { minSec: 360, maxSec: 600, keep: 12 },
   // 忍爆深化（設計見 docs/玩法深化設計表.md）
   mark: { max: 3, crushMult: 1.5, failStoneSec: 40, growth: 1.25 },                       // 重點記恨：最多 3 位；碾壓 ×1.5；打不過失面子（損失 40 秒靈石＋警覺）；成長 ×1.25
   overload: { max: 30, perPoint: 0.04, exposeStep: 0.04, exposeDrop: 6, exposeLossMult: 2 }, // 超載：偽裝值 20→30，每點爆發 +4%；每次忍露餡機率 4%×超載點，露餡 −6 偽裝值＋警覺＋損失 ×2

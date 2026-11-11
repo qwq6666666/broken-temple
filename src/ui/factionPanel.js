@@ -19,6 +19,10 @@ export function factionPanel(s, ui) {
       sub: `<small class="dim">威望 ${rep}${next ? ' / ' + next : '（已滿）'}</small><div class="gbar"><div style="width:${pct}%"></div></div>`, detail });
   }).join('') + (idle.length ? crow(ui, { key: 'fidle', cls: 'dimmed', icon: '🏴', title: `<b>尚未接觸的勢力 ${idle.length} 個</b>`, sub: esc(idle.map(x => x.f.name).join('、')),
     detail: idle.map(x => `<div class="idlef"><b>${x.f.emoji} ${esc(x.f.name)}</b>${x.detail}</div>`).join('') }) : '');
+  const news = s.world?.news || [];
+  const fmtAgo = t => { const m = Math.max(0, Math.round((s.t - t) / 60000)); return m < 1 ? '剛剛' : m < 60 ? `${m} 分鐘前` : `${Math.floor(m / 60)} 小時前`; };
+  const newsBox = news.length ? crow(ui, { key: 'worldnews', icon: '📰', title: '<b>修仙界風雲榜</b>', sub: `${esc(news[news.length - 1].icon)} ${esc(news[news.length - 1].text)}`,
+    detail: [...news].reverse().map(n => `<div class="newsrow"><span>${esc(n.icon)}</span><div>${esc(n.text)}${n.quote ? `<br><small class="gold">老祖：「${esc(n.quote)}」</small>` : ''}<br><small class="dim">${fmtAgo(n.t)}</small></div></div>`).join('') }) : '';
   const back = s.returners.length ? `<p class="hint">🔙 有 <b>${s.returners.length}</b> 位被你碾壓過的仇人，可能回頭。</p>` : '';
-  return `<p class="hint">碾壓 +2、險勝／當場打臉 +1、收下求和或進貢 +3。同一勢力一次擊敗 3 人以上有「一網打盡」獎勵。</p>${back}${rows}`;
+  return `${newsBox}<p class="hint">碾壓 +2、險勝／當場打臉 +1、收下求和或進貢 +3。同一勢力一次擊敗 3 人以上有「一網打盡」獎勵。</p>${back}${rows}`;
 }

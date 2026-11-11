@@ -153,6 +153,7 @@ export function disciplePopover(s, ui) {
         <small class="dim">屬性 ${fmt(stat(d))}</small>${loc}</div></div>
     <small class="dm-quote">「${esc(df.quote)}」</small>
     <small class="trait ${d.at ? 'on' : ''}">✦ ${esc(traitText(df.trait.key, traitValueS(s, d)))}${d.at ? '（生效中）' : '（派駐後生效）'}</small>
+    ${d.tag ? `<small class="trait on">${d.tag === 'fate' ? '🌠 氣運之子：訪客更頻繁（+15%）、爆擊獎勵 +10%，但仇家會找上門' : '🕵 反間中：仇人成長 ×0.85，每次引爆 20% 機率洩密'}</small>` : ''}
     ${UR_PERKS[df.id] ? `<small class="trait ${d.at ? 'on' : ''}">🌟 專屬「${esc(UR_PERKS[df.id].name)}」：${esc(UR_PERKS[df.id].desc)}${d.at ? '（生效中）' : '（派駐後生效）'}</small>` : ''}
     <div class="dm-actions">${lvBtn}${starBtn}</div>
     ${storyRow(s, d)}

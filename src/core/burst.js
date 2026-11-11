@@ -12,6 +12,8 @@ import { pick, randInt, chance } from './rng.js';
 import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst, combatPower } from './economy.js';
 import { chargeMult, disguiseFull, ratioOf, verdictOf, elementOfGrudge, elementAdvantage, overloadMult, overloadPts } from './conceal.js';
 import { urActive } from './urPerks.js';
+import { hasTag } from './secrets.js';
+import { addNews } from './world.js';
 import { squadOf, squadVs, bestSquad, squadPool } from './squad.js';
 import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_RULES as FR, FACTION_TIERS } from '../data/factions.js';
 import { MERIT } from '../data/materials.js';
@@ -111,7 +113,7 @@ export function burst(s, mode = 'full') {
   const chain = entries.filter(e => e.verdict !== 'fail').length;
   const cMult = chainMult(chain);
   const fsum = Object.fromEntries(factionSummary(s, entries).map(f => [f.id, f.sweep]));
-  const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward') + towerBurst(s);
+  const art = 1 + artifactSum(s, 'burstReward') + traitSum(s, 'burstReward') + towerBurst(s) + (hasTag(s, 'fate') ? CONFIG.secret.fateBurst : 0);   // 氣運之子 +10%
   const total = { qi: 0, stone: 0, token: 0 }, reps = {}, comebacks = [];
   const surrendered = [], artifacts = [], nemesesDefeated = [];
   let tokCarry = 0;                                   // 招賢令的小數餘數跨仇人累計（乘 burstTokenScale 後每人常不到 1 張，逐人四捨五入會全變 0）
@@ -198,6 +200,9 @@ export function burst(s, mode = 'full') {
     const lost = Math.min(s.res.stone, Math.floor(stonePerSec(s) * M.failStoneSec)); s.res.stone -= lost; e.markFail = lost;
     const og = s.grudges.find(x => x.id === e.g.id); if (og) og.alert = true; markFails.push({ name: e.g.name, lost });
   }
+  // 臥底洩密：留著反間的臥底有 20% 機率在引爆時賣了你（損失靈石）
+  let betray = null;
+  if (hasTag(s, 'spy') && chance(CONFIG.secret.spyBetray)) { const lost = Math.min(s.res.stone, Math.floor(stonePerSec(s) * CONFIG.secret.betrayStoneSec)); s.res.stone -= lost; betray = { lost }; }
   for (const g of s.grudges) g.marked = false;                                 // 標記只對這一次引爆有效
   if (precise) { s.disguise.value = Math.max(0, s.disguise.value - P.cost); s.disguise.chargeMs *= P.chargeKeep; s.endureStreak = 0; }   // 精準爆：只用掉 12 點偽裝值、保留一半蓄力
   else { s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0; }
@@ -210,12 +215,14 @@ export function burst(s, mode = 'full') {
   else if (chain >= 3 && chain > prevMax) note(s, '💥', `單次引爆連鎖 ${chain} 人（新紀錄）`);
   s.stats.bursts++; s.stats.maxChain = Math.max(s.stats.maxChain || 0, chain);
   s.run.bursts++; s.run.maxChain = Math.max(s.run.maxChain, chain);
+  // 風雲榜流言：爆出大連鎖時，外界傳得沸沸揚揚
+  if (chain >= 3 && entries.length) { const f = FACTIONS_BY_ID[FACTION_OF_SECT[entries[0].g.sect]]; addNews(s, '💥', `${f ? f.name : entries[0].g.sect}近日有多名弟子在同一座破廟前一起倒下，眾說紛紜。`, '眾說紛紜就對了，沒人能證明是我。'); }
   const outro = pickLine(LINES.burstOutro[[10, 5, 3, 1, 0].find(n => chain >= n) ?? 0]);
   s.burstActive = true;                     // 演出期間封鎖訪客；ui 結束後呼叫 endBurst
   return {
     backfire, chargeMult: cm, chain, chainMult: cMult, entries, total, surrendered, artifacts, nemesesDefeated, reps, comebacks,
     intro: pickLine(LINES.burstIntro), outro,
-    mode, markFails, overPts: over0, best: prevBest, record: prevBest ? { chain: chain > prevBest.chain, qi: total.qi > prevBest.qi, stone: total.stone > prevBest.stone } : null,
+    mode, markFails, betray, overPts: over0, best: prevBest, record: prevBest ? { chain: chain > prevBest.chain, qi: total.qi > prevBest.qi, stone: total.stone > prevBest.stone } : null,
   };
 }
 

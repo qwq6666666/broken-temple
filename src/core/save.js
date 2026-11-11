@@ -80,7 +80,11 @@ export function sanitize(s) {
   const dedupe = a => [...new Set(a)];
   s.disciples = (Array.isArray(s.disciples) ? s.disciples : []).filter(d => isPlain(d) && DISCIPLES_BY_ID[d.defId]).map(d => ({
     ...d, branch: BRANCH_KEYS.includes(d.branch) ? d.branch : null, lv: Math.max(1, Math.floor(num(Number(d.lv), 1))), star: Math.max(0, Math.min(3, Math.floor(num(Number(d.star), 0)))),
-    at: BUILDINGS_BY_ID[d.at] ? d.at : null }));
+    at: BUILDINGS_BY_ID[d.at] ? d.at : null, tag: ['fate', 'spy'].includes(d.tag) ? d.tag : undefined }));
+  { const w = isPlain(s.world) ? s.world : {};                                       // 風雲榜：壞資料清掉、只留最近 12 則
+    s.world = { next: Math.max(0, num(w.next)), news: (Array.isArray(w.news) ? w.news : []).filter(n => isPlain(n) && typeof n.text === 'string').slice(-CONFIG.world.keep)
+      .map(n => ({ t: Math.max(0, num(n.t)), icon: String(n.icon || '📰').slice(0, 4), text: n.text.slice(0, 120), quote: typeof n.quote === 'string' ? n.quote.slice(0, 80) : '' })) }; }
+  s.pendingSecret = isPlain(s.pendingSecret) && ['fate', 'spy'].includes(s.pendingSecret.kind) && s.disciples.some(d => d.uid === s.pendingSecret.uid) ? { uid: s.pendingSecret.uid, kind: s.pendingSecret.kind } : null;
   s.recruits = (Array.isArray(s.recruits) ? s.recruits : []).filter(r => isPlain(r) && DISCIPLES_BY_ID[r.defId]);
   s.artifacts = dedupe((Array.isArray(s.artifacts) ? s.artifacts : []).filter(id => ARTIFACTS_BY_ID[id]));
   s.chronicle = (Array.isArray(s.chronicle) ? s.chronicle : []).filter(e => isPlain(e) && typeof e.text === 'string').map(e => ({ w: Math.max(1, Math.floor(num(e.w, 1))), t: Math.max(0, num(e.t)), icon: String(e.icon || '📜').slice(0, 4), text: e.text.slice(0, 200) })).slice(-120);

@@ -1,6 +1,7 @@
 // 核心壓力測試（不需瀏覽器）：用機器人連續跑多輪轉生，定期檢查不變量與存檔往返。
 // 用法：node tests/invariants.mjs <種子=1> <遊戲小時=12>；有問題時以非 0 結束碼退出。
 // 檢查：數值有限、資源非負、uid／id 唯一、派駐與探索不衝突、名額與上限、存檔序列化→清理的冪等與往返一致。
+import * as WorldNews from '../src/core/world.js';
 import { REALMS } from '../src/data/realms.js';
 import { createState } from '../src/core/state.js';
 import { setRng } from '../src/core/rng.js';
@@ -77,7 +78,7 @@ function check() {
 let lifeStart = 0; const lives = [];
 const SHOP = ['stone', 'qi', 'power', 'token', 'disguise', 'burst', 'cd', 'startS', 'startT', 'offcap', 'offeff'];
 for (step = 0; step < HOURS * 3600; step++) {
-  eco.tick(s, 1000); conceal.tick(s, 1000); endure.tick(s); Inc.tick(s); Ex.tick(s); Cm.tick(s); Ach.tick(s); Gl.tick(s); Goals.tick(s);
+  eco.tick(s, 1000); conceal.tick(s, 1000); endure.tick(s); Inc.tick(s); WorldNews.tick(s); Ex.tick(s); Cm.tick(s); Ach.tick(s); Gl.tick(s); Goals.tick(s);
   if (s.incident.current) { const i = [0, 1, 2].find(k => Inc.canChoose(s, k)); Inc.resolve(s, i ?? 0, i === undefined); }
   meditate(s);
   if (Dao.canRebirth(s)) { lives.push((s.t - lifeStart) / 3600000); Dao.rebirth(s); lifeStart = s.t; for (let a = true; a;) { a = false; for (const id of SHOP) if (Dao.buy(s, id)) { a = true; break; } } check(); }

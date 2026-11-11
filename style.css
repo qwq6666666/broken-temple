@@ -908,3 +908,8 @@ body.charge-full::after { background: radial-gradient(ellipse at center, transpa
 .spare.mark { color: var(--gold); }
 .conceal.over { border-color: #e0663a; } .conceal.over .fill { background: linear-gradient(90deg, #e0663a, #ffb15a, #e0663a); background-size: 200% 100%; animation: shine 1s linear infinite; }
 .conceal.over [data-r=val] { color: #ff9a6a; font-weight: bold; }
+
+/* ── 雙面板（外界認知／底牌）與風雲榜 ── */
+.cview { margin-bottom: 6px; } .cview summary { cursor: pointer; font-size: .85em; color: var(--paper); list-style: none; padding: 2px 0; } .cview summary::-webkit-details-marker { display: none; }
+.cview[open] summary { color: var(--gold); } .tcard { display: grid; grid-template-columns: 24px auto; gap: 0 6px; align-items: center; padding: 3px 0; } .tcard small { grid-column: 2; color: var(--dim); }
+.newsrow { display: grid; grid-template-columns: 26px 1fr; gap: 6px; padding: 4px 0; border-top: 1px solid var(--line); } .newsrow:first-child { border-top: none; }

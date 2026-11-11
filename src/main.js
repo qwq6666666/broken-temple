@@ -20,6 +20,7 @@ import * as achievements from './core/achievements.js';
 import * as glory from './core/glory.js';
 import * as progress from './core/progress.js';
 import * as incidents from './core/incidents.js';
+import * as world from './core/world.js';
 import * as expeditions from './core/expeditions.js';
 import { createRenderer } from './ui/render.js';
 import { bindActions } from './ui/actions.js';
@@ -57,6 +58,7 @@ function onTick(dt) {
   conceal.tick(state, dt);
   endure.tick(state);
   incidents.tick(state);
+  world.tick(state);
   expeditions.tick(state);
   goals.tick(state);
   ascend.tick(state);

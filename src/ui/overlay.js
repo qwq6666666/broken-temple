@@ -238,6 +238,7 @@ function showSettlement(r) {
     ${(r.comebacks || []).length ? `<p class="hint">🔙 ${esc(r.comebacks.slice(0, 4).join('、'))}${r.comebacks.length > 4 ? '…' : ''} 日後可能回頭。</p>` : ''}
     ${r.mode === 'precise' ? `<p class="hint">🎯 精準爆：只打了標記的人；剩下的偽裝值與一半蓄力保留。</p>` : ''}
     ${r.overPts ? `<p class="hint">🔥 超載 +${r.overPts} 點，爆發 +${Math.round(r.overPts * CONFIG.overload.perPoint * 100)}%。</p>` : ''}
+    ${r.betray ? `<p class="warnline">🕵 臥底洩密！你損失了 💎${fmt(r.betray.lost)}。</p>` : ''}
     ${(r.markFails || []).length ? `<p class="warnline">⭐ 失面子：${esc(r.markFails.map(x => `${x.name}（損失 💎${fmt(x.lost)}）`).join('、'))} 打不過，已變警覺。</p>` : ''}
     ${r.backfire ? `<p class="warnline">⚠ 反噬！${esc(r.backfire.names.join('、'))} 實力遠勝於你，反擊造成損失 💎${fmt(r.backfire.lost)}${r.backfire.paused ? '，並有一處建築暫停產出' : ''}。</p>` : ''}
     <p class="lineq">老祖：「${esc(r.outro)}」</p>

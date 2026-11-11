@@ -27,6 +27,7 @@ export function canChoose(s, idx) {
   const d = defOf(s); if (!d) return false;
   const ch = d.choices[idx]; if (!ch) return false;
   if (ch.requires?.building && s.buildings[ch.requires.building].lv < 1) return false;
+  if (ch.effects?.dismiss && s.expeditions.some(x => x.uids.includes(s.incident.current.uid))) return false;      // 探索中的弟子不能送走
   return canAfford(s, costOf(s, ch));
 }
 
@@ -36,14 +37,18 @@ export function tick(s) {
   if (inc.current && s.t >= inc.current.expiresAt) { resolve(s, INCIDENTS_BY_ID[inc.current.id].timeoutChoice, true); return; }
   if (inc.current || s.burstActive || s.t < inc.nextAt) return;
   if (s.visitor.current) { inc.nextAt = s.t + 15000; return; }      // 與訪客錯開
-  const pool = INCIDENTS.filter(i => i.minRealm <= bigOf(s) && (i.minReb || 0) <= s.reincarnation.count);
+  if (s.pendingSecret) {                                                   // 弟子隱藏身份優先彈出
+    const d = s.disciples.find(x => x.uid === s.pendingSecret.uid), kind = s.pendingSecret.kind; s.pendingSecret = null;
+    if (d) { inc.current = { id: kind === 'fate' ? 'secretFate' : 'secretSpy', expiresAt: s.t + T.expireSec * 1000, uid: d.uid, name: DISCIPLES_BY_ID[d.defId].name }; cue('incident'); return; }
+  }
+  const pool = INCIDENTS.filter(i => !i.special && i.minRealm <= bigOf(s) && (i.minReb || 0) <= s.reincarnation.count);
   const def = weighted(pool, i => i.weight * (i.good ? 1 + rareChance(s) * 2 + traitSum(s, 'rare') : 1));
   inc.current = { id: def.id, expiresAt: s.t + T.expireSec * 1000 };
   cue('incident');
 }
 
 // 結算效果；out 累積實際結果供摘要使用
-function applyEffects(s, e, out) {
+function applyEffects(s, e, out, ctx = null) {
   const armor = e.armorByArray ? Math.max(0.2, 1 - lvEff(s.buildings.array.lv) * 0.08) : 1;
   if (e.qiSec) { const n = qiPerSec(s) * e.qiSec; s.res.qi += n; out.push(`✨靈氣 +${fmt(n)}`); }
   if (e.stoneSec) { const n = Math.max(1, stonePerSec(s) * e.stoneSec); s.res.stone += n; out.push(`💎靈石 +${fmt(n)}`); }
@@ -74,6 +79,11 @@ function applyEffects(s, e, out) {
     out.push(`${DISCIPLES_BY_ID[def.id].emoji}${def.name} 拜入門下候選`);
   }
   if (e.gamble) applyEffects(s, chance(e.gamble.p) ? e.gamble.win : e.gamble.lose, out);
+  if (e.tag && ctx?.uid) { const d = s.disciples.find(x => x.uid === ctx.uid); if (d) { d.tag = e.tag; out.push(e.tag === 'fate' ? '🌠留下氣運之子' : '🕵留下並反間'); } }
+  if (e.dismiss && ctx?.uid) {
+    const i = s.disciples.findIndex(x => x.uid === ctx.uid);
+    if (i >= 0) { const nm = DISCIPLES_BY_ID[s.disciples[i].defId].name; s.disciples.splice(i, 1); if (s.squad) s.squad = s.squad.filter(u => u !== ctx.uid); out.push(`🚪${nm}離開了宗門`); }
+  }
 }
 
 // 作答；auto 表示逾時自動採預設。回傳摘要文字，無法選擇回傳 null
@@ -84,7 +94,7 @@ export function resolve(s, idx, auto = false) {
   if (auto && !canAfford(s, costOf(s, ch))) { idx = d.choices.findIndex((c, i) => canChoose(s, i)); if (idx < 0) idx = d.timeoutChoice; }
   const choice = d.choices[idx], out = [];
   if (canAfford(s, costOf(s, choice))) pay(s, costOf(s, choice));
-  applyEffects(s, choice.effects, out);
+  applyEffects(s, choice.effects, out, s.incident.current);
   s.incident.current = null;
   s.stats.incidents = (s.stats.incidents || 0) + 1;
   scheduleNext(s);

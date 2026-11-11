@@ -1,6 +1,7 @@
 // 弟子：取得、升級（花靈氣）、派駐。
 import { BRANCHES, BRANCH_LEVEL } from '../data/branches.js';
 import { CONFIG } from '../config.js';
+import { chance } from './rng.js';
 import { RARITIES } from '../data/gachaRates.js';
 import { defOf, starOf } from './discipleMath.js';
 import { discipleDiscount } from './economy.js';
@@ -21,6 +22,7 @@ export function addDisciple(s, defId) {
   }
   const d = { uid: s.nextUid++, defId, lv: 1, at: null, star: 0 };
   s.disciples.push(d);
+  if (!s.pendingSecret && chance(CONFIG.secret.chance)) s.pendingSecret = { uid: d.uid, kind: chance(0.5) ? 'fate' : 'spy' };      // 12% 機率帶著隱藏身份：氣運之子／臥底
   return { isNew: true, shards: 0, disciple: d };
 }
 

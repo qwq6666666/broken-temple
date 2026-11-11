@@ -160,7 +160,7 @@ function incidentCard(s, entering = false) {
   const d = incidentDef(s); if (!d) return '';
   return `<div class="incident-card ${entering ? 'enter' : ''}">
     <div class="vhead"><span class="vemoji">${d.emoji}</span><div><b>${esc(d.title)}</b> <span class="tag">突發事件</span> <small class="dim">（限時，逾時視為無視）</small></div></div>
-    <p class="taunt">${esc(d.text)}</p>
+    <p class="taunt">${esc(d.text.replace('{name}', s.incident.current?.name || ''))}</p>
     <div class="vbtns" style="grid-template-columns:repeat(${d.choices.length},1fr)">
       ${d.choices.map((c, i) => {
         const cost = costOf(s, c), ok = canChoose(s, i);

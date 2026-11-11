@@ -1,6 +1,7 @@
 // 藏：偽裝值隨時間增加、蓄力倍率、仇人成長、差距指標。
 import { CONFIG } from '../config.js';
 import { VISITOR_TYPES } from '../data/visitors.js';
+import { hasTag } from './secrets.js';
 import { PERSONALITY_BIAS } from '../data/enemies.js';
 import { KE, elementFromName } from '../data/elements.js';
 import { DISCIPLES_BY_ID } from '../data/disciples.js';
@@ -23,7 +24,7 @@ export function tick(s, dt) {
   const d = s.disguise;
   if (d.value < CONFIG.conceal.max) d.value = Math.min(CONFIG.conceal.max, d.value + dt * (1 + traitSum(s, 'disguiseRate') + daoPerm(s, 'disguiseRate')) / (CONFIG.conceal.timeGainSec * 1000));   // 時間只加到 20；超載（>20）只能靠忍
   d.chargeMs += dt;
-  const grow = CONFIG.enemy.growthPerMin * dt / 60000;
+  const grow = CONFIG.enemy.growthPerMin * dt / 60000 * (hasTag(s, 'spy') ? CONFIG.secret.spyGrowth : 1);    // 臥底反間：仇人以為你很弱，成長變慢
   for (const g of s.grudges) {
     g.age = (g.age || 0) + dt;
     g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + grow * growthOf(g));

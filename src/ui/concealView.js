@@ -5,7 +5,9 @@ import { chargeMult, disguiseFull } from '../core/conceal.js';
 import { canBurst, previewBurst } from '../core/burst.js';
 import { fmt } from '../core/format.js';
 import { nextExpose } from '../core/endure.js';
-import { setText } from './dom.js';
+import { setText, setHTML, esc } from './dom.js';
+import { REALMS } from '../data/realms.js';
+import { outerView, trumpCards } from '../core/cards.js';
 import { sfx } from './audio.js';
 
 // 蓄力心跳：偽裝值 70% 起，每隔一段時間咚咚兩聲，越滿越快（與畫面暗角的脈動同步節奏）。不在演出中、分頁隱藏時不播
@@ -19,6 +21,7 @@ function heartbeat() {
 
 export function mountConceal(root) {
   root.innerHTML = `
+    <details class="cview" data-r="cview"><summary data-r="csum"></summary><div data-r="clist"></div></details>
     <div class="chead"><b>🎭 偽裝（藏）</b><span data-r="val"></span><span class="mult" data-r="mult"></span></div>
     <div class="cbar"><div class="fill" data-r="fill"></div></div>
     <div class="cfoot">
@@ -33,6 +36,9 @@ export function mountConceal(root) {
 
 export function updateConceal(r, s) {
   const max = CONFIG.conceal.max, v = s.disguise.value, full = disguiseFull(s);
+  { const cards = trumpCards(s);                                                     // 雙面板：外界認知（偽裝出來的）與實際底牌
+    setText(r.csum, `🎭 外界認知：${outerView(s)}　🃏 底牌 ${cards.length} 張`);
+    setHTML(r.clist, `<small class="dim">實際底蘊：${esc(REALMS[s.realmIdx].name)}（產出 ×${fmt(REALMS[s.realmIdx].mult)}）。外界只知道你是「${esc(outerView(s))}」。</small>` + (cards.length ? cards.map(c => `<div class="tcard"><span>${c.icon}</span><b>${esc(c.name)}</b><small>${esc(c.desc)}</small></div>`).join('') : '<small class="dim">還沒有底牌——標記仇人、派駐 UR、裝備法寶都會算。</small>')); }
   const over = Math.max(0, Math.floor(v) - max);
   setText(r.val, over ? `${Math.floor(v)}/${max}　🔥超載 +${over}` : `${Math.floor(v)}/${max}`);
   r.root.classList.toggle('over', over > 0);

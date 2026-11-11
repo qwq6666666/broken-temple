@@ -17,9 +17,10 @@ import { addRep, tierOfSect, tierOf } from './factions.js';
 import { mutSum } from './mutators.js';
 import { legacyF } from '../data/realms.js';
 import { urActive } from './urPerks.js';
+import { hasTag } from './secrets.js';
 
 const scheduleNext = s => {
-  s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000 / Math.max(0.2, 1 + mutSum(s, 'visitFreq'));   // 輪迴詞條影響頻率
+  s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000 / Math.max(0.2, 1 + mutSum(s, 'visitFreq') + (hasTag(s, 'fate') ? CONFIG.secret.fateFreq : 0));   // 輪迴詞條與氣運之子影響頻率
 };
 
 // 回頭客：復仇者變強了、嘴更硬；求和者帶著賠禮

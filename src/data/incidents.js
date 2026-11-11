@@ -461,5 +461,20 @@ export const INCIDENTS = [
       { label: '坐下來看夕陽', desc: '一整天的疲憊都散了：得到大量靈氣', effects: { qiSec: 400 } },
       { label: '往山下喊一聲', desc: '山谷回聲裡走出一位老友：得到招賢令與法寶的機會', effects: { token: 3, artifact: 0.3 } },
     ] },
+  // ── 弟子隱藏身份（special：不進隨機池；新弟子 12% 機率觸發，text 的 {name} 換成弟子名）──
+  //   effects.dismiss＝送走這位弟子；effects.tag＝留下並標上身份（氣運之子：訪客更頻繁、爆擊獎勵 +10%；臥底反間：仇人成長 ×0.85，但每次引爆 20% 機率洩密）
+  { id: 'secretFate', special: true, emoji: '🌠', title: '氣運之子？', weight: 0, good: true, minRealm: 0, timeoutChoice: 0,
+    text: '「{name}」身上紫氣繚繞，像是話本裡的氣運之子——可惜他身後似乎跟著一串前世仇家，隨時會打上山門。',
+    choices: [
+      { label: '保下他', desc: '留在宗門：訪客更頻繁（+15%）、爆擊獎勵 +10%；但仇家會一直找來', effects: { tag: 'fate' } },
+      { label: '「引薦」給敵宗', desc: '把他送去別人家當災星：失去這位弟子，換一筆靈石（約 120 秒產出）', effects: { dismiss: true, stoneSec: 120 } },
+    ] },
+  { id: 'secretSpy', special: true, emoji: '🕵️', title: '臥底？', weight: 0, good: false, minRealm: 0, timeoutChoice: 2,
+    text: '「{name}」夜裡總在後山燒東西、還偷看你的帳本——八成是敵宗派來的臥底。',
+    choices: [
+      { label: '揭穿處置', desc: '趕走這位弟子，除掉隱患：偽裝值 +3、招賢令 +1', effects: { dismiss: true, disguise: 3, token: 1 } },
+      { label: '反間：餵假情報', desc: '留下他：仇人成長變慢（×0.85），但每次引爆有 20% 機率洩密、讓你失面子', effects: { tag: 'spy' } },
+      { label: '裝作沒看見', desc: '他偷偷洩露了一些消息：損失少量靈石、偽裝值 −2', effects: { loseStoneSec: 60, disguise: -2 } },
+    ] },
 ];
 export const INCIDENTS_BY_ID = Object.fromEntries(INCIDENTS.map(i => [i.id, i]));

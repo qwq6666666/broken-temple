@@ -14,6 +14,9 @@ import * as B from '../src/core/buildings.js';
 import * as R from '../src/core/realm.js';
 import * as G from '../src/core/gacha.js';
 import * as D from '../src/core/disciples.js';
+import * as W from '../src/core/world.js';
+import * as Sec from '../src/core/secrets.js';
+import * as Cards from '../src/core/cards.js';
 import * as E from '../src/core/endure.js';
 import * as C from '../src/core/conceal.js';
 import * as X from '../src/core/burst.js';
@@ -2142,6 +2145,52 @@ t('高階建築產出：鎮魔塔、靈獸園產靈石，傳功殿產靈氣', ()
   const s = createState(); s.realmIdx = 22; const q0 = eco.qiPerSec(s), st0 = eco.stonePerSec(s);
   s.buildings.hall.lv = 100; s.buildings.tower.lv = 100; s.buildings.beast.lv = 100;
   assert.ok(eco.qiPerSec(s) > q0 && eco.stonePerSec(s) > st0);
+});
+
+
+t('風雲榜：到時間產生動態、最多保留 12 則、壞資料被清掉；爆出連鎖會傳成流言', () => {
+  const s = createState(); s.t = 100000; W.tick(s); assert.equal(s.world.news.length, 1); assert.ok(s.world.next > s.t);
+  for (let i = 0; i < 30; i++) { s.t = s.world.next + 1; W.tick(s); }
+  assert.ok(s.world.news.length <= CONFIG.world.keep && s.world.news.every(n => n.text && n.icon));
+  const bad = createState(); bad.world = { next: 'x', news: [{ text: 5 }, { text: 'ok', icon: '📰', t: 3 }, null] }; const c = sanitize(bad); assert.equal(c.world.news.length, 1);
+  const b = createState(); b.realmIdx = 14; b.disguise.value = 20; b.settings.loss = false; b.grudges = [visitor('former', 0, { id: 1 }), visitor('former', 0, { id: 2 }), visitor('former', 0, { id: 3 })];
+  X.burst(b); assert.ok(b.world.news.some(n => n.icon === '💥'));
+});
+
+t('弟子隱藏身份：新弟子 12% 機率觸發事件；氣運之子留下（訪客更頻繁、爆擊 +10%）、送走換靈石；臥底揭穿／反間／無視', () => {
+  const s = createState(); setRng(() => 0); const r = D.addDisciple(s, 'afu'); setRng(Math.random);
+  assert.ok(r.isNew && s.pendingSecret && s.pendingSecret.uid === r.disciple.uid);
+  s.pendingSecret.kind = 'fate'; s.incident.nextAt = 0; s.visitor.current = null; Inc.tick(s);
+  assert.equal(s.incident.current.id, 'secretFate'); assert.equal(s.incident.current.name, '阿福'); assert.equal(s.pendingSecret, null);
+  Inc.resolve(s, 0); assert.equal(s.disciples[0].tag, 'fate'); assert.ok(Sec.hasTag(s, 'fate'));
+  // 被動：爆擊獎勵 +10%（比較同一亂數、有無標籤）
+  const run = tag => { setRng(() => 0.5); const x = createState(); x.realmIdx = 14; x.disguise.value = 20; x.settings.loss = false; x.disciples = [{ uid: 1, defId: 'afu', lv: 1, at: null, star: 0, tag }]; x.grudges = [visitor('former', 0, { id: 1 })]; const rr = X.burst(x); setRng(Math.random); return rr.total.stone; };
+  assert.ok(Math.abs(run('fate') / run(undefined) - (1 + CONFIG.secret.fateBurst)) < 0.02);
+  // 送走：失去弟子、拿靈石、移出陣容
+  const t2 = createState(); t2.disciples = [{ uid: 7, defId: 'afu', lv: 1, at: null, star: 0 }]; t2.squad = [7]; t2.res.stone = 0; t2.buildings.alchemy.lv = 10; t2.realmIdx = 3;
+  t2.incident.current = { id: 'secretFate', expiresAt: 9e9, uid: 7, name: '阿福' }; Inc.resolve(t2, 1);
+  assert.equal(t2.disciples.length, 0); assert.deepEqual(t2.squad, []); assert.ok(t2.res.stone > 0);
+  // 探索中的弟子不能送走
+  const t3 = createState(); t3.disciples = [{ uid: 8, defId: 'afu', lv: 1, at: null, star: 0 }]; t3.expeditions = [{ id: 'cave', uids: [8], status: 'run', endAt: 9e9 }];
+  t3.incident.current = { id: 'secretFate', expiresAt: 9e9, uid: 8, name: '阿福' }; assert.equal(Inc.canChoose(t3, 1), false);
+  // 臥底：反間（仇人成長較慢；引爆 20% 洩密）
+  const sp = createState(); sp.disciples = [{ uid: 9, defId: 'afu', lv: 1, at: null, star: 0 }]; sp.incident.current = { id: 'secretSpy', expiresAt: 9e9, uid: 9, name: '阿福' }; Inc.resolve(sp, 1);
+  assert.equal(sp.disciples[0].tag, 'spy');
+  const g = (spy) => { const x = createState(); x.grudges = [visitor('former', 3, { id: 1 })]; if (spy) x.disciples = [{ uid: 1, defId: 'afu', lv: 1, at: null, star: 0, tag: 'spy' }]; C.tick(x, 600000); return x.grudges[0].lvl - 3; };
+  assert.ok(Math.abs(g(true) / g(false) - CONFIG.secret.spyGrowth) < 1e-6);
+  const bt = createState(); bt.realmIdx = 14; bt.disguise.value = 20; bt.res.stone = 1e5; bt.settings.loss = false; bt.disciples = [{ uid: 1, defId: 'afu', lv: 1, at: null, star: 0, tag: 'spy' }]; bt.grudges = [visitor('former', 0, { id: 1 })];
+  setRng(() => 0); const rb = X.burst(bt); setRng(Math.random); assert.ok(rb.betray && rb.betray.lost >= 0);
+  // 揭穿：趕走＋偽裝值 +3；無視：損失靈石與偽裝值
+  const rv = createState(); rv.disciples = [{ uid: 9, defId: 'afu', lv: 1, at: null, star: 0 }]; rv.disguise.value = 5; rv.incident.current = { id: 'secretSpy', expiresAt: 9e9, uid: 9, name: '阿福' }; Inc.resolve(rv, 0);
+  assert.equal(rv.disciples.length, 0); assert.equal(rv.disguise.value, 8);
+  assert.equal(sanitize(Object.assign(createState(), { disciples: [{ uid: 1, defId: 'afu', lv: 1, tag: 'x' }, { uid: 2, defId: 'afu2', lv: 1, tag: 'fate' }] })).disciples.every(d => d.tag === undefined || ['fate', 'spy'].includes(d.tag)), true);
+});
+
+t('雙面板：外界認知隨境界往下壓；底牌包含標記、派駐 UR、裝備法寶、隱藏身份、宿敵', () => {
+  const s = createState(); assert.equal(Cards.outerView(s), '不入流小觀'); s.realmIdx = 22; assert.equal(Cards.outerView(s), '二流門派');
+  assert.deepEqual(Cards.trumpCards(s), []);
+  s.grudges = [{ ...visitor('former', 0, { id: 1 }), marked: true }]; s.disciples = [{ uid: 1, defId: 'xuantian', lv: 1, at: 'temple', star: 0 }, { uid: 2, defId: 'afu', lv: 1, at: null, star: 0, tag: 'fate' }]; s.artifacts = ['tuna']; s.equipped = ['tuna'];
+  const cards = Cards.trumpCards(s); assert.ok(cards.length >= 4 && cards.some(c => c.name.includes('一劍破局')) && cards.some(c => c.name.includes('氣運之子')));
 });
 
 console.log(`\n${n} 項測試通過`);
