@@ -812,7 +812,7 @@ t('存檔型別錯誤／null 欄位：以預設值或轉型修正', () => {
 
 t('存檔資源負數／偽裝值越界會被拉回合理範圍', () => {
   const s = loadPatched(st => { st.res.qi = -50; st.disguise.value = 999; });
-  assert.equal(s.res.qi, 0); assert.equal(s.disguise.value, 20);
+  assert.equal(s.res.qi, 0); assert.equal(s.disguise.value, CONFIG.overload.max);
 });
 
 t('大數字格式：超過字尾表改用科學記號，NaN 不顯示成無限大', async () => {
@@ -2070,6 +2070,78 @@ t('以舊序號書寫的境界名稱要換算成新階名（大事描述、宿�
   assert.equal(g('zhuji'), '突破至築基初期'); assert.equal(g('jindan'), '突破至金丹初期'); assert.equal(g('huashen'), '突破至化神初期'); assert.equal(g('qi9'), '突破至煉氣九層');
   const s = createState(); const bad = NEMESES.filter(n => n.cond.minRealm >= 11).map(n => Nem.condText(s, n)).filter(x => /築基(中期|後期|圓滿)/.test(x));
   assert.equal(bad.length, 0, bad.join('｜'));
+});
+
+
+t('標記：最多 3 位、宿敵不能標、引爆時碾壓 ×1.5／險勝不加成／打不過失面子；標記者成長較快；引爆後清除', () => {
+  const mk = () => { const s = createState(); s.realmIdx = 14; s.res.stone = 1e6; s.disguise.value = 20; s.settings.loss = false;
+    s.grudges = [visitor('former', 0, { id: 1 }), visitor('former', 0, { id: 2 }), visitor('rival', 0, { id: 3 }), visitor('former', 0, { id: 4 }), visitor('former', 0, { id: 5, nemesisId: 'qian' })]; return s; };
+  const s = mk();
+  assert.ok(E.toggleMark(s, 1) && E.toggleMark(s, 2) && E.toggleMark(s, 3)); assert.equal(E.toggleMark(s, 4), false);            // 第 4 位標不了
+  assert.equal(E.toggleMark(s, 5), false);                                                                                       // 宿敵不能標
+  assert.ok(E.toggleMark(s, 3) && E.markedCount(s) === 2);                                                                     // 取消
+  const a = createState().grudges, g1 = { ...visitor('former', 3, { id: 9 }), marked: true }, g0 = visitor('former', 3, { id: 8 });
+  assert.ok(Math.abs(C.growthOf(g1) / C.growthOf(g0) - CONFIG.mark.growth) < 1e-9);
+  // 獎勵：兩次相同亂數，標記者碾壓 ×1.5
+  const run = marked => { setRng(() => 0.5); const x = mk(); x.grudges = [visitor('former', 0, { id: 1 })]; if (marked) E.toggleMark(x, 1); const r = X.burst(x); setRng(Math.random); return r; };
+  const plain = run(false), mkd = run(true);
+  assert.equal(plain.entries[0].verdict, 'crush');
+  assert.ok(Math.abs(mkd.total.stone / plain.total.stone - CONFIG.mark.crushMult) < 1e-6, `標記碾壓倍率 ${mkd.total.stone / plain.total.stone}`);
+  const after = mk(); E.toggleMark(after, 1); X.burst(after); assert.equal(after.grudges.some(g => g.marked), false);
+  // 打不過：失面子
+  const f = mk(); f.realmIdx = 0; f.res.stone = 1000; f.grudges = [visitor('elder', 12, { id: 1 })]; E.toggleMark(f, 1);
+  const rf = X.burst(f); assert.equal(rf.entries[0].verdict, 'fail'); assert.ok(rf.markFails.length === 1 && f.grudges[0].alert === true);
+});
+
+t('超載：偽裝值可忍到 30（時間只加到 20）；每點爆發 +4%；超載區露餡（−6、警覺、損失 ×2）；洛神鳶減半', () => {
+  const s = createState(); s.disguise.value = 20; C.tick(s, 3600000); assert.equal(s.disguise.value, 20);                    // 時間不超載
+  assert.equal(C.overloadPts(s), 0);
+  s.disguise.value = 25; assert.equal(C.overloadPts(s), 5); assert.ok(Math.abs(C.overloadMult(s) - 1.2) < 1e-9);
+  assert.ok(Math.abs(E.exposeChance(s, 25) - 0.2) < 1e-9 && E.exposeChance(s, 20) === 0);
+  const uni = createState(); uni.disciples = [{ uid: 1, defId: 'luoshen', lv: 1, at: 'temple', star: 0 }]; assert.ok(Math.abs(E.exposeChance(uni, 25) - 0.1) < 1e-9);
+  // 露餡：機率 1（亂數 0）
+  const e = withVisitor(createState(), visitor('rival', 0)); e.disguise.value = 24; e.settings.loss = false; e.res.stone = 10;
+  setRng(() => 0); const r = E.endure(e); setRng(Math.random);
+  assert.ok(r.exposed && e.disguise.value === 25 - CONFIG.overload.exposeDrop && e.grudges[0].alert === true);
+  const ok = withVisitor(createState(), visitor('rival', 0)); ok.disguise.value = 24; setRng(() => 0.99); const r2 = E.endure(ok); setRng(Math.random);
+  assert.ok(!r2.exposed && ok.disguise.value === 25);
+  const cap = withVisitor(createState(), visitor('rival', 0)); cap.disguise.value = 30; setRng(() => 0.99); E.endure(cap); setRng(Math.random); assert.equal(cap.disguise.value, 30);
+  // 超載加成進引爆
+  const b = createState(); b.realmIdx = 14; b.disguise.value = 25; b.settings.loss = false; b.grudges = [visitor('former', 0, { id: 1 })]; const rb = X.burst(b); assert.equal(rb.overPts, 5); assert.ok(rb.chargeMult >= 1.2 - 1e-9);
+});
+
+t('精準爆：只打標記者、用掉 12 點偽裝值、保留一半蓄力、獎勵 ×1.3；沒標記不能精準爆；預覽與結果一致', () => {
+  const mk = () => { const s = createState(); s.realmIdx = 14; s.disguise.value = 22; s.disguise.chargeMs = 600000; s.settings.loss = false;
+    s.grudges = [visitor('former', 0, { id: 1 }), visitor('former', 0, { id: 2 }), visitor('former', 0, { id: 3 })]; return s; };
+  const s = mk(); assert.equal(X.burst(s, 'precise'), null);                                  // 沒有標記
+  E.toggleMark(s, 2);
+  const pv = X.previewBurst(s, 'precise'); assert.equal(pv.chain, 1); assert.deepEqual(pv.entries.map(e => e.skip), ['unmarked', null, 'unmarked']);
+  const r = X.burst(s, 'precise'); assert.equal(r.entries.length, 1); assert.equal(r.entries[0].g.id, 2);
+  assert.equal(s.grudges.length, 2); assert.equal(s.disguise.value, 22 - CONFIG.precise.cost); assert.equal(s.disguise.chargeMs, 300000);
+  const full = mk(); const rf = X.burst(full); assert.equal(rf.entries.length, 3); assert.equal(full.disguise.value, 0);
+});
+
+t('UR 專屬機制：派駐才生效——劍尊升一階、太虛丹成、蒼梧離線、鎮嶽免反噬與失面子、歸墟潮汐', () => {
+  const base = () => { const s = createState(); s.realmIdx = 14; s.disguise.value = 20; s.settings.loss = false; s.res.stone = 1e5; return s; };
+  const put = (s, id, at = 'temple') => { s.disciples.push({ uid: s.nextUid++, defId: id, lv: 1, at, star: 0 }); };
+  const x = base(); x.grudges = [visitor('former', 4, { id: 1 }), visitor('former', 10.5, { id: 2 })];
+  const v0 = X.previewBurst(x).entries.map(e => e.verdict); put(x, 'xuantian');
+  const v1 = X.previewBurst(x).entries.map(e => e.verdict); assert.notDeepEqual(v0, v1);
+  const t1 = base(); put(t1, 'taixu'); t1.grudges = [visitor('former', 0, { id: 1 })]; X.burst(t1); assert.ok(t1.pillUntil > t1.t);
+  assert.ok(eco.qiPerSec(t1) >= 0);
+  const t0 = base(); t0.disciples.push({ uid: 99, defId: 'taixu', lv: 1, at: null, star: 0 }); t0.grudges = [visitor('former', 0, { id: 1 })]; X.burst(t0); assert.equal(t0.pillUntil, 0);   // 沒派駐不生效
+  const o0 = createState(), o1 = createState(); put(o1, 'cangwu');
+  assert.ok(applyOffline(o1, 3600000).efficiency > applyOffline(o0, 3600000).efficiency);
+  const z = base(); z.realmIdx = 0; put(z, 'zhenyue'); z.grudges = [visitor('elder', 12, { id: 1 })]; E.toggleMark(z, 1); const rz = X.burst(z); assert.equal(rz.backfire, null); assert.equal(rz.markFails.length, 0);
+  const g = base(); put(g, 'guixu'); g.grudges = [visitor('former', 0, { id: 1 })]; X.burst(g); assert.equal(g.tideNext, true);
+  X.endBurst(g); g.visitor.current = null; g.visitor.nextAt = 0; g.grudges = []; g.t = 1; setRng(() => 0.5); E.tick(g); setRng(Math.random);
+  assert.ok(['elder', 'trader'].includes(g.visitor.current.type)); assert.equal(g.tideNext, false);
+});
+
+t('高階建築產出：鎮魔塔、靈獸園產靈石，傳功殿產靈氣', () => {
+  const s = createState(); s.realmIdx = 22; const q0 = eco.qiPerSec(s), st0 = eco.stonePerSec(s);
+  s.buildings.hall.lv = 100; s.buildings.tower.lv = 100; s.buildings.beast.lv = 100;
+  assert.ok(eco.qiPerSec(s) > q0 && eco.stonePerSec(s) > st0);
 });
 
 console.log(`\n${n} 項測試通過`);

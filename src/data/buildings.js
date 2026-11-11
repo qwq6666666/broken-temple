@@ -79,8 +79,8 @@ export const BUILDINGS = [
   // ── 後期建築：依境界序號 unlockRealm 解鎖 ──
   {
     id: 'tower', name: '鎮魔塔', specialty: '體修', element: '金', unlockRealm: 7,
-    baseCost: { qi: 80000, stone: 60 }, produce: {},
-    desc: '每 10 級：戰力 +6%、爆擊獎勵 +3%。',
+    baseCost: { qi: 80000, stone: 60 }, produce: { stone: 0.006 },
+    desc: '每 10 級：戰力 +6%、爆擊獎勵 +3%；另產出少量靈石。',
     stages: [
       { lv: 0, emoji: '🪨', label: '倒塌的石堆' },
       { lv: 1, emoji: '🗼', label: '簡陋瞭望塔' },
@@ -91,8 +91,8 @@ export const BUILDINGS = [
   },
   {
     id: 'hall', name: '傳功殿', specialty: '陣修', element: '水', unlockRealm: 9,
-    baseCost: { qi: 300000, stone: 120 }, produce: {},
-    desc: '每 10 級：弟子等級上限 +1、弟子升級成本 -2%。',
+    baseCost: { qi: 300000, stone: 120 }, produce: { qi: 0.3 },
+    desc: '每 10 級：弟子等級上限 +1、弟子升級成本 -2%；另產出少量靈氣。',
     stages: [
       { lv: 0, emoji: '🧱', label: '斷垣殘壁' },
       { lv: 1, emoji: '⛩️', label: '四柱涼亭' },
@@ -103,8 +103,8 @@ export const BUILDINGS = [
   },
   {
     id: 'beast', name: '靈獸園', specialty: '農修', element: '木', unlockRealm: 11,
-    baseCost: { qi: 900000, stone: 250 }, produce: {},
-    desc: '每 10 級：招賢令自然增速 +8%、稀有事件機率 +2%。',
+    baseCost: { qi: 900000, stone: 250 }, produce: { stone: 0.006 },
+    desc: '每 10 級：招賢令自然增速 +8%、稀有事件機率 +2%；另產出少量靈石。',
     stages: [
       { lv: 0, emoji: '🪵', label: '破落柵欄' },
       { lv: 1, emoji: '🐇', label: '小獸欄' },

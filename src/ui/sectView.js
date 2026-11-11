@@ -15,7 +15,7 @@ import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { fmt } from '../core/format.js';
 import { cooldownLeft, cooldownMs } from '../core/meditate.js';
 import { elementAdvantage, elementOfGrudge } from '../core/conceal.js';
-import { assess } from '../core/endure.js';
+import { assess, nextExpose } from '../core/endure.js';
 import { nemOf } from '../core/nemesis.js';
 import { defOf as incidentDef, costOf, canChoose } from '../core/incidents.js';
 import { costChips, esc, setHTML, setText, sectRole } from './dom.js';
@@ -136,6 +136,7 @@ function visitorCard(s, entering = false) {
   const L = CONFIG.endure.loss;
   const lossOn = s.settings.loss;
   const endureText = `偽裝值 +${CONFIG.endure.disguiseGain}，記入復仇簿（保留連鎖與大獎勵）`
+    + (s.disguise.value + CONFIG.endure.disguiseGain > CONFIG.conceal.max ? `　<b class="red">🔥 超載：露餡 ${Math.round(nextExpose(s) * 100)}%</b>` : '')
     + (lossOn ? `；損失約 ${L.stoneSec} 秒靈石或建築暫停 ${L.pauseMs / 60000} 分${a.endureMult > 1 ? `　<b class="gold">積怨 ×${a.endureMult.toFixed(2)}</b>` : ''}` : '（已關閉損失）');
   const showText = {
     beat: `${a.winText}（不入簿、不加偽裝值）<br><b class="gold">威名 +1</b>：靈氣、靈石 +${Math.round(CONFIG.endure.fame.bonus * 100)}%（${CONFIG.endure.fame.ms / 60000} 分鐘，最多 ${CONFIG.endure.fame.max} 層）・憋屈歸零${a.counter ? `<br><b class="gold">五行克制：即時獎勵 ×${CONFIG.endure.counterMult}</b>` : ''}`,

@@ -69,6 +69,7 @@ function sanitizeGrudge(g) {
   out.awaken = out.nemesisId ? Math.max(0, Math.min(3, Math.floor(num(Number(out.awaken))))) : 0;
   out.lvl = Math.max(0, num(Number(out.lvl)));
   out.age = Math.max(0, num(Number(out.age)));
+  out.marked = !!out.marked && !out.nemesisId;
   out.name = String(out.name ?? '無名'); out.sect = String(out.sect ?? ''); out.role = String(out.role ?? '');
   out.alert = !!out.alert; out.spare = !!out.spare;
   out.ripe = Math.max(0, Math.min(RIPE.max, Math.floor(num(Number(out.ripe))))); out.foe = Math.max(0, Math.min(99, Math.floor(num(Number(out.foe)))));
@@ -119,6 +120,7 @@ export function sanitize(s) {
   s.run.startT = Math.max(0, num(Number(s.run.startT))); if (!isPlain(s.run.base)) s.run.base = {};
   s.goalsDone = dedupe((Array.isArray(s.goalsDone) ? s.goalsDone : []).filter(id => GOALS_BY_ID[id]));
   s.grudges = (Array.isArray(s.grudges) ? s.grudges : []).map(sanitizeGrudge).filter(Boolean);
+  { let m = 0; for (const g of s.grudges) if (g.marked && ++m > CONFIG.mark.max) g.marked = false; }       // 標記最多 3 位
   for (const id of Object.keys(s.buildings)) {
     if (!BUILDINGS_BY_ID[id]) { delete s.buildings[id]; continue; }
     s.buildings[id].lv = Math.max(0, Math.min(CONFIG.building.hardMax, Math.floor(num(s.buildings[id].lv))));
@@ -152,7 +154,7 @@ export function sanitize(s) {
   for (const id of Object.keys(s.specs)) if (!(SPECS[id] || []).some(o => o.id === s.specs[id])) delete s.specs[id];
   if (!isPlain(s.stories)) s.stories = {};
   for (const id of Object.keys(s.stories)) { const max = STORIES3[id] ? 3 : STORIES2[id] ? 2 : STORIES[id] ? 1 : 0; if (!max) delete s.stories[id]; else s.stories[id] = Math.max(0, Math.min(max, Math.floor(num(Number(s.stories[id]))))); }
-  s.disguise.value = Math.max(0, Math.min(20, num(s.disguise.value)));
+  s.disguise.value = Math.max(0, Math.min(CONFIG.overload.max, num(s.disguise.value)));
   s.tokBuy = { n: Math.max(0, Math.floor(num(isPlain(s.tokBuy) ? Number(s.tokBuy.n) : 0))), resetAt: Math.max(0, num(isPlain(s.tokBuy) ? Number(s.tokBuy.resetAt) : 0)) };
   for (const k of ['merit', ...MAT_KEYS]) if (s.res[k] === undefined) s.res[k] = 0;        // 舊存檔沒有功勳與秘境材料
   for (const k of Object.keys(s.res)) s.res[k] = Math.max(0, num(s.res[k]));

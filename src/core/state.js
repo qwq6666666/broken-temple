@@ -25,6 +25,8 @@ export function createState() {
     artifacts: [],                          // 已獲得的功法法寶 id
     settings: { loss: true },               // 承受損失開關
     tokenAcc: 0,
+    pillUntil: 0,                           // 太虛真人「丹成」：引爆後 15 分鐘靈氣 +20% 的到期時間
+    tideNext: false,                        // 歸墟「潮汐」：下一位訪客必為稀有類型
     fame: { n: 0, until: 0 },               // 威名：亮一手打臉累積的產出加成（層數、到期時間）
     endureStreak: 0,                        // 連續忍氣吞聲次數（憋屈值）
     meditateReadyAt: 0,                     // 打坐冷卻結束時間（遊戲時鐘）

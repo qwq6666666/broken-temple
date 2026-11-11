@@ -143,6 +143,10 @@ export const CONFIG = {
   nemesis: { chance: 0.5, maxPresent: 3 },    // 宿敵條件滿足後，每次訪客有多少機率換成宿敵；場上（訪客＋復仇簿）同時最多幾位
   save: { key: 'broken-temple-save', autosaveMs: 10000 },
 
+  // 忍爆深化（設計見 docs/玩法深化設計表.md）
+  mark: { max: 3, crushMult: 1.5, failStoneSec: 40, growth: 1.25 },                       // 重點記恨：最多 3 位；碾壓 ×1.5；打不過失面子（損失 40 秒靈石＋警覺）；成長 ×1.25
+  overload: { max: 30, perPoint: 0.04, exposeStep: 0.04, exposeDrop: 6, exposeLossMult: 2 }, // 超載：偽裝值 20→30，每點爆發 +4%；每次忍露餡機率 4%×超載點，露餡 −6 偽裝值＋警覺＋損失 ×2
+  precise: { cost: 12, chargeKeep: 0.5, mult: 1.3 },                                      // 精準爆：只打標記者、用掉 12 點偽裝值、保留 50% 蓄力、獎勵 ×1.3
   burst: {
     crushRatio: 1.8,           // 玩家戰力 / 仇人戰力 ≥ 此值 → 碾壓
     narrowRatio: 0.85,         // ≥ 此值 → 險勝，否則打不過

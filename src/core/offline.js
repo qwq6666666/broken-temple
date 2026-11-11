@@ -5,6 +5,7 @@ import { lvlLabel } from '../data/realms.js';
 import * as economy from './economy.js';
 import * as conceal from './conceal.js';
 import { perm } from './dao.js';
+import { urActive } from './urPerks.js';
 import * as expeditions from './expeditions.js';
 
 import { rollOfflineEvent } from './offlineEvent.js';
@@ -13,7 +14,7 @@ export function applyOffline(s, elapsedMs) {
   const O = CONFIG.offline;
   if (!(elapsedMs >= O.minMs)) return null;
   const capMs = O.capMs + perm(s, 'offlineCap') * 3600 * 1000;        // 道心：神遊太虛
-  const eff = Math.min(O.maxEfficiency, O.efficiency + perm(s, 'offlineEff'));       // 道心：守廟靈獸
+  const eff = Math.min(O.maxEfficiency, O.efficiency + perm(s, 'offlineEff') + (urActive(s, 'cangwu') ? 0.1 : 0));       // 道心：守廟靈獸
   const used = Math.min(elapsedMs, capMs);
   const before = { qi: s.res.qi, stone: s.res.stone, token: s.res.token, disguise: s.disguise.value, charge: s.disguise.chargeMs };
   const labels = new Map(s.grudges.map(g => [g.id, lvlLabel(g.lvl)]));

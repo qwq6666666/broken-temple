@@ -160,14 +160,20 @@ for (let step = 0; step * STEP < HOURS * 3600e3; step++) {
   if (s.visitor.current) {
     const a = endure.assess(s, s.visitor.current);
     if (FLAG('showmix') && a.showKind === 'beat' && (s.endureStreak >= 2 || s.grudges.length >= 8)) endure.showOff(s);     // showmix：能碾壓且積怨偏高時亮一手（洩壓＋威名）
-    else endure.endure(s);
+    else {
+      const er = endure.endure(s);
+      if (FLAG('mark') && endure.markedCount(s) < 3) {                              // mark：新入簿的人若預估能穩穩碾壓就標記（標記會讓他成長較快，所以只標有把握的）
+        const g = s.grudges[s.grudges.length - 1], pv = X.previewBurst(s).entries.find(e => e.g.id === g.id);
+        if (pv && pv.verdict === 'crush' && pv.ratio >= CONFIG.burst.crushRatio * 1.3) endure.toggleMark(s, g.id);
+      }
+    }
   }
   // 招募
   for (const r of [...s.recruits]) if (s.res.stone > (R.breakCost(s)?.stone ?? 0) * 1.5 + 10) X.recruit(s, r.uid);
   // 引爆：偽裝滿且仇人 ≥3
-  if (X.canBurst(s) && s.grudges.length >= 3) {
+  if (X.canBurst(s) && s.grudges.length >= 3 && (!FLAG('over') || s.disguise.value >= Number(process.env.OVER || 24) || conceal.bookUsed(s) >= CONFIG.visitor.maxGrudges - 1)) {      // over：忍到超載 24 點才爆
     if (FLAG('squad')) s.squad = X.recommendSquad(s);      // squad = 引爆前用推薦陣容出戰
-    const tk0 = s.res.token, nFoe = s.grudges.length; const res = X.burst(s); X.endBurst(s);
+    const tk0 = s.res.token, nFoe = s.grudges.length; const res = X.burst(s, FLAG('precise') && endure.markedCount(s) >= 2 ? 'precise' : 'full'); X.endBurst(s);
     if (process.env.TOKSRC) { const r = s.realmIdx, b = (tokSrc.byRealm ||= {}); (b[r] ||= { n: 0, tok: 0, foes: 0 }); b[r].n++; b[r].tok += s.res.token - tk0; b[r].foes += nFoe; }
     once('首次引爆', true);
     s.simBursts = (s.simBursts || 0) + 1;

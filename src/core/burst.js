@@ -10,7 +10,8 @@ import { LINES, pickLine } from '../data/lines.js';
 import { lvlLabel, powerOfLvl } from '../data/realms.js';
 import { pick, randInt, chance } from './rng.js';
 import { qiPerSec, stonePerSec, artifactSum, rareChance, traitSum, towerBurst, combatPower } from './economy.js';
-import { chargeMult, disguiseFull, ratioOf, verdictOf, elementOfGrudge, elementAdvantage } from './conceal.js';
+import { chargeMult, disguiseFull, ratioOf, verdictOf, elementOfGrudge, elementAdvantage, overloadMult, overloadPts } from './conceal.js';
+import { urActive } from './urPerks.js';
 import { squadOf, squadVs, bestSquad, squadPool } from './squad.js';
 import { FACTIONS_BY_ID, FACTION_OF_SECT, FACTION_RULES as FR, FACTION_TIERS } from '../data/factions.js';
 import { MERIT } from '../data/materials.js';
@@ -68,32 +69,43 @@ function judge(s, g, members = squadOf(s)) {
   return { ratio, verdict, escaped };
 }
 // 出場順序：一般仇人由弱到強，宿敵壓軸
-const fighters = s => s.grudges.filter(g => !g.spare || isNemesis(g));         // 被勾選「放過」的普通仇人不參戰
+const fighters = (s, mode = 'full') => (mode === 'precise' ? s.grudges.filter(g => g.marked && !isNemesis(g))        // 精準爆：只打標記的人
+  : s.grudges.filter(g => !g.spare || isNemesis(g)));                                                              // 全面爆：被勾選「放過」的普通仇人不參戰
+// 逐人判定；玄天劍尊「一劍破局」：最強的非宿敵仇人判定升一階
+function judgeAll(s, list, members = squadOf(s)) {
+  const rows = list.map(g => ({ g, ...judge(s, g, members) }));
+  if (urActive(s, 'xuantian')) {
+    const cand = rows.filter(r => !isNemesis(r.g));
+    if (cand.length) { const top = cand.reduce((a, b) => (b.g.lvl > a.g.lvl ? b : a)); const up = top.verdict === 'narrow' ? 'crush' : top.verdict === 'fail' ? 'narrow' : null; if (up) { top.verdict = up; top.sword = true; } }
+  }
+  return rows;
+}
 const order = grudges => [...grudges].sort((a, b) => (isNemesis(a) - isNemesis(b)) || a.lvl - b.lvl);
 
 // 引爆前預覽：預估每位的結果、連鎖、哪些長老可能反噬
-export function previewBurst(s) {
+export function previewBurst(s, mode = 'full') {
+  const fight = fighters(s, mode), rows = new Map(judgeAll(s, order(fight)).map(r => [r.g.id, r]));
   const entries = order(s.grudges).map(g => {
-    const sparing = !!g.spare && !isNemesis(g);
-    const { ratio, verdict } = sparing ? { ratio: 0, verdict: 'fail' } : judge(s, g);
+    const row = rows.get(g.id), sparing = !row;
+    const { ratio, verdict } = row || { ratio: 0, verdict: 'fail' };
     const sq = squadVs(s, g), adv = elementAdvantage(s, g).mult;
-    return { g: { ...g, label: lvlLabel(g.lvl), element: elementOfGrudge(g) }, adv, sq, mine: combatPower(s) * adv * sq.mult, theirs: powerOfLvl(g.lvl), ratio, verdict, sparing, nemesis: isNemesis(g), weak: weakOf(g), fac: FACTION_OF_SECT[g.sect] || null, facTier: tierOfSect(s, g.sect), weakHit: weakHit(g, squadOf(s)), bias: PERSONALITY_BIAS[g.personality]?.label || '', risk: !sparing && g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
+    return { g: { ...g, label: lvlLabel(g.lvl), element: elementOfGrudge(g) }, adv, sq, mine: combatPower(s) * adv * sq.mult, theirs: powerOfLvl(g.lvl), ratio, verdict, sparing, marked: !!g.marked, skip: sparing ? (mode === 'precise' ? 'unmarked' : 'spare') : null, sword: !!row?.sword, nemesis: isNemesis(g), weak: weakOf(g), fac: FACTION_OF_SECT[g.sect] || null, facTier: tierOfSect(s, g.sect), weakHit: weakHit(g, squadOf(s)), bias: PERSONALITY_BIAS[g.personality]?.label || '', risk: !sparing && g.type === 'elder' && ratio < CONFIG.burst.backfireRatio };
   });
   const chain = entries.filter(e => e.verdict !== 'fail' && !e.sparing).length;
-  return { entries, chain, chainMult: chainMult(chain), squad: squadOf(s), pool: squadPool(s), crushRatio: CONFIG.burst.crushRatio, narrowRatio: CONFIG.burst.narrowRatio, chargeMult: chargeMult(s), factions: factionSummary(s, entries), backfires: entries.filter(e => e.risk).length, spared: entries.filter(e => e.sparing).length };
+  return { entries, chain, chainMult: chainMult(chain), squad: squadOf(s), pool: squadPool(s), crushRatio: CONFIG.burst.crushRatio, narrowRatio: CONFIG.burst.narrowRatio, chargeMult: chargeMult(s) * overloadMult(s), overPts: overloadPts(s), mode, marks: s.grudges.filter(g => g.marked).length, factions: factionSummary(s, entries), backfires: entries.filter(e => e.risk).length, spared: entries.filter(e => e.sparing).length };
 }
 
-export function burst(s) {
-  if (!canBurst(s) || !fighters(s).length) return null;
-  const cm = chargeMult(s);
+export function burst(s, mode = 'full') {
+  if (!canBurst(s) || !fighters(s, mode).length) return null;
+  const precise = mode === 'precise', P = CONFIG.precise, M = CONFIG.mark;
+  const over0 = overloadPts(s), cm = chargeMult(s) * overloadMult(s);          // 蓄力 × 超載（超載點數在偽裝值歸零前先記下）
   // 1) 依境界由弱到強出場，逐人判定
-  const entries = order(fighters(s)).map(g => {
-    const { ratio, verdict, escaped } = judge(s, g);
+  const entries = judgeAll(s, order(fighters(s, mode))).map(({ g, ratio, verdict, escaped, sword }) => {
     const p = PERSONALITIES[g.personality], nem = isNemesis(g) ? nemOf(g) : null;
     const line = nem ? lineFor(nem, verdict, escaped) : pick(verdict === 'crush' ? p.kneel : verdict === 'narrow' ? p.narrow : p.fail);
     const narr = nem && verdict === 'crush' ? nem.story.defeat : pickLine(LINES.burstNarr[escaped ? 'narrow' : verdict]);
     const ea = elementAdvantage(s, g);
-    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, escaped, line, taunt: g.taunt || pick(p.taunt), reward: null, narr, nemesis: nem, elAdv: { element: ea.element, mult: ea.mult } };
+    return { g: { ...g, label: lvlLabel(g.lvl) }, ratio, verdict, escaped, sword: !!sword, line, taunt: g.taunt || pick(p.taunt), reward: null, narr, nemesis: nem, elAdv: { element: ea.element, mult: ea.mult } };
   });
   // 2) 連鎖：被擊敗（碾壓＋險勝）的人數
   const chain = entries.filter(e => e.verdict !== 'fail').length;
@@ -108,7 +120,9 @@ export function burst(s) {
     if (e.verdict === 'fail') continue;
     const r = rewardFor(s, e.g, e.verdict);
     const sw = fsum[FACTION_OF_SECT[e.g.sect]] || 1; e.sweep = sw;
-    const k = cm * cMult * art * sw;
+    const mk = e.verdict === 'crush' && e.g.marked ? M.crushMult : 1;           // 標記者被碾壓：獎勵 ×1.5（險勝不加成）
+    e.markBonus = mk > 1;
+    const k = cm * cMult * art * sw * mk * (precise ? P.mult : 1);
     r.qi *= k; r.stone *= k; const tk = tokCarry + r.token * cMult * art * sw * CONFIG.gacha.burstTokenScale; r.token = Math.floor(tk + 1e-9); tokCarry = tk - r.token;
     total.qi += r.qi; total.stone += r.stone; total.token += r.token; s.res.shard += r.shard || 0; total.shard = (total.shard || 0) + (r.shard || 0);
     if (r.surrender) {
@@ -162,7 +176,7 @@ export function burst(s) {
   total.merit = entries.reduce((a, e) => a + (e.verdict === 'fail' ? 0 : MERIT.perDefeat * (e.nemesis ? MERIT.nemesis : 1)), 0); s.res.merit += total.merit;
   // 3.5) 反噬：戰力遠不如的長老會反擊（損失靈石、一棟建築暫停；最多一次暫停）
   let backfire = null;
-  const risky = entries.filter(e => e.g.type === 'elder' && e.ratio < CONFIG.burst.backfireRatio);
+  const risky = urActive(s, 'zhenyue') ? [] : entries.filter(e => e.g.type === 'elder' && e.ratio < CONFIG.burst.backfireRatio);   // 鎮嶽「不動如山」：長老反噬無效
   if (risky.length && s.settings.loss) {
     const B = CONFIG.burst.backfire;
     const lost = Math.min(s.res.stone, Math.floor(stonePerSec(s) * B.stoneSec * risky.length));
@@ -178,7 +192,17 @@ export function burst(s) {
   s.grudges = s.grudges.filter(g => !beaten.has(g.id));
   for (const g of s.grudges) if (g.spare && !isNemesis(g)) { g.ripe = Math.min(RIPE.max, (g.ripe || 0) + 1); g.lvl = Math.min(CONFIG.enemy.maxLevel + 0.99, g.lvl + RIPE.lvl); }
   for (const g of s.grudges) g.spare = false;           // 放過只對這一次引爆有效
-  s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0;
+  // 標記失敗（打不過）：失面子——損失靈石、該人變警覺；鎮嶽「不動如山」免除
+  const markFails = [];
+  if (!urActive(s, 'zhenyue')) for (const e of entries) if (e.verdict === 'fail' && e.g.marked) {
+    const lost = Math.min(s.res.stone, Math.floor(stonePerSec(s) * M.failStoneSec)); s.res.stone -= lost; e.markFail = lost;
+    const og = s.grudges.find(x => x.id === e.g.id); if (og) og.alert = true; markFails.push({ name: e.g.name, lost });
+  }
+  for (const g of s.grudges) g.marked = false;                                 // 標記只對這一次引爆有效
+  if (precise) { s.disguise.value = Math.max(0, s.disguise.value - P.cost); s.disguise.chargeMs *= P.chargeKeep; s.endureStreak = 0; }   // 精準爆：只用掉 12 點偽裝值、保留一半蓄力
+  else { s.disguise.value = 0; s.disguise.chargeMs = 0; s.endureStreak = 0; }
+  if (urActive(s, 'taixu')) s.pillUntil = s.t + 15 * 60000;                    // 太虛真人「丹成」
+  if (urActive(s, 'guixu')) s.tideNext = true;                                 // 歸墟「潮汐」
   const prevBest = s.stats.bestBurst ? { ...s.stats.bestBurst } : null;               // 上一次最佳（供結算卡比較）
   s.stats.bestBurst = { chain: Math.max(prevBest?.chain || 0, chain), qi: Math.max(prevBest?.qi || 0, total.qi), stone: Math.max(prevBest?.stone || 0, total.stone) };
   const prevMax = s.stats.maxChain || 0;
@@ -191,7 +215,7 @@ export function burst(s) {
   return {
     backfire, chargeMult: cm, chain, chainMult: cMult, entries, total, surrendered, artifacts, nemesesDefeated, reps, comebacks,
     intro: pickLine(LINES.burstIntro), outro,
-    best: prevBest, record: prevBest ? { chain: chain > prevBest.chain, qi: total.qi > prevBest.qi, stone: total.stone > prevBest.stone } : null,
+    mode, markFails, overPts: over0, best: prevBest, record: prevBest ? { chain: chain > prevBest.chain, qi: total.qi > prevBest.qi, stone: total.stone > prevBest.stone } : null,
   };
 }
 

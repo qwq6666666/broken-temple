@@ -902,3 +902,9 @@ body.charge-full::after { background: radial-gradient(ellipse at center, transpa
 .flagbreak b { color: var(--gold); font-size: 1.2em; } .flagbreak small { color: var(--paper); }
 @keyframes flagDrop { 0% { transform: translateY(-120px) scale(1.6) rotate(-12deg); opacity: 0; } 45% { transform: translateY(0) scale(1) rotate(0); opacity: 1; } 60% { transform: translateY(0) rotate(8deg) scale(1.1); } 100% { transform: translateY(10px) rotate(14deg) scale(.7); opacity: .5; filter: grayscale(.8); } }
 @keyframes flagFade { 0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ── 忍爆深化：爆發預覽的模式列與標記、超載偽裝條 ── */
+.modebar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0; } .modebar small { flex: 1 1 100%; }
+.spare.mark { color: var(--gold); }
+.conceal.over { border-color: #e0663a; } .conceal.over .fill { background: linear-gradient(90deg, #e0663a, #ffb15a, #e0663a); background-size: 200% 100%; animation: shine 1s linear infinite; }
+.conceal.over [data-r=val] { color: #ff9a6a; font-weight: bold; }

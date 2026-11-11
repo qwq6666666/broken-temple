@@ -13,12 +13,15 @@ export const chargeMult = s =>
   Math.min(CONFIG.conceal.chargeMaxMult,
     1 + CONFIG.conceal.chargeStepBonus * (s.disguise.chargeMs / CONFIG.conceal.chargeStepMs));
 
+// 超載點數與爆發加成
+export const overloadPts = s => Math.max(0, Math.min(CONFIG.overload.max, s.disguise.value) - CONFIG.conceal.max);
+export const overloadMult = s => 1 + CONFIG.overload.perPoint * overloadPts(s);
 export const disguiseFull = s => s.disguise.value >= CONFIG.conceal.max;
 
 // 每 tick：偽裝值緩增、蓄力計時、仇人成長
 export function tick(s, dt) {
   const d = s.disguise;
-  d.value = Math.min(CONFIG.conceal.max, d.value + dt * (1 + traitSum(s, 'disguiseRate') + daoPerm(s, 'disguiseRate')) / (CONFIG.conceal.timeGainSec * 1000));
+  if (d.value < CONFIG.conceal.max) d.value = Math.min(CONFIG.conceal.max, d.value + dt * (1 + traitSum(s, 'disguiseRate') + daoPerm(s, 'disguiseRate')) / (CONFIG.conceal.timeGainSec * 1000));   // 時間只加到 20；超載（>20）只能靠忍
   d.chargeMs += dt;
   const grow = CONFIG.enemy.growthPerMin * dt / 60000;
   for (const g of s.grudges) {
@@ -27,7 +30,7 @@ export function tick(s, dt) {
   }
 }
 // 成長倍率 = 個性倍率 × 怨毒（在簿上越久越快，bitterMin 分鐘達上限）
-export const growthOf = g => (PERSONALITY_BIAS[g.personality]?.growth || 1) * (1 + CONFIG.enemy.bitterMax * Math.min(1, (g.age || 0) / (CONFIG.enemy.bitterMin * 60000)));
+export const growthOf = g => (PERSONALITY_BIAS[g.personality]?.growth || 1) * (g.marked ? CONFIG.mark.growth : 1) * (1 + CONFIG.enemy.bitterMax * Math.min(1, (g.age || 0) / (CONFIG.enemy.bitterMin * 60000)));
 export const isBitter = g => (g.age || 0) >= CONFIG.enemy.bitterMin * 60000;
 // 復仇簿佔用格數：長老與宿敵占 2 格
 export const grudgeSize = g => (g.nemesisId ? 2 : VISITOR_TYPES[g.type]?.size || 1);

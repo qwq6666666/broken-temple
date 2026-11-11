@@ -4,6 +4,7 @@ import { CONFIG } from '../config.js';
 import { chargeMult, disguiseFull } from '../core/conceal.js';
 import { canBurst, previewBurst } from '../core/burst.js';
 import { fmt } from '../core/format.js';
+import { nextExpose } from '../core/endure.js';
 import { setText } from './dom.js';
 import { sfx } from './audio.js';
 
@@ -32,9 +33,11 @@ export function mountConceal(root) {
 
 export function updateConceal(r, s) {
   const max = CONFIG.conceal.max, v = s.disguise.value, full = disguiseFull(s);
-  setText(r.val, `${Math.floor(v)}/${max}`);
+  const over = Math.max(0, Math.floor(v) - max);
+  setText(r.val, over ? `${Math.floor(v)}/${max}　🔥超載 +${over}` : `${Math.floor(v)}/${max}`);
+  r.root.classList.toggle('over', over > 0);
   setText(r.mult, `×${fmt(chargeMult(s))}・蓄力 ${Math.floor(s.disguise.chargeMs / 60000)} 分`);
-  r.fill.style.width = (v / max * 100).toFixed(1) + '%';
+  r.fill.style.width = (Math.min(v, max) / max * 100).toFixed(1) + '%';
   r.root.classList.toggle('full', full);
   // 蓄力暗角：偽裝值越滿，畫面邊緣越暗、越紅，並隨心跳脈動（只在值變化時更新 CSS 變數）
   const ch = Math.round(Math.min(1, v / max) * 50) / 50;
@@ -47,7 +50,8 @@ export function updateConceal(r, s) {
   setText(r.btn, pv ? `💥 不裝了！預計 ${pv.chain} 人・連鎖 ×${pv.chainMult}` : '💥 不裝了！');
   r.btn.classList.toggle('ready', ok);
   r.loss.checked = s.settings.loss;
-  setText(r.note, !full ? '蓄力中：忍得越多、藏得越久，爆得越響。'
+  setText(r.note, over ? `超載中：爆發 +${Math.round(over * CONFIG.overload.perPoint * 100)}%，但再忍有 ${Math.round(nextExpose(s) * 100)}% 機率露餡（偽裝值 −${CONFIG.overload.exposeDrop}）`
+    : !full ? '蓄力中：忍得越多、藏得越久，爆得越響。'
     : !s.grudges.length ? '蓄力已滿，但復仇簿是空的。'
     : s.visitor.current ? '蓄力已滿，先處理眼前的訪客。'
     : '蓄力已滿，隨時可以引爆。');

@@ -16,6 +16,7 @@ import { pickNemesis, makeNemesisVisitor } from './nemesis.js';
 import { addRep, tierOfSect, tierOf } from './factions.js';
 import { mutSum } from './mutators.js';
 import { legacyF } from '../data/realms.js';
+import { urActive } from './urPerks.js';
 
 const scheduleNext = s => {
   s.visitor.nextAt = s.t + randInt(CONFIG.visitor.minSec, CONFIG.visitor.maxSec) * 1000 / Math.max(0.2, 1 + mutSum(s, 'visitFreq'));   // 輪迴詞條影響頻率
@@ -33,8 +34,9 @@ function makeReturner(s, r) {
 // 生成一位路人（名字不與復仇簿重複；境界以玩家目前境界為基準 + 類型偏移）
 function makeVisitor(s) {
   const rare = rareChance(s);
+  const tide = !!s.tideNext; s.tideNext = false;                         // 歸墟「潮汐」：這一位必為稀有類型
   const type = weighted(Object.values(VISITOR_TYPES),
-    t => t.weight * (t.rare ? 1 + rare * CONFIG.visitor.rareWeightScale : 1));
+    t => (tide && !t.rare ? 0 : t.weight) * (t.rare ? 1 + rare * CONFIG.visitor.rareWeightScale : 1));
   let name, tries = 0;
   do { name = pick(SURNAMES) + pick(GIVEN); } while (s.grudges.some(g => g.name === name) && ++tries < 20);
   const [lo, hi] = type.offset;
@@ -89,6 +91,11 @@ export const endurePressure = s => {
   return Math.min(E.maxMult, streakMult(s) * (1 + E.bookStep * s.grudges.length) * (1 + E.chargeStep * Math.min(1, s.disguise.value / CONFIG.conceal.max)));
 };
 
+// 超載露餡機率：偽裝值超過 20 的每一點 +4%；洛神鳶「星河護幕」減半。value 預設用目前偽裝值
+export const exposeChance = (s, value = s.disguise.value) => Math.min(0.95, Math.max(0, value - CONFIG.conceal.max) * CONFIG.overload.exposeStep * (urActive(s, 'luoshen') ? 0.5 : 1));
+// 下一次忍會把偽裝值加到多少、露餡機率多少（供畫面顯示）
+export const nextExpose = s => exposeChance(s, Math.min(CONFIG.overload.max, s.disguise.value + CONFIG.endure.disguiseGain));
+
 // 評估眼前訪客：玩家打不打得過、亮一手會是什麼結果（供 ui 顯示）
 export function assess(s, v) {
   const verdict = verdictOf(ratioOf(s, v));
@@ -137,11 +144,15 @@ export function endure(s) {
   const mult = endurePressure(s);                     // 先算再入簿（人數、偽裝值以忍之前為準）
   toBook(s, v);
   s.endureStreak++; s.stats.endures = (s.stats.endures || 0) + 1;
-  s.disguise.value = Math.min(CONFIG.conceal.max, s.disguise.value + CONFIG.endure.disguiseGain);
-  const loss = applyLoss(s, mult);
+  s.disguise.value = Math.min(CONFIG.overload.max, s.disguise.value + CONFIG.endure.disguiseGain);
+  // 超載區（>20）每次忍有機率露餡：機率 = 4% ×（偽裝值 − 20）；露餡 → 偽裝值 −6、該訪客警覺、這次損失 ×2
+  const over = s.disguise.value - CONFIG.conceal.max;
+  const exposed = over > 0 && chance(exposeChance(s));
+  if (exposed) { s.disguise.value = Math.max(0, s.disguise.value - CONFIG.overload.exposeDrop); s.grudges[s.grudges.length - 1].alert = true; }
+  const loss = applyLoss(s, exposed ? mult * CONFIG.overload.exposeLossMult : mult);
   quote(pickLine(LINES.endure));
-  toast(`已記入復仇簿：${v.name}` + (loss ? `（${loss}）` : ''), 'warn');
-  return { loss, mult };
+  toast(exposed ? `⚠ 露餡！${v.name} 看穿了你（偽裝值 −${CONFIG.overload.exposeDrop}）` + (loss ? `（${loss}）` : '') : `已記入復仇簿：${v.name}` + (loss ? `（${loss}）` : ''), 'warn');
+  return { loss, mult, exposed };
 }
 
 // 逐出：花一點靈石把一位仇人請出復仇簿（不給獎勵、不計威望），騰出名額。宿敵不能逐出；引爆中不能
@@ -153,6 +164,16 @@ export function dismiss(s, gid) {
   s.res.stone -= c.stone; s.grudges.splice(i, 1);
   s.stats.dismissed = (s.stats.dismissed || 0) + 1;
   return { name: g.name, cost: c.stone };
+}
+
+// 標記／取消標記「重點記恨」：最多 3 位，宿敵不能標；引爆中不能改
+export const markedCount = s => s.grudges.filter(g => g.marked).length;
+export function toggleMark(s, gid) {
+  const g = s.grudges.find(x => x.id === gid);
+  if (!g || g.nemesisId || s.burstActive) return false;
+  if (g.marked) { g.marked = false; return true; }
+  if (markedCount(s) >= CONFIG.mark.max) return false;
+  g.marked = true; return true;
 }
 
 // 降服：從非 N 池抽一位（優先抽未擁有的）；供當場降服與爆擊降服共用

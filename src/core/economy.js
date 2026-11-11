@@ -46,7 +46,7 @@ export function perSec(s, res) {
     const p = d.produce[res];
     if (p && isActive(s, d.id)) base += produceAt(s.buildings[d.id].lv, p) * buildingMult(s, d.id);       // 等級 × 每級產出（舊刻度）÷ 刻度 × 里程碑倍率
   }
-  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult') + traitSum(s, res + 'Mult')) * fameMult(s);
+  return base * realmOf(s).mult * (1 + artifactSum(s, res + 'Mult') + traitSum(s, res + 'Mult')) * fameMult(s) * (res === 'qi' && s.t < (s.pillUntil || 0) ? 1.2 : 1);   // 威名；太虛真人「丹成」
 }
 // 威名：亮一手打臉累積；到期後失效
 export const fameLayers = s => (s.fame && s.t < s.fame.until ? s.fame.n : 0);

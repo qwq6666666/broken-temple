@@ -5,6 +5,7 @@ import { DISCIPLES_BY_ID } from '../data/disciples.js';
 import { RARITIES, RARITY_ORDER } from '../data/gachaRates.js';
 import { levelCapOf, levelCost, canLevel, assignedTo, starCost, canStar, canBranch, starPay, dshardsOf } from '../core/disciples.js';
 import { traitText } from '../data/traits.js';
+import { UR_PERKS } from '../data/urPerks.js';
 import { slots } from '../core/buildings.js';
 import { stat, isSpecialtyMatch, isElementMatch, starOf, contribution, elementEffect } from '../core/discipleMath.js';
 import { traitValueS } from '../core/economy.js';
@@ -152,6 +153,7 @@ export function disciplePopover(s, ui) {
         <small class="dim">屬性 ${fmt(stat(d))}</small>${loc}</div></div>
     <small class="dm-quote">「${esc(df.quote)}」</small>
     <small class="trait ${d.at ? 'on' : ''}">✦ ${esc(traitText(df.trait.key, traitValueS(s, d)))}${d.at ? '（生效中）' : '（派駐後生效）'}</small>
+    ${UR_PERKS[df.id] ? `<small class="trait ${d.at ? 'on' : ''}">🌟 專屬「${esc(UR_PERKS[df.id].name)}」：${esc(UR_PERKS[df.id].desc)}${d.at ? '（生效中）' : '（派駐後生效）'}</small>` : ''}
     <div class="dm-actions">${lvBtn}${starBtn}</div>
     ${storyRow(s, d)}
     ${branchRow(s, d)}

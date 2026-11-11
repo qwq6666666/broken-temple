@@ -108,6 +108,10 @@ export async function playBurst(result) {
     e.card.classList.add('shown');
     knockDown(arena, fig, e, skip);
     elementFx(scene, fig, e, skip);
+    if (e.markBonus || e.sword || e.markFail) {                                // 標記加成／劍意／失面子 小標籤
+      const b = document.createElement('span'); b.className = 'elbadge ' + (e.markFail ? 'bad' : ''); b.style.bottom = '34px'; b.style.color = e.markFail ? '' : 'var(--gold)';
+      b.textContent = e.markFail ? '⭐失面子' : e.markBonus ? `⭐×${CONFIG.mark.crushMult}` : '⚡劍意'; fig.appendChild(b);
+    }
     if (e.verdict !== 'fail') {                                                // 勢力一網打盡：同一勢力第 3 人倒下時，旗幟被打碎
       const fid = FACTION_OF_SECT[e.g.sect]; facN[fid] = (facN[fid] || 0) + 1;
       if (fid && facN[fid] === FR.sweep.at && e.sweep > 1 && !skip.v) flagBreak(scene, FACTIONS_BY_ID[fid], e.sweep);
@@ -232,6 +236,9 @@ function showSettlement(r) {
     <div class="stiles">${tile('✨', '靈氣', 'qi', r.total.qi)}${tile('💎', '靈石', 'stone', r.total.stone)}<div class="stile"><span>🎫 招賢令</span><b data-count="${r.total.token}">0</b><small>${r.total.shard ? `🧩 碎片 +${r.total.shard}` : '&nbsp;'}</small></div></div>
     ${Object.keys(r.reps || {}).length ? `<p class="hint">🏴 威望：${Object.entries(r.reps).map(([id, n]) => `${FACTIONS_BY_ID[id].emoji}${esc(FACTIONS_BY_ID[id].name)} +${n}`).join('、')}</p>` : ''}
     ${(r.comebacks || []).length ? `<p class="hint">🔙 ${esc(r.comebacks.slice(0, 4).join('、'))}${r.comebacks.length > 4 ? '…' : ''} 日後可能回頭。</p>` : ''}
+    ${r.mode === 'precise' ? `<p class="hint">🎯 精準爆：只打了標記的人；剩下的偽裝值與一半蓄力保留。</p>` : ''}
+    ${r.overPts ? `<p class="hint">🔥 超載 +${r.overPts} 點，爆發 +${Math.round(r.overPts * CONFIG.overload.perPoint * 100)}%。</p>` : ''}
+    ${(r.markFails || []).length ? `<p class="warnline">⭐ 失面子：${esc(r.markFails.map(x => `${x.name}（損失 💎${fmt(x.lost)}）`).join('、'))} 打不過，已變警覺。</p>` : ''}
     ${r.backfire ? `<p class="warnline">⚠ 反噬！${esc(r.backfire.names.join('、'))} 實力遠勝於你，反擊造成損失 💎${fmt(r.backfire.lost)}${r.backfire.paused ? '，並有一處建築暫停產出' : ''}。</p>` : ''}
     <p class="lineq">老祖：「${esc(r.outro)}」</p>
     <div class="sfoot"><button class="btn primary big" data-act="closeSettle">收工</button><button class="btn" data-act="settleToBook">📖 看復仇簿</button></div>
@@ -302,19 +309,24 @@ export function showBurstPreview(pv) {
     const weak = e.weak ? `<br><small class="${e.weakHit ? 'gold' : 'red'}">弱點：${esc(e.weak)}${e.weakHit ? ' ✔ 陣容已命中' : ' ✘ 未命中，碾壓門檻 ×1.5'}</small>` : '';
     const fd = e.fac ? FACTIONS_BY_ID[e.fac] : null;
     const facTag = fd && e.verdict !== 'fail' ? `<br><small class="dim">${fd.emoji} ${esc(fd.name)}・威望 +${e.verdict === 'crush' ? 2 : 1}${e.facTier >= 1 ? `・勢力加成 +${Math.round(FR.tier1Reward * 100)}%` : ''}</small>` : (fd ? `<br><small class="dim">${fd.emoji} ${esc(fd.name)}</small>` : '');
-    const spare = !e.nemesis ? `<label class="spare"><input type="checkbox" data-change="spare" data-gid="${e.g.id}" ${e.sparing ? 'checked' : ''}> 放過（留著養）</label>` : '';
+    const mark = !e.nemesis ? `<label class="spare mark"><input type="checkbox" data-change="mark" data-gid="${e.g.id}" ${e.marked ? 'checked' : ''} ${!e.marked && pv.marks >= CONFIG.mark.max ? 'disabled' : ''}> ⭐ 標記</label>` : '';
+    const spare = !e.nemesis && pv.mode !== 'precise' ? `<label class="spare"><input type="checkbox" data-change="spare" data-gid="${e.g.id}" ${e.sparing ? 'checked' : ''}> 放過（留著養）</label>` : '';
+    if (e.sparing && e.skip === 'unmarked') return `<div class="pvrow pv2 sparing"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}</small><br><small class="dim">未標記：精準爆不打他，留在名單上</small></div><span>${mark}</span></div>`;
     if (e.sparing) return `<div class="pvrow pv2 sparing"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}・${esc(e.g.personality || '')}</small>${ripe}<br><small class="dim">這次不打，下次熟成 +25% 獎勵、境界 +0.3（仍占名額）</small></div><span>${spare}</span></div>`;
     return `<div class="pvrow pv2"><div><b>${esc(e.g.name)}</b> <small>${esc(e.g.label)}・${esc(e.g.element || '')}${e.adv > 1 ? '↑' : e.adv < 1 ? '↓' : ''}・${esc(e.g.personality || '')}${e.bias ? `（${esc(e.bias)}）` : ''}</small>${ripe}${foe}
       <br><small class="dim">我方 ${fmt(e.mine)} ／ 對方 ${fmt(e.theirs)} ＝ <b>×${e.ratio.toFixed(2)}</b>${sq}</small>${facTag}${weak}
       <div class="pvbar"><i style="width:${Math.min(100, e.ratio / (pv.crushRatio * 1.25) * 100)}%"></i><u style="left:${pv.narrowRatio / (pv.crushRatio * 1.25) * 100}%"></u><u style="left:${pv.crushRatio / (pv.crushRatio * 1.25) * 100}%"></u></div></div>
-      <span>${e.risk ? '<span class="tag red">⚠ 反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span><br>${spare}</span></div>`;
+      <span>${e.risk ? '<span class="tag red">⚠ 反噬</span> ' : ''}<span class="verdict ${PV[e.verdict][0]}">${PV[e.verdict][1]}</span>${e.sword ? ' <span class="tag gold">⚡劍意</span>' : ''}<br>${mark} ${spare}</span></div>`;
   }).join('');
   const SQ = pv.pool.filter(p => p.on);
   const slot = pv.squad.map(d => { const df = DISCIPLES_BY_ID[d.defId]; return `<button class="chip on" data-act="squadToggle" data-uid="${d.uid}" title="點擊撤下">${df.emoji} ${esc(df.name)}</button>`; }).join('')
     + Array.from({ length: Math.max(0, 3 - pv.squad.length) }, () => '<span class="chip empty">空位</span>').join('');
   const pool = pv.pool.filter(p => !p.on).map(p => { const df = DISCIPLES_BY_ID[p.d.defId];
     return `<button class="chip" data-act="squadToggle" data-uid="${p.d.uid}" ${pv.squad.length >= 3 ? 'disabled' : ''} title="${esc(df.specialty)}・${esc(df.element)}">${df.emoji} ${esc(df.name)} <small>${esc(df.element)}${esc(df.specialty)} ${pct(p.avg)}</small></button>`; }).join('');
-  return showModal(`<h3>💥 引爆預覽</h3>
+  const modebar = `<div class="modebar"><button class="btn mini ${pv.mode !== 'precise' ? 'primary' : ''}" data-act="burstMode" data-m="full">💥 全面爆</button><button class="btn mini ${pv.mode === 'precise' ? 'primary' : ''}" data-act="burstMode" data-m="precise" ${pv.marks ? '' : 'disabled'}>🎯 精準爆</button>
+    <small class="dim">${pv.mode === 'precise' ? `只打標記的人，獎勵 ×${CONFIG.precise.mult}；只用掉 ${CONFIG.precise.cost} 點偽裝值、保留一半蓄力` : `⭐ 標記最多 ${CONFIG.mark.max} 位：碾壓 ×${CONFIG.mark.crushMult}、險勝無加成、打不過失面子（${CONFIG.mark.failStoneSec} 秒靈石＋警覺）；標記者成長較快`}</small></div>
+    ${pv.overPts ? `<p class="hint">🔥 超載 +${pv.overPts} 點：爆發 +${Math.round(pv.overPts * CONFIG.overload.perPoint * 100)}%</p>` : ''}`;
+  return showModal(`<h3>💥 引爆預覽</h3>${modebar}
     <p>預計擊敗 <b class="gold">${pv.chain}</b> 人，連鎖 <b class="gold">×${pv.chainMult}</b>，蓄力 <b class="gold">×${fmt(pv.chargeMult)}</b>。比值 ≥ <b>${pv.crushRatio}</b> 碾壓、≥ <b>${pv.narrowRatio}</b> 險勝，其餘打不過（宿敵只有碾壓才算擊敗）。</p>
     <div class="squadbox"><div class="squadhd"><b class="gold">⚔️ 出戰陣容</b>（最多 3 人）
       <span><button class="btn mini" data-act="squadAuto">⚡ 推薦陣容</button> <button class="btn mini" data-act="squadClear" ${SQ.length ? '' : 'disabled'}>清空</button></span></div>
